@@ -174,6 +174,7 @@ class PhysiologicalService extends ChangeNotifier {
 
     if (user != null) {
       try {
+        debugPrint('Saving HRV to DB: $dateStr, HRV: $rmssd, Status: ${analysis.status.name.toUpperCase()}');
         await _supabase.from('diary_entries').upsert({
           'id': '${user.id}_$dateStr',
           'athlete_id': user.id,
@@ -185,9 +186,13 @@ class PhysiologicalService extends ChangeNotifier {
           'recommendation': analysis.recommendation,
           'updated_at': DateTime.now().toIso8601String(),
         });
+        debugPrint('HRV Saved Successfully');
       } catch (e) {
         debugPrint('Error saving HRV measurement: $e');
+        // Consider re-throwing or notifying UI if critical
       }
+    } else {
+        debugPrint('User is null, cannot save HRV');
     }
 
     _history.insert(0, PhysiologicalData(
