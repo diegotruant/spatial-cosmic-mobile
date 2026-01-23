@@ -1,0 +1,70 @@
+Running Gradle task 'assembleRelease'...                        
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:569:7: Error: Expected a class member, but got ']'.
+      ],
+      ^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:569:8: Error: Expected a class member, but got ','.
+      ],
+       ^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:570:5: Error: Expected a class member, but got ')'.
+    );
+    ^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:570:6: Error: Expected a class member, but got ';'.
+    );
+     ^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1705:1: Error: Expected a declaration, but got '}'.
+}
+^
+lib/src/services/athlete_profile_service.dart:314:13: Error: 'pAerob' is already declared in this scope.
+     double pAerob = absVo2max * 0.0115; // User formula adaptation
+            ^^^^^^
+lib/src/services/athlete_profile_service.dart:212:13: Context: Previous declaration of 'pAerob'.
+     double pAerob = _vo2max * 0.0115 * (_weight ?? 70); // VO2max is ml/kg/min usually? 
+            ^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:672:49: Error: Undefined name 'context'.
+            onTap: () => _showNumberInputDialog(context, label, value, onChanged),
+                                                ^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:851:49: Error: Undefined name 'context'.
+            onTap: () => _showNumberInputDialog(context, label, value ?? 0, onChanged),
+                                                ^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1319:54: Error: Undefined name '_fetchOuraData'.
+                  onPressed: oura.isLoading ? null : _fetchOuraData,
+                                                     ^^^^^^^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1569:45: Error: Setter not found: '_currentIndex'.
+            onPressed: () => setState(() => _currentIndex = 1), // Switch to Library Tab
+                                            ^^^^^^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1569:30: Error: Method not found: 'setState'.
+            onPressed: () => setState(() => _currentIndex = 1), // Switch to Library Tab
+                             ^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1625:15: Error: Setter not found: '_currentIndex'.
+              _currentIndex = 2; // Navigate to Settings tab
+              ^^^^^^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1624:13: Error: Method not found: 'setState'.
+            setState(() {
+            ^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1685:23: Error: Undefined name '_currentIndex'.
+        currentIndex: _currentIndex,
+                      ^^^^^^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1688:13: Error: Setter not found: '_currentIndex'.
+            _currentIndex = index;
+            ^^^^^^^^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:1687:11: Error: Method not found: 'setState'.
+          setState(() {
+          ^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildRelease'.
+> Process 'command 'C:\dev\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 12s
+Running Gradle task 'assembleRelease'...                           12,4s
+Gradle task assembleRelease failed with exit code 1

@@ -1,0 +1,670 @@
+import 'package:flutter/material.dart';
+import 'dart:math';
+import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import '../../../services/bluetooth_service.dart';
+import '../../../services/workout_service.dart';
+import '../../../services/settings_service.dart';
+import '../../widgets/metric_tile.dart';
+import '../../widgets/live_workout_chart.dart';
+import '../../widgets/glass_card.dart';
+import 'workout_analysis_screen.dart';
+import '../settings/bluetooth_scan_screen.dart' as com_bluetooth;
+import '../settings/settings_screens.dart' as com_settings;
+import 'package:wakelock_plus/wakelock_plus.dart';
+import '../../../logic/fit_generator.dart';
+import 'post_workout_analysis_screen.dart';
+import '../../../services/sync_service.dart';
+import '../../../services/intervals_service.dart';
+import '../../../services/integration_service.dart';
+import '../../../services/athlete_profile_service.dart' as src_profile;
+
+class ModernWorkoutScreen extends StatefulWidget {
+  const ModernWorkoutScreen({super.key});
+
+  @override
+  State<ModernWorkoutScreen> createState() => _ModernWorkoutScreenState();
+}
+
+class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
+  int _intensity = 100;
+  bool _isChartZoomed = false; // Zoom state
+  bool _showPercentHr = false;
+  bool _showAvgPower = false;
+  // New Interactive States
+  bool _showRemainingTime = false;
+  bool _showPercentPower = false;
+  bool _showTotalRemainingTime = false; // New state for Total Time
+  
+  Color _getZoneColor(int watts, int ftp) {
+    if (ftp <= 0) return Colors.cyanAccent;
+    double p = watts / ftp;
+    
+    if (p < 0.55) return Colors.grey; // Z1 (Active Recovery)
+    if (p < 0.75) return Colors.blueAccent; // Z2 (Endurance)
+    if (p < 0.90) return Colors.greenAccent; // Z3 (Tempo)
+    if (p < 1.05) return Colors.yellowAccent; // Z4 (Threshold)
+    if (p < 1.20) return Colors.orangeAccent; // Z5 (VO2 Max)
+    return Colors.redAccent; // Z6 (Anaerobic)
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WakelockPlus.enable(); // Keep screen on
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bluetooth = context.read<BluetoothService>();
+    final settings = context.read<SettingsService>();
+    context.read<WorkoutService>().updateBluetoothService(bluetooth);
+    context.read<WorkoutService>().updateSettingsService(settings);
+  }
+
+  @override
+  void dispose() {
+    WakelockPlus.disable(); // Allow screen off
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bluetooth = context.watch<BluetoothService>();
+    final workoutService = context.watch<WorkoutService>();
+    
+    // Formatting time
+    String formatTime(int totalSeconds) {
+      int minutes = totalSeconds ~/ 60;
+      int seconds = totalSeconds % 60;
+      return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
+    }
+
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          // Subtle background glow
+          Positioned(
+            bottom: -100,
+            right: -100,
+            child: Container(
+              width: 400,
+              height: 400,
+              decoration: BoxDecoration(
+                color: Colors.blueAccent.withOpacity(0.05),
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(color: Colors.blueAccent.withOpacity(0.1), blurRadius: 150, spreadRadius: 50)
+                ],
+              ),
+            ),
+          ),
+          
+          OrientationBuilder(
+            builder: (context, orientation) {
+              final isLandscape = orientation == Orientation.landscape;
+              
+              return SafeArea(
+                child: Column(
+                  children: [
+                    _buildTopBar(),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                        child: isLandscape 
+                          ? _buildLandscapeLayout(bluetooth, workoutService, formatTime)
+                          : _buildPortraitLayout(bluetooth, workoutService, formatTime),
+                      ),
+                    ),
+                    _buildControlBar(workoutService),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLandscapeLayout(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
+    return Row(
+      children: [
+        // Left Side: Metrics Grid (2x3)
+        Expanded(
+          flex: 2,
+          child: GridView.count(
+            crossAxisCount: 2,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: 1.4,
+            children: _buildMetricTiles(bluetooth, workoutService, formatTime),
+          ),
+        ),
+        const SizedBox(width: 16),
+        // Right Side: Advanced Graph
+        Expanded(
+          flex: 3,
+          child: _buildChartWithControls(),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPortraitLayout(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
+    return Column(
+      children: [
+        // Graph at top (Fixed height, no scroll)
+        SizedBox(
+          height: 220, // Slightly taller for better visibility
+          child: _buildChartWithControls(),
+        ),
+        const SizedBox(height: 12),
+        // Metrics Grid (Expanded to fill remaining space)
+        Expanded(
+          child: GridView.count(
+            crossAxisCount: 2,
+            childAspectRatio: 1.5, // More rectangular boxes
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            // Organize into rows:
+            // 1: Interval Timer | Total Timer
+            // 2: Target Power | Power Current
+            // 3: HR | Cadence
+            // 4: Speed/Dist | Avg Power (Optional)
+            children: _buildMetricTiles(bluetooth, workoutService, formatTime),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChartWithControls() {
+    final settings = context.watch<SettingsService>();
+    return Stack(
+      children: [
+        LiveWorkoutChart(isZoomed: _isChartZoomed, showPowerZones: settings.showPowerZones),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => setState(() => _isChartZoomed = !_isChartZoomed),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.4),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Icon(
+                  _isChartZoomed ? LucideIcons.minimize2 : LucideIcons.maximize2,
+                  color: Colors.white,
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  List<Widget> _buildMetricTiles(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
+    final settings = context.watch<SettingsService>();
+    
+    // Calculate Average Power on the fly (or optimization: move to service)
+    int avgPower = 0;
+    if (workoutService.powerHistory.isNotEmpty) {
+      avgPower = (workoutService.powerHistory.reduce((a, b) => a + b) / workoutService.powerHistory.length).toInt();
+    }
+
+    final int currentWatts = (workoutService.powerHistory.isNotEmpty ? workoutService.powerHistory.last : 0).toInt();
+    final int userFtp = workoutService.userFtp;
+    final int targetWatts = workoutService.currentTargetWatts;
+
+    // Calculate Total Duration
+    int totalWorkoutDuration = 0;
+    if (workoutService.currentWorkout != null) {
+      for (var b in workoutService.currentWorkout!.blocks) totalWorkoutDuration += b.duration;
+    }
+    
+    return [
+      // 1. Interval Timer (Toggle Elapsed / Remaining)
+      GestureDetector(
+        onTap: () => setState(() => _showRemainingTime = !_showRemainingTime),
+        child: MetricTile(
+          label: _showRemainingTime ? 'INT REMAINING' : 'INTERVAL', 
+          value: _showRemainingTime 
+             ? (workoutService.currentWorkout != null && workoutService.currentBlockIndex < workoutService.currentWorkout!.blocks.length
+                 ? formatTime(workoutService.currentWorkout!.blocks[workoutService.currentBlockIndex].duration - workoutService.elapsedInBlock)
+                 : '-')
+             : formatTime(workoutService.elapsedInBlock), 
+          unit: 'mm:ss', 
+          accentColor: Colors.blueAccent
+        ),
+      ),
+      
+      // 2. Total Time Box (New)
+      GestureDetector(
+        onTap: () => setState(() => _showTotalRemainingTime = !_showTotalRemainingTime),
+        child: MetricTile(
+          label: _showTotalRemainingTime ? 'TOT REMAINING' : 'TOTAL TIME', 
+          value: _showTotalRemainingTime
+             ? formatTime(totalWorkoutDuration - workoutService.totalElapsed)
+             : formatTime(workoutService.totalElapsed),
+          unit: 'mm:ss', 
+          accentColor: Colors.white, // Neutral
+        ),
+      ),
+
+      // 3. Target Power
+      MetricTile(
+        label: 'TARGET', 
+        value: targetWatts.toString(), 
+        unit: 'W', 
+        isLarge: true, 
+        accentColor: _getZoneColor(currentWatts, userFtp),
+      ),
+      
+      // 4. Current Power
+      GestureDetector(
+        onTap: () => setState(() => _showPercentPower = !_showPercentPower),
+        child: MetricTile(
+          label: _showPercentPower ? 'POWER %' : 'POWER', 
+          value: _showPercentPower 
+             ? (userFtp > 0 ? ((currentWatts / userFtp) * 100).toStringAsFixed(0) : '-')
+             : currentWatts.toString(), 
+          unit: _showPercentPower ? '%' : 'W', 
+          isLarge: true, 
+          accentColor: _getZoneColor(currentWatts, userFtp) 
+        ),
+      ),
+      
+      // 5. Heart Rate
+      GestureDetector(
+        onTap: () => setState(() => _showPercentHr = !_showPercentHr),
+        child: MetricTile(
+          label: _showPercentHr ? 'HR %' : 'HEART RATE', 
+          value: _showPercentHr 
+             ? (settings.hrMax > 0 && bluetooth.heartRate > 0 ? ((bluetooth.heartRate / settings.hrMax) * 100).toInt().toString() : '-') 
+             : bluetooth.heartRate.toString(), 
+          unit: _showPercentHr ? '%' : 'BPM', 
+          accentColor: Colors.pinkAccent
+        ),
+      ),
+
+      // 6. Cadence
+      MetricTile(label: 'CADENCE', value: bluetooth.cadence.toString(), unit: 'RPM', accentColor: Colors.greenAccent),
+      
+      // 7. Speed / Dist (Compact)
+      MetricTile(
+        label: 'SPEED / DIST', 
+        value: '${workoutService.currentSpeed.toStringAsFixed(1)} / ${workoutService.totalDistance.toStringAsFixed(1)}', 
+        unit: 'km/h / km', 
+        accentColor: Colors.purpleAccent
+      ),
+      
+       // 8. Avg Power
+      GestureDetector(
+        onTap: () => setState(() => _showAvgPower = !_showAvgPower),
+        child: MetricTile(
+          label: 'AVG POWER', 
+          value: avgPower.toString(), 
+          unit: 'W', 
+          accentColor: Colors.orangeAccent
+        ),
+      ),
+    ];
+  }
+
+  Widget _buildTopBar() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70, size: 20),
+            onPressed: () {
+               context.read<WorkoutService>().stopWorkout();
+               Navigator.pop(context);
+            },
+          ),
+          Text(
+            context.watch<WorkoutService>().currentWorkout?.title ?? 'PEDALATA LIBERA',
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, letterSpacing: 1.5, fontSize: 12),
+          ),
+          Row(
+            children: [
+              // Sensor Count Indicator -> Click to Scan
+              GestureDetector(
+                onTap: () {
+                   Navigator.push(
+                     context,
+                     MaterialPageRoute(builder: (context) => const com_bluetooth.BluetoothScanScreen()),
+                   );
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.blueAccent.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.blueAccent.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(LucideIcons.bluetooth, color: Colors.blueAccent, size: 14),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${context.watch<BluetoothService>().connectedDeviceCount}', 
+                        style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              // Battery Status
+              GestureDetector(
+                onTap: () {
+                   showDialog(
+                     context: context,
+                     builder: (ctx) => AlertDialog(
+                       backgroundColor: const Color(0xFF1A1A2E),
+                       title: const Text("Livello Batteria Sensori", style: TextStyle(color: Colors.white)),
+                       content: Column(
+                         mainAxisSize: MainAxisSize.min,
+                         children: context.watch<BluetoothService>().batteryLevels.entries.map((entry) {
+                            // Resolve Name
+                            final bt = context.read<BluetoothService>();
+                            String name = entry.key; // Fallback to ID
+                            
+                            if (bt.trainer?.remoteId.toString() == entry.key) name = bt.trainer?.platformName ?? "Trainer";
+                            else if (bt.heartRateSensor?.remoteId.toString() == entry.key) name = bt.heartRateSensor?.platformName ?? "HR Monitor";
+                            else if (bt.powerMeter?.remoteId.toString() == entry.key) name = bt.powerMeter?.platformName ?? "Power Meter";
+                            else if (bt.cadenceSensor?.remoteId.toString() == entry.key) name = bt.cadenceSensor?.platformName ?? "Cadence Sensor";
+                            else if (bt.coreSensor?.remoteId.toString() == entry.key) name = bt.coreSensor?.platformName ?? "CORE Sensor";
+                            
+                            return ListTile(
+                              leading: const Icon(LucideIcons.battery, color: Colors.greenAccent),
+                              title: Text(name, style: const TextStyle(color: Colors.white70, fontSize: 14)), 
+                              trailing: Text('${entry.value}%', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                            );
+                         }).toList(),
+                       ),
+                       actions: [
+                         TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Chiudi"))
+                       ],
+                     ),
+                   );
+                },
+                child: const Icon(LucideIcons.battery, color: Colors.greenAccent, size: 18),
+              ),
+              const SizedBox(width: 12),
+              // Settings -> Advanced Options
+              IconButton(
+                icon: const Icon(LucideIcons.settings, color: Colors.white70, size: 20),
+                onPressed: () {
+                   Navigator.push(
+                     context,
+                     MaterialPageRoute(builder: (context) => const com_settings.AdvancedOptionsScreen()),
+                   );
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlBar(WorkoutService workoutService) {
+    return GlassCard(
+      borderRadius: 0,
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      borderColor: Colors.white.withOpacity(0.05),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            _buildControlButton(
+              workoutService.isPaused ? LucideIcons.play : LucideIcons.pause, 
+              workoutService.isPaused ? Colors.cyanAccent : Colors.orangeAccent, 
+              () => workoutService.togglePlayPause()
+            ),
+            const SizedBox(width: 16),
+            _buildControlButton(LucideIcons.square, Colors.purpleAccent, () async {
+              workoutService.stopWorkout();
+              
+              // Generate FIT File
+              showDialog(
+                context: context, 
+                barrierDismissible: false,
+                builder: (ctx) => const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+              );
+
+              try {
+                 final bluetooth = context.read<BluetoothService>(); // Snapshot of final state if needed
+                 
+                   final file = await FitGenerator.generateActivityFit(
+                     powerHistory: workoutService.powerHistory,
+                     hrHistory: workoutService.hrHistory,
+                     cadenceHistory: workoutService.cadenceHistory,
+                     speedHistory: workoutService.speedHistory,
+                     avgPower: workoutService.powerHistory.isNotEmpty 
+                        ? workoutService.powerHistory.reduce((a, b) => a + b) / workoutService.powerHistory.length 
+                        : 0.0,
+                     maxHr: workoutService.hrHistory.isNotEmpty 
+                        ? workoutService.hrHistory.reduce(max) 
+                        : 0,
+                     durationSeconds: workoutService.totalElapsed,
+                     totalDistance: workoutService.totalDistance * 1000, // convert km to meters for FIT
+                     totalCalories: workoutService.totalCalories.toInt(),
+                     startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
+                     workoutTitle: workoutService.currentWorkout?.title ?? "Manual Workout",
+                   );
+                 
+                  // 1. Save Locally Logic (Robustness)
+                  try {
+                     final workoutId = workoutService.currentWorkout?.id ?? 'manual';
+                     // Store file reference in SharedPrefs or local DB if needed for "Retry Queue"
+                     // For now, we rely on the file existing on disk.
+                     debugPrint("Workout file generated at: ${file.path}");
+                     
+                     // 2. Sync to Cloud
+                     try {
+                        await context.read<SyncService>().uploadWorkoutFile(file.path, workoutId);
+                        debugPrint("Supabase upload success");
+                     } catch (e) {
+                        debugPrint("Supabase sync failed (offline?): $e");
+                        // TODO: Add to local pending sync queue
+                        if (context.mounted) {
+                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                             content: Text("Salvato in locale. Sincronizzazione fallita."),
+                             backgroundColor: Colors.orangeAccent,
+                           ));
+                        }
+                     }
+
+                     // 3. Multi-Channel Export (Parallel)
+                     final intervalsService = context.read<IntervalsService>();
+                     final integrationService = context.read<IntegrationService>();
+                     
+                     final List<Future> uploads = [];
+                     
+                     if (intervalsService.isConnected) {
+                       uploads.add(intervalsService.uploadActivity(file).then((_) => debugPrint("Intervals upload completed")));
+                     }
+                     if (integrationService.isStravaConnected) {
+                        uploads.add(integrationService.uploadActivityToStrava(file).then((_) => debugPrint("Strava upload completed")));
+                     }
+                     
+                     // Wait for exports but don't block UI indefinitely if they are slow?
+                     // Verify requirement: "Simultaneously".
+                     // We can fire and forget OR wait. Let's wait up to 5s then move on?
+                     // Or just await all.
+                     if (uploads.isNotEmpty) {
+                        try {
+                           await Future.wait(uploads).timeout(const Duration(seconds: 10));
+                        } catch (e) {
+                           debugPrint("Export timeout or error: $e");
+                        }
+                     }
+
+                     // 4. Analysis Trigger
+                      final profileService = context.read<src_profile.AthleteProfileService>();
+                      profileService.calculateAndSaveVLamax(workoutService.powerHistory, workoutService.userFtp).then((_) {
+                          debugPrint("VLamax calculation completed");
+                      }).catchError((err) {
+                          debugPrint("VLamax calculation error: $err");
+                      });
+
+                  } catch (e) {
+                      debugPrint("Critical Save Error: $e");
+                      if (context.mounted) {
+                        Navigator.pop(context); // Pop dialog
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error saving workout locally: $e"), backgroundColor: Colors.red));
+                      }
+                      return; // Exit, do not nav
+                  }
+
+                 if (context.mounted) {
+                   Navigator.pop(context); // Pop dialog
+                   Navigator.pushReplacement(
+                     context,
+                     MaterialPageRoute(builder: (context) => PostWorkoutAnalysisScreen(fitFilePath: file.path, workoutId: workoutService.currentWorkout?.id)),
+                   );
+                 }
+              } catch (e) {
+                 if (context.mounted) {
+                   Navigator.pop(context); // Pop dialog
+                   ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error generating FIT file: $e")));
+                 }
+              }
+            }),
+            const SizedBox(width: 16),
+            // Skip Interval Button
+            _buildControlButton(LucideIcons.skipForward, Colors.white, () {
+               workoutService.nextInterval();
+            }),
+            const SizedBox(width: 16),
+            _buildModeSelector(workoutService),
+            const SizedBox(width: 16), // Replaced Spacer with fixed spacing in scroll view
+            _buildIntensityControl(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildControlButton(IconData icon, Color color, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(30),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.1),
+          shape: BoxShape.circle,
+          border: Border.all(color: color.withOpacity(0.3)),
+        ),
+        child: Icon(icon, color: color, size: 22),
+      ),
+    );
+  }
+
+  Widget _buildIntensityControl() {
+    // Read from service directly to stay in sync
+    final service = context.watch<WorkoutService>();
+    final isSlope = service.mode == WorkoutMode.slope;
+    final isResist = service.mode == WorkoutMode.resistance;
+    
+    String displayValue = '';
+    if (isSlope) displayValue = '${service.currentSlope.toStringAsFixed(1)}%';
+    else if (isResist) displayValue = '${service.currentResistance}%';
+    else displayValue = '${service.intensityPercentage}%';
+    
+    String label = 'INTENSITY';
+    if (isSlope) label = 'SLOPE';
+    else if (isResist) label = 'RESIST';
+
+    return Row(
+      children: [
+        IconButton(
+          icon: const Icon(Icons.remove, color: Colors.white),
+          onPressed: () {
+             service.decreaseIntensity();
+          },
+        ),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSlope ? Colors.purpleAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: isSlope ? Colors.purpleAccent.withOpacity(0.5) : Colors.white10),
+          ),
+          child: Text(
+            displayValue,
+            style: TextStyle(color: isSlope ? Colors.purpleAccent : Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.add, color: Colors.white),
+          onPressed: () {
+             service.increaseIntensity();
+          },
+        ),
+        const SizedBox(width: 12),
+        Text(label, style: const TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
+      ],
+    );
+  }
+
+  Widget _buildModeSelector(WorkoutService service) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildModeItem(WorkoutMode.erg, 'ERG', service),
+          _buildModeItem(WorkoutMode.slope, 'SIM', service),
+          _buildModeItem(WorkoutMode.resistance, 'RES', service),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildModeItem(WorkoutMode mode, String label, WorkoutService service) {
+    final isSelected = service.mode == mode;
+    return GestureDetector(
+      onTap: () => service.setMode(mode),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.blueAccent.withOpacity(0.2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.blueAccent : Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+}
+

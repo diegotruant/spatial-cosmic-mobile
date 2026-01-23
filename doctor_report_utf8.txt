@@ -1,0 +1,41 @@
+﻿[!] Flutter (Channel stable, 3.38.6, on Microsoft Windows [Versione 10.0.26200.7462], locale it-IT) [442ms]
+    ÔÇó Flutter version 3.38.6 on channel stable at C:\dev\flutter
+    ! The flutter binary is not on your path. Consider adding C:\dev\flutter\bin to your path.
+    ! The dart binary is not on your path. Consider adding C:\dev\flutter\bin to your path.
+    ÔÇó Upstream repository https://github.com/flutter/flutter.git
+    ÔÇó Framework revision 8b87286849 (4 days ago), 2026-01-08 10:49:17 -0800
+    ÔÇó Engine revision 78fc3012e4
+    ÔÇó Dart version 3.10.7
+    ÔÇó DevTools version 2.51.1
+    ÔÇó Feature flags: enable-web, enable-linux-desktop, enable-macos-desktop, enable-windows-desktop, enable-android, enable-ios, cli-animations, enable-native-assets, omit-legacy-version-file, enable-lldb-debugging
+    ÔÇó If those were intentional, you can disregard the above warnings; however it is recommended to use "git" directly to perform update checks and upgrades.
+
+[ÔêÜ] Windows Version (11 Home 64-bit, 25H2, 2009) [1.039ms]
+
+[!] Android toolchain - develop for Android devices (Android SDK version 36.1.0) [419ms]
+    ÔÇó Android SDK at C:\Users\Diego Truant\AppData\Local\Android\Sdk
+    ÔÇó Emulator version 36.3.10.0 (build_id 14472402) (CL:N/A)
+    ÔÇó Platform android-36, build-tools 36.1.0
+    X Android SDK location currently contains spaces, which is not supported by the Android SDK as it causes problems with NDK tools. Try moving it from C:\Users\Diego Truant\AppData\Local\Android\Sdk to a path without spaces.
+    ÔÇó Try re-installing or updating your Android SDK,
+      visit https://flutter.dev/to/windows-android-setup for detailed instructions.
+
+[ÔêÜ] Chrome - develop for the web [228ms]
+    ÔÇó Chrome at C:\Program Files\Google\Chrome\Application\chrome.exe
+
+[!] Visual Studio - develop Windows apps (Visual Studio Build Tools 2022 17.14.23) [227ms]
+    ÔÇó Visual Studio at C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools
+    ÔÇó Visual Studio Build Tools 2022 version 17.14.36811.4
+    ÔÇó Windows 10 SDK version 10.0.26100.0
+    X The current Visual Studio installation is incomplete.
+      Please use Visual Studio Installer to complete the installation or reinstall Visual Studio.
+
+[ÔêÜ] Connected device (3 available) [148ms]
+    ÔÇó Windows (desktop) ÔÇó windows ÔÇó windows-x64    ÔÇó Microsoft Windows [Versione 10.0.26200.7462]
+    ÔÇó Chrome (web)      ÔÇó chrome  ÔÇó web-javascript ÔÇó Google Chrome 143.0.7499.193
+    ÔÇó Edge (web)        ÔÇó edge    ÔÇó web-javascript ÔÇó Microsoft Edge 143.0.3650.139
+
+[ÔêÜ] Network resources [376ms]
+    ÔÇó All expected network resources are available.
+
+! Doctor found issues in 3 categories.

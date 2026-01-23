@@ -1,0 +1,40 @@
+Running Gradle task 'assembleRelease'...                        
+lib/src/services/athlete_profile_service.dart:314:13: Error: 'pAerob' is already declared in this scope.
+     double pAerob = absVo2max * 0.0115; // User formula adaptation
+            ^^^^^^
+lib/src/services/athlete_profile_service.dart:212:13: Context: Previous declaration of 'pAerob'.
+     double pAerob = _vo2max * 0.0115 * (_weight ?? 70); // VO2max is ml/kg/min usually? 
+            ^^^^^^
+lib/src/ui/screens/dashboard/modern_dashboard_screen.dart:567:27: Error: The getter 'trainingHistory' isn't defined for the type 'AthleteProfileService'.
+ - 'AthleteProfileService' is from 'package:spatial_cosmic_mobile/src/services/athlete_profile_service.dart' ('lib/src/services/athlete_profile_service.dart').
+Try correcting the name to the name of an existing getter, or defining a getter or field named 'trainingHistory'.
+        ...profileService.trainingHistory.map((w) => Padding(
+                          ^^^^^^^^^^^^^^^
+lib/src/ui/screens/settings/settings_screens.dart:319:11: Error: The method '_buildMenuRow' isn't defined for the type 'AccountInfoScreen'.
+ - 'AccountInfoScreen' is from 'package:spatial_cosmic_mobile/src/ui/screens/settings/settings_screens.dart' ('lib/src/ui/screens/settings/settings_screens.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_buildMenuRow'.
+          _buildMenuRow(context, 'Modifica Profilo Completo', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileEditScreen()))),
+          ^^^^^^^^^^^^^
+lib/src/ui/screens/settings/settings_screens.dart:320:11: Error: The method '_buildMenuRow' isn't defined for the type 'AccountInfoScreen'.
+ - 'AccountInfoScreen' is from 'package:spatial_cosmic_mobile/src/ui/screens/settings/settings_screens.dart' ('lib/src/ui/screens/settings/settings_screens.dart').
+Try correcting the name to the name of an existing method, or defining a method named '_buildMenuRow'.
+          _buildMenuRow(context, 'Certificato Medico', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MedicalCertificateScreen()))),
+          ^^^^^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task ':app:compileFlutterBuildRelease'.
+> Process 'command 'C:\dev\flutter\bin\flutter.bat'' finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 12s
+Running Gradle task 'assembleRelease'...                           12,6s
+Gradle task assembleRelease failed with exit code 1
