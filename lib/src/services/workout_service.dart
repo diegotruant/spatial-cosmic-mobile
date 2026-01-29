@@ -142,7 +142,9 @@ class WorkoutService extends ChangeNotifier {
     if (ftp != null) userFtp = ftp;
     
     // Auto-detect mode based on workout ID or logic
-    if (workoutId == 'pmax_slope_test') {
+    if (workoutId == 'pmax_slope_test' || 
+        workoutId == 'flow_protocol_1' || 
+        workoutId == 'flow_protocol_2') {
       _mode = WorkoutMode.slope;
       _currentSlope = 2.0; // Default 2%
     } else {
@@ -180,6 +182,18 @@ class WorkoutService extends ChangeNotifier {
     _timer?.cancel();
     isActive = false;
     isPaused = true;
+    
+    // Auto-update Max HR
+    if (hrHistory.isNotEmpty && settingsService != null) {
+      int maxHr = hrHistory.reduce(max);
+      if (maxHr > settingsService!.hrMax) {
+         // Found new max!
+         settingsService!.setHrMax(maxHr);
+         // Note: We can't show snackbar here easily as we don't have context, 
+         // but the settings update will persist and UI will reflect if watching settings.
+      }
+    }
+
     notifyListeners();
   }
   
@@ -193,17 +207,78 @@ class WorkoutService extends ChangeNotifier {
         cumulativeDuration += currentWorkout!.blocks[i].duration;
       }
       
+      // Calculate Gap
+      int gap = cumulativeDuration - totalElapsed;
+
       // 2. Advance state
       currentBlockIndex++;
       elapsedInBlock = 0;
       totalElapsed = cumulativeDuration; // Jump time forward to start of next block
       
+      // 3. Fill History Gaps (Fix for Chart Alignment)
+      // When skipping, we must pad the history so the "cursor" moves forward on the chart
+      // and timestamps remain aligned with planned blocks.
+      if (gap > 0) {
+        // Limit gap filler to avoid memory spikes if skipping huge chunks (e.g. > 1 hour?)
+        // But we need consistency. 3600 limit handles memory.
+        for (int k = 0; k < gap; k++) {
+             powerHistory.add(0.0);
+             hrHistory.add(0); // Maintain last HR? No, assume 0/gap.
+             cadenceHistory.add(0);
+             tempHistory.add(0.0);
+             speedHistory.add(0.0);
+        }
+        
+        // Handle max size limit here too if needed, but _tick does it.
+        // We'll let next _tick clean it up if it exceeds.
+      }
+
       // Vibration / Sound Feedback
       if (settingsService?.vibration == true) {
          HapticFeedback.mediumImpact();
       }
       
     } else {
+      // Check if this is a RAMP TEST (Infinite)
+      // We look for a specific ID or title pattern
+      if (currentWorkout?.id == 'ramp_test' || (currentWorkout?.title.toLowerCase().contains('ramp test') ?? false)) {
+          // Infinite Logic: Add new step
+          // Last block was presumably the step.
+          // Get last block properties
+          final lastBlock = currentWorkout!.blocks.last;
+          if (lastBlock is SteadyState) {
+             // Create next step: +25W (approx 0.08 of 300W, or just fixed calculation if absolute)
+             // But here we use Factor relative to FTP.
+             // Assume Ramp Step is usually 1 min @ +X%
+             // Let's assume the previous step diff defined the ramp rate.
+             // Or just add 6% FTP (approx 20W for 330W FTP) every step?
+             // Standard MAP test: +25W every minute.
+             
+             // Calculate current watts
+             double currentFactor = lastBlock.power;
+             int currentWatts = (currentFactor * userFtp).round();
+             int nextWatts = currentWatts + 25; // Add 25 Watts
+             double nextFactor = nextWatts / userFtp;
+             
+             // Add new block
+             currentWorkout!.blocks.add(SteadyState(
+               duration: 60, // 1 minute
+               power: nextFactor,
+             ));
+             
+             // Advance
+             currentBlockIndex++;
+             elapsedInBlock = 0;
+             // totalElapsed continues normally
+             
+             if (settingsService?.vibration == true) {
+               HapticFeedback.mediumImpact();
+             }
+             notifyListeners();
+             return; // Continue!
+          }
+      }
+
       stopWorkout();
       if (settingsService?.vibration == true) {
          HapticFeedback.heavyImpact();

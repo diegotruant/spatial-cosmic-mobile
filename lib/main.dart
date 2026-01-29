@@ -15,6 +15,8 @@ import 'src/viewmodels/payment_viewmodel.dart';
 import 'src/viewmodels/payment_manager_viewmodel.dart';
 import 'src/services/oura_service.dart';
 import 'src/services/intervals_service.dart';
+import 'src/services/events_service.dart';
+import 'src/services/w_prime_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,13 +34,27 @@ void main() async {
         ChangeNotifierProvider(create: (_) => WorkoutService()),
         ChangeNotifierProvider(create: (_) => PaymentViewModel()),
         ChangeNotifierProvider(create: (_) => PaymentManagerViewModel()),
-        ChangeNotifierProvider(create: (_) => PhysiologicalService()),
+        ChangeNotifierProxyProvider<AuthService, PhysiologicalService>(
+          create: (_) => PhysiologicalService(),
+          update: (_, auth, physio) => physio!..updateAthleteId(auth.athleteId),
+        ),
         ChangeNotifierProvider(create: (_) => SyncService()),
-        ChangeNotifierProvider(create: (_) => AthleteProfileService()),
+        ChangeNotifierProxyProvider<AuthService, AthleteProfileService>(
+          create: (_) => AthleteProfileService(),
+          update: (_, auth, profile) => profile!..updateAthleteId(auth.athleteId),
+        ),
         ChangeNotifierProvider(create: (_) => SettingsService()),
         ChangeNotifierProvider(create: (_) => IntegrationService()),
         ChangeNotifierProvider(create: (_) => OuraService()),
         ChangeNotifierProvider(create: (_) => IntervalsService()),
+        ChangeNotifierProxyProvider<AuthService, EventsService>(
+          create: (_) => EventsService(),
+          update: (_, auth, events) => events!..updateAthleteId(auth.athleteId),
+        ),
+        ChangeNotifierProxyProvider2<BluetoothService, AthleteProfileService, WPrimeService>(
+          create: (_) => WPrimeService(),
+          update: (_, bluetooth, profile, wPrime) => wPrime!..update(bluetooth, profile),
+        ),
       ],
       child: const SpatialCosmicApp(),
     ),

@@ -17,6 +17,12 @@ class SteadyState extends WorkoutBlock {
   SteadyState({required int duration, required this.power}) : super(duration);
 }
 
+class Ramp extends WorkoutBlock {
+  final double powerLow; // % of FTP
+  final double powerHigh; // % of FTP
+  Ramp({required int duration, required this.powerLow, required this.powerHigh}) : super(duration);
+}
+
 class IntervalsT extends WorkoutBlock {
   final int repeat;
   final int onDuration;
@@ -34,17 +40,19 @@ class IntervalsT extends WorkoutBlock {
 }
 
 class ZwoParser {
-  static WorkoutWorkout parse(String xmlString) {
+  /// Parse ZWO XML string. If the XML doesn't have a <name> tag, 
+  /// uses titleOverride if provided, otherwise defaults to "Unknown Workout".
+  static WorkoutWorkout parse(String xmlString, {String? titleOverride}) {
     final document = XmlDocument.parse(xmlString);
     
-    // Attempt to find name or title
-    String title = 'Unknown Workout';
+    // Attempt to find name or title in XML
+    String title = titleOverride ?? 'Unknown Workout';
     final nameNode = document.findAllElements('name').firstOrNull;
-    if (nameNode != null) {
+    if (nameNode != null && nameNode.text.isNotEmpty) {
       title = nameNode.text;
     } else {
       final titleNode = document.findAllElements('title').firstOrNull;
-      if (titleNode != null) title = titleNode.text;
+      if (titleNode != null && titleNode.text.isNotEmpty) title = titleNode.text;
     }
 
     final workoutNode = document.findAllElements('workout').first;
@@ -56,6 +64,13 @@ class ZwoParser {
           blocks.add(SteadyState(
             duration: int.parse(node.getAttribute('Duration') ?? '0'),
             power: double.parse(node.getAttribute('Power') ?? '0.0'),
+          ));
+        } else if (node.name.local == 'Ramp' || node.name.local == 'Warmup' || node.name.local == 'Cooldown') {
+          // Both Warmup/Cooldown in ZWO use PowerLow/PowerHigh
+          blocks.add(Ramp(
+            duration: int.parse(node.getAttribute('Duration') ?? '0'),
+            powerLow: double.parse(node.getAttribute('PowerLow') ?? '0.0'),
+            powerHigh: double.parse(node.getAttribute('PowerHigh') ?? '0.0'),
           ));
         } else if (node.name.local == 'IntervalsT') {
           blocks.add(IntervalsT(
@@ -80,6 +95,8 @@ class ZwoParser {
       totalDuration += block.duration;
       if (block is SteadyState) {
         weightedPowerSum += block.duration * block.power;
+      } else if (block is Ramp) {
+        weightedPowerSum += block.duration * (block.powerLow + block.powerHigh) / 2;
       } else if (block is IntervalsT) {
         // Average power of the interval set
         int setDuration = block.onDuration + block.offDuration;
@@ -117,12 +134,30 @@ class ZwoParser {
     }
 
     for (var blockJson in structureList) {
-      if (blockJson['type'] == 'SteadyState' || (blockJson['power'] != null && blockJson['onPower'] == null)) {
-         blocks.add(SteadyState(
-           duration: (blockJson['duration'] as num?)?.toInt() ?? 0,
-           power: (blockJson['power'] as num?)?.toDouble() ?? (blockJson['targetValue'] as num?)?.toDouble() ?? 0.0,
-         ));
-      } else if (blockJson['type'] == 'IntervalsT' || blockJson['onPower'] != null) {
+      final type = (blockJson['type'] as String?)?.toLowerCase();
+      final duration = (blockJson['duration'] as num?)?.toInt() ?? 0;
+      
+      // Extract Power safely
+      double? pStart;
+      double? pEnd;
+
+      var rawPower = blockJson['power'] ?? blockJson['targetValue'];
+      if (rawPower is num) {
+        pStart = rawPower.toDouble();
+        pEnd = (blockJson['powerEnd'] as num?)?.toDouble() ?? pStart;
+      } else if (rawPower is Map) {
+        pStart = (rawPower['start'] as num?)?.toDouble() ?? (rawPower['target'] as num?)?.toDouble() ?? (rawPower['min'] as num?)?.toDouble();
+        pEnd = (rawPower['end'] as num?)?.toDouble() ?? pStart;
+      } else if (rawPower is List && rawPower.isNotEmpty) {
+        pStart = (rawPower[0] as num).toDouble();
+        pEnd = rawPower.length > 1 ? (rawPower[1] as num).toDouble() : pStart;
+      }
+
+      // Normalize % values (Builder uses 0.9, some others might use 90)
+      if (pStart != null && pStart > 2.0) pStart /= 100.0;
+      if (pEnd != null && pEnd > 2.0) pEnd /= 100.0;
+
+      if (type == 'intervals' || type == 'intervalst' || blockJson['onPower'] != null) {
          blocks.add(IntervalsT(
            repeat: (blockJson['repeat'] as num?)?.toInt() ?? 1,
            onDuration: (blockJson['onDuration'] as num?)?.toInt() ?? 0,
@@ -130,18 +165,17 @@ class ZwoParser {
            onPower: (blockJson['onPower'] as num?)?.toDouble() ?? 0.0,
            offPower: (blockJson['offPower'] as num?)?.toDouble() ?? 0.0,
          ));
-      } else if (blockJson['type'] == 'active' || blockJson['type'] == 'rest' || blockJson['type'] == 'warmup' || blockJson['type'] == 'cooldown') {
-          double target = 0.0;
-          var val = blockJson['targetValue'];
-          if (val is num) target = val.toDouble();
-          else if (val is List && val.isNotEmpty) target = (val[0] as num).toDouble();
-          
-          if (target > 2.0) target = target / 100.0; 
-
-          blocks.add(SteadyState(
-             duration: (blockJson['duration'] as num?)?.toInt() ?? 0,
-             power: target,
-          ));
+      } else if (type == 'ramp' || (pStart != null && pEnd != null && pStart != pEnd)) {
+         blocks.add(Ramp(
+           duration: duration,
+           powerLow: pStart ?? 0.0,
+           powerHigh: pEnd ?? 0.0,
+         ));
+      } else {
+         blocks.add(SteadyState(
+           duration: duration,
+           power: pStart ?? 0.0,
+         ));
       }
     }
 
@@ -161,6 +195,12 @@ class ZwoParser {
             builder.element('SteadyState', attributes: {
               'Duration': block.duration.toString(),
               'Power': block.power.toStringAsFixed(2),
+            });
+          } else if (block is Ramp) {
+            builder.element('Ramp', attributes: {
+              'Duration': block.duration.toString(),
+              'PowerLow': block.powerLow.toStringAsFixed(2),
+              'PowerHigh': block.powerHigh.toStringAsFixed(2),
             });
           } else if (block is IntervalsT) {
             builder.element('IntervalsT', attributes: {

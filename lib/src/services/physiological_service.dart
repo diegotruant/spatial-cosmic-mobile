@@ -42,23 +42,29 @@ class PhysiologicalService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   final List<PhysiologicalData> _history = [];
   
+  // Dependencies
+  String? _athleteId;
+
   double _lastSevenDayAvg = 45.0;
   bool _isLoading = false;
 
   List<PhysiologicalData> get history => List.unmodifiable(_history);
   bool get isLoading => _isLoading;
 
-  PhysiologicalService() {
-    _init();
-  }
+  PhysiologicalService();
 
-  Future<void> _init() async {
-    await fetchHistory();
+  void updateAthleteId(String? id) {
+    if (id != _athleteId) {
+      _athleteId = id;
+      if (_athleteId != null) {
+        fetchHistory();
+      }
+    }
   }
 
   Future<void> fetchHistory() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
+    if (targetId == null) return;
 
     _isLoading = true;
     notifyListeners();
@@ -67,17 +73,19 @@ class PhysiologicalService extends ChangeNotifier {
       final data = await _supabase
           .from('diary_entries')
           .select()
-          .eq('athlete_id', user.id)
+          .eq('athlete_id', targetId)
           .order('date', ascending: false);
-
+      // ... rest of logic
+      
       _history.clear();
       for (final entry in data) {
+         // ... existing parsing ...
         _history.add(PhysiologicalData(
           timestamp: DateTime.parse(entry['date']),
           rmssd: (entry['hrv'] as num?)?.toDouble() ?? 0.0,
-          averageHR: 0, // Not explicitly stored in diary_entries yet
+          averageHR: 0,
           rhr: (entry['rhr'] as num?)?.toInt() ?? 0,
-          ouraScore: (entry['readiness'] as num?)?.toInt(), // Mapping readiness to ouraScore for now
+          ouraScore: (entry['readiness'] as num?)?.toInt(),
           trafficLight: entry['traffic_light'],
           deviation: (entry['deviation'] as num?)?.toDouble(),
           recommendation: entry['recommendation'],
@@ -85,7 +93,6 @@ class PhysiologicalService extends ChangeNotifier {
       }
 
       if (_history.isNotEmpty) {
-        // Calculate rolling 7-day average from history
         final recent = _history.take(7).where((e) => e.rmssd > 0).map((e) => e.rmssd);
         if (recent.isNotEmpty) {
           _lastSevenDayAvg = recent.reduce((a, b) => a + b) / recent.length;
@@ -98,7 +105,7 @@ class PhysiologicalService extends ChangeNotifier {
       notifyListeners();
     }
   }
-
+  
   /// Calculates rMSSD from a list of RR intervals (in milliseconds)
   double calculateRMSSD(List<int> rrIntervals) {
     if (rrIntervals.length < 2) return 0.0;
@@ -170,14 +177,15 @@ class PhysiologicalService extends ChangeNotifier {
     final analysis = analyzeHRV(rmssd);
     final now = DateTime.now();
     final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    final user = _supabase.auth.currentUser;
+    
+    final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
 
-    if (user != null) {
+    if (targetId != null) {
       try {
-        debugPrint('Saving HRV to DB: $dateStr, HRV: $rmssd, Status: ${analysis.status.name.toUpperCase()}');
+        debugPrint('Saving HRV to DB for $targetId: $dateStr, HRV: $rmssd, Status: ${analysis.status.name.toUpperCase()}');
         await _supabase.from('diary_entries').upsert({
-          'id': '${user.id}_$dateStr',
-          'athlete_id': user.id,
+          'id': '${targetId}_$dateStr',
+          'athlete_id': targetId,
           'date': dateStr,
           'hrv': rmssd,
           'rhr': avgHR,
@@ -189,10 +197,9 @@ class PhysiologicalService extends ChangeNotifier {
         debugPrint('HRV Saved Successfully');
       } catch (e) {
         debugPrint('Error saving HRV measurement: $e');
-        // Consider re-throwing or notifying UI if critical
       }
     } else {
-        debugPrint('User is null, cannot save HRV');
+        debugPrint('User/Athlete ID is null, cannot save HRV');
     }
 
     _history.insert(0, PhysiologicalData(
@@ -209,30 +216,43 @@ class PhysiologicalService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> updateFromOura(double rmssd, int score) async {
+  Future<String> updateFromOura(double rmssd, int score) async {
     final analysis = analyzeHRV(rmssd, ouraScore: score);
     final now = DateTime.now();
     final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
-    final user = _supabase.auth.currentUser;
+    final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
 
-    if (user != null) {
+    String resultMsg = "Success";
+
+    if (targetId != null) {
       try {
-        await _supabase.from('diary_entries').upsert({
-          'id': '${user.id}_$dateStr',
-          'athlete_id': user.id,
-          'date': dateStr,
-          'hrv': rmssd,
-          'readiness': score,
-          'traffic_light': analysis.status.name.toUpperCase(),
-          'deviation': analysis.deviation,
-          'recommendation': analysis.recommendation,
-          'updated_at': DateTime.now().toIso8601String(),
+        debugPrint('Saving HRV for $targetId on $dateStr using RPC');
+
+        // Use RPC to bypass potential RLS/Trigger issues ("text ->> unknown")
+        await _supabase.rpc('upsert_diary_entry', params: {
+          'p_id': '${targetId}_$dateStr',
+          'p_athlete_id': targetId,
+          'p_date': dateStr,
+          'p_hrv': rmssd,
+          'p_traffic_light': analysis.status.name.toUpperCase(),
         });
+
+        resultMsg = "Success: Saved to Cloud";
+
       } catch (e) {
         debugPrint('Error saving Oura data: $e');
+        if (e.toString().contains('42883') || e.toString().contains('text ->> unknown')) {
+           resultMsg = "Saved Locally (Cloud Warning)";
+           // Even with RPC? Should not get this now.
+        } else {
+           resultMsg = "Saved Locally (DB Error: $e)";
+        }
       }
+    } else {
+        resultMsg = "Error: No Athlete ID found.";
     }
-
+    
+    // Local Update
     final todayEntryIndex = _history.indexWhere((e) => 
       e.timestamp.year == now.year && 
       e.timestamp.month == now.month && 
@@ -257,7 +277,11 @@ class PhysiologicalService extends ChangeNotifier {
 
     _lastSevenDayAvg = (_lastSevenDayAvg * 6 + rmssd) / 7;
     notifyListeners();
+    
+    return resultMsg;
   }
+
+
 
   int calculateHRR(int hrEndWorkout, int hrOneMinAfter) {
     return hrEndWorkout - hrOneMinAfter;

@@ -7,6 +7,7 @@ class MetricTile extends StatelessWidget {
   final String? unit;
   final IconData? icon;
   final Color accentColor;
+  final Color? valueColor; // NEW: Optional custom color for value text
   final bool isLarge;
 
   const MetricTile({
@@ -16,6 +17,7 @@ class MetricTile extends StatelessWidget {
     this.unit,
     this.icon,
     this.accentColor = Colors.cyanAccent,
+    this.valueColor, // NEW
     this.isLarge = false,
   });
 
@@ -53,13 +55,13 @@ class MetricTile extends StatelessWidget {
               Text(
                 value,
                 style: TextStyle(
-                  color: Colors.white,
+                  color: valueColor ?? Colors.white, // Use custom valueColor if provided
                   fontSize: isLarge ? 32 : 24,
                   fontWeight: FontWeight.bold,
                   fontFeatures: const [FontFeature.tabularFigures()],
                   shadows: [
                     Shadow(
-                      color: accentColor.withOpacity(0.8), // Stronger glow
+                      color: (valueColor ?? accentColor).withOpacity(0.8), // Glow matches value color
                       blurRadius: 15,
                     ),
                   ],

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../services/athlete_profile_service.dart';
 import '../../widgets/glass_card.dart';
+import 'package:intl/intl.dart';
 
 class ProfileEditScreen extends StatefulWidget {
   const ProfileEditScreen({super.key});
@@ -16,8 +17,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _weightController;
   late TextEditingController _heightController;
   late TextEditingController _leanMassController;
-  late TextEditingController _dobController;
   
+  DateTime? _selectedDob;
   bool _isLoading = false;
 
   @override
@@ -29,7 +30,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController = TextEditingController(text: p.weight?.toString() ?? '');
     _heightController = TextEditingController(text: p.height?.toString() ?? '');
     _leanMassController = TextEditingController(text: p.leanMass?.toString() ?? '');
-    _dobController = TextEditingController(text: p.dob != null ? "${p.dob!.year}-${p.dob!.month}-${p.dob!.day}" : '');
+    _selectedDob = p.dob;
   }
 
   @override
@@ -37,8 +38,34 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController.dispose();
     _heightController.dispose();
     _leanMassController.dispose();
-    _dobController.dispose();
     super.dispose();
+  }
+
+  String _formatDob(DateTime? date) {
+    if (date == null) return 'Seleziona data';
+    return DateFormat('dd/MM/yyyy').format(date);
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDob ?? DateTime(now.year - 30),
+      firstDate: DateTime(1920),
+      lastDate: now,
+      builder: (context, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: Colors.blueAccent,
+            surface: Color(0xFF1A1A2E),
+          ),
+        ),
+        child: child!,
+      ),
+    );
+    if (picked != null) {
+      setState(() => _selectedDob = picked);
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -50,19 +77,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       final double? weight = double.tryParse(_weightController.text);
       final double? height = double.tryParse(_heightController.text);
       final double? leanMass = double.tryParse(_leanMassController.text);
-      // Simple parse for YYYY-MM-DD
-      DateTime? dob;
-      if (_dobController.text.isNotEmpty) {
-        try {
-           dob = DateTime.tryParse(_dobController.text);
-        } catch (_) {}
-      }
 
       await context.read<AthleteProfileService>().updateProfile(
         weight: weight,
         height: height,
         leanMass: leanMass,
-        dob: dob,
+        dob: _selectedDob,
       );
       
       if (mounted) {
@@ -130,11 +150,38 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
               const SizedBox(height: 16),
               
-              _buildTextField(
-                controller: _dobController,
-                label: "Data di Nascita (YYYY-MM-DD)",
-                icon: Icons.calendar_today,
-                keyboardType: TextInputType.datetime,
+              // Date of Birth with DatePicker
+              GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: InkWell(
+                  onTap: _pickDate,
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, color: Colors.blueAccent),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              "Data di Nascita",
+                              style: TextStyle(color: Colors.white54, fontSize: 12),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              _formatDob(_selectedDob),
+                              style: TextStyle(
+                                color: _selectedDob != null ? Colors.white : Colors.white38,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_drop_down, color: Colors.white38),
+                    ],
+                  ),
+                ),
               ),
               
               const SizedBox(height: 40),

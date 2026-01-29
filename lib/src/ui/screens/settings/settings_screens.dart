@@ -11,6 +11,7 @@ import '../../../services/intervals_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../profile/profile_edit_screen.dart';
 import '../profile/medical_certificate_screen.dart';
+import '../profile/metabolic_calculator_screen.dart';
 
 class AdvancedOptionsScreen extends StatelessWidget {
   const AdvancedOptionsScreen({super.key});
@@ -320,6 +321,7 @@ class AccountInfoScreen extends StatelessWidget {
           const SizedBox(height: 16),
           _buildMenuRow(context, 'Modifica Profilo Completo', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ProfileEditScreen()))),
           _buildMenuRow(context, 'Certificato Medico', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const MedicalCertificateScreen()))),
+
           
           const Divider(color: Colors.white12, height: 32),
           const Padding(

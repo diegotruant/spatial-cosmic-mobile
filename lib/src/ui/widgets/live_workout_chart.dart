@@ -6,8 +6,16 @@ import 'package:provider/provider.dart';
 class LiveWorkoutChart extends StatelessWidget {
   final bool isZoomed;
   final bool showPowerZones; // Added parameter
+  final double? wPrime;
+  final int? cp;
 
-  const LiveWorkoutChart({super.key, this.isZoomed = false, this.showPowerZones = false});
+  const LiveWorkoutChart({
+    super.key, 
+    this.isZoomed = false, 
+    this.showPowerZones = false,
+    this.wPrime,
+    this.cp,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -32,6 +40,8 @@ class LiveWorkoutChart extends StatelessWidget {
             isZoomed: isZoomed,
             intensityPercentage: workoutService.intensityPercentage,
             showPowerZones: showPowerZones,
+            wPrime: wPrime,
+            cp: cp,
           ),
           child: Container(),
         ),
@@ -49,6 +59,8 @@ class _LiveGraphPainter extends CustomPainter {
   final bool isZoomed;
   final int intensityPercentage;
   final bool showPowerZones;
+  final double? wPrime;
+  final int? cp;
 
   _LiveGraphPainter({
     required this.powerHistory,
@@ -59,6 +71,8 @@ class _LiveGraphPainter extends CustomPainter {
     required this.isZoomed,
     required this.intensityPercentage,
     required this.showPowerZones,
+    this.wPrime,
+    this.cp,
   });
   
   // Helper for Zone Colors
@@ -214,6 +228,67 @@ class _LiveGraphPainter extends CustomPainter {
       }
       canvas.drawPath(tempPath, Paint()..color = Colors.purpleAccent..style = PaintingStyle.stroke..strokeWidth = 2.0);
     }
+
+    // 4. Draw W' Balance (if available) - Red Dashed/Solid Line
+    if (wPrime != null && cp != null && wPrime! > 0 && cp! > 0) {
+      final wBalData = <double>[];
+      double currentWBal = wPrime!;
+
+      // Calculate W' history
+      for (final p in powerHistory) {
+         // Integral model: delta = CP - Power
+         // If Power > CP, deplete. If Power < CP, recharge.
+         double delta = cp! - p;
+         currentWBal += delta;
+         if (currentWBal > wPrime!) currentWBal = wPrime!;
+         wBalData.add(currentWBal);
+      }
+      
+      // Draw W' line (Scale 0 to WPrime maps to Height)
+      // We overlay it? Or use a small dedicated area?
+      // User request: "mostri la deplezione W'".
+      // Overlaying on the main graph with a separate scale (0-100% of W') is standard.
+      // Let's map 0 W' to Bottom, 100% W' to Top (or maybe 80% height to assume full)
+      
+      if (wBalData.isNotEmpty) {
+        final wPath = Path();
+        final wPaint = Paint()
+          ..color = Colors.redAccent
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.0;
+
+        bool firstW = true;
+        for (int i = 0; i < wBalData.length; i++) {
+           final x = i * secToX;
+           if (x < scrollOffset - 10 || x > scrollOffset + size.width + 10) continue;
+           
+           // Normalize W' (0 to wPrime) to Y (Height to 0)
+           // 100% W' = Top of chart? Or separate axis?
+           // Let's use the full height range: 0% at bottom, 100% at top.
+           final pct = wBalData[i] / wPrime!;
+           final y = size.height - (pct * size.height); // 1.0 -> 0 (Top), 0.0 -> Height (Bottom)
+           
+           if (firstW) { wPath.moveTo(x, y); firstW = false; }
+           else wPath.lineTo(x, y);
+        }
+        
+        canvas.drawPath(wPath, wPaint);
+        
+        // Label for W' (Current Value)
+        if (wBalData.isNotEmpty) {
+             final lastVal = wBalData.last;
+             final pct = (lastVal / wPrime!) * 100;
+             final text = "W' ${lastVal.toInt()}J (${pct.toStringAsFixed(0)}%)";
+             
+             final tp = TextPainter(
+                text: TextSpan(text: text, style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                textDirection: TextDirection.ltr
+             );
+             tp.layout();
+             tp.paint(canvas, Offset(size.width - 80, 10)); // Top right
+        }
+      }
+    }
     
     // Draw Bottom Axis (Time Labels)
     _drawBottomAxis(canvas, size, scrollOffset, secToX);
@@ -251,7 +326,7 @@ class _LiveGraphPainter extends CustomPainter {
         final minutes = currentSec ~/ 60;
         textPainter.text = TextSpan(
            text: '${minutes}m',
-           style: const TextStyle(color: Colors.white54, fontSize: 10)
+           style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)
         );
         textPainter.layout();
         textPainter.paint(canvas, Offset(x + 4, size.height - 14));

@@ -8,6 +8,7 @@ import '../../../services/workout_service.dart';
 import '../../../services/settings_service.dart';
 import '../../widgets/metric_tile.dart';
 import '../../widgets/live_workout_chart.dart';
+import '../../../logic/zwo_parser.dart';
 import '../../widgets/glass_card.dart';
 import 'workout_analysis_screen.dart';
 import '../settings/bluetooth_scan_screen.dart' as com_bluetooth;
@@ -183,10 +184,16 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
   }
 
   Widget _buildChartWithControls() {
+    final profileService = context.watch<src_profile.AthleteProfileService>();
     final settings = context.watch<SettingsService>();
     return Stack(
       children: [
-        LiveWorkoutChart(isZoomed: _isChartZoomed, showPowerZones: settings.showPowerZones),
+        LiveWorkoutChart(
+          isZoomed: _isChartZoomed, 
+          showPowerZones: settings.showPowerZones,
+          wPrime: profileService.wPrime,
+          cp: profileService.ftp?.toInt() ?? 250,
+        ),
         Positioned(
           top: 8,
           right: 8,
@@ -250,7 +257,35 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         ),
       ),
       
-      // 2. Total Time Box (New)
+      // 1b. NEXT INTERVAL (Enhanced with Zone Color)
+      Builder(builder: (context) {
+         final blocks = workoutService.currentWorkout?.blocks;
+         if (blocks == null || workoutService.currentBlockIndex >= blocks.length - 1) {
+            return const MetricTile(label: 'NEXT STEP', value: 'FINISH', unit: '', accentColor: Colors.grey);
+         }
+         final nextBlock = blocks[workoutService.currentBlockIndex + 1];
+         // Determine Duration
+         final dur = formatTime(nextBlock.duration);
+         
+         // Determine Color/Zone
+         Color zoneColor = Colors.grey;
+         double target = 0;
+         if (nextBlock is SteadyState) target = nextBlock.power * userFtp; 
+         if (nextBlock is IntervalsT) target = nextBlock.onPower * userFtp; // Use ON power for preview
+         
+         zoneColor = _getZoneColor(target.toInt(), userFtp);
+         
+         return MetricTile(
+            label: 'NEXT STEP',
+            value: dur,
+            unit: 'durata', 
+            accentColor: zoneColor, // Box color changes with zone
+            valueColor: zoneColor, // Duration text also uses zone color
+            isLarge: false,
+         );
+      }),
+      
+      // 2. Total Time Box (Restored)
       GestureDetector(
         onTap: () => setState(() => _showTotalRemainingTime = !_showTotalRemainingTime),
         child: MetricTile(
@@ -261,6 +296,14 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
           unit: 'mm:ss', 
           accentColor: Colors.white, // Neutral
         ),
+      ),
+
+      // 2b. Kcal (New)
+      MetricTile(
+        label: 'CALORIES', 
+        value: workoutService.totalCalories.toStringAsFixed(0), 
+        unit: 'kcal', 
+        accentColor: Colors.orangeAccent
       ),
 
       // 3. Target Power
@@ -308,17 +351,6 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         value: '${workoutService.currentSpeed.toStringAsFixed(1)} / ${workoutService.totalDistance.toStringAsFixed(1)}', 
         unit: 'km/h / km', 
         accentColor: Colors.purpleAccent
-      ),
-      
-       // 8. Avg Power
-      GestureDetector(
-        onTap: () => setState(() => _showAvgPower = !_showAvgPower),
-        child: MetricTile(
-          label: 'AVG POWER', 
-          value: avgPower.toString(), 
-          unit: 'W', 
-          accentColor: Colors.orangeAccent
-        ),
       ),
     ];
   }
@@ -450,7 +482,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
               );
 
               try {
-                 final bluetooth = context.read<BluetoothService>(); // Snapshot of final state if needed
+                 // final bluetooth = context.read<BluetoothService>(); // Snapshot if needed
                  
                    final file = await FitGenerator.generateActivityFit(
                      powerHistory: workoutService.powerHistory,
@@ -464,83 +496,25 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                         ? workoutService.hrHistory.reduce(max) 
                         : 0,
                      durationSeconds: workoutService.totalElapsed,
-                     totalDistance: workoutService.totalDistance * 1000, // convert km to meters for FIT
+                     totalDistance: workoutService.totalDistance * 1000,
                      totalCalories: workoutService.totalCalories.toInt(),
                      startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
                      workoutTitle: workoutService.currentWorkout?.title ?? "Manual Workout",
                    );
                  
-                  // 1. Save Locally Logic (Robustness)
-                  try {
-                     final workoutId = workoutService.currentWorkout?.id ?? 'manual';
-                     // Store file reference in SharedPrefs or local DB if needed for "Retry Queue"
-                     // For now, we rely on the file existing on disk.
-                     debugPrint("Workout file generated at: ${file.path}");
-                     
-                     // 2. Sync to Cloud
-                     try {
-                        await context.read<SyncService>().uploadWorkoutFile(file.path, workoutId);
-                        debugPrint("Supabase upload success");
-                     } catch (e) {
-                        debugPrint("Supabase sync failed (offline?): $e");
-                        // TODO: Add to local pending sync queue
-                        if (context.mounted) {
-                           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                             content: Text("Salvato in locale. Sincronizzazione fallita."),
-                             backgroundColor: Colors.orangeAccent,
-                           ));
-                        }
-                     }
-
-                     // 3. Multi-Channel Export (Parallel)
-                     final intervalsService = context.read<IntervalsService>();
-                     final integrationService = context.read<IntegrationService>();
-                     
-                     final List<Future> uploads = [];
-                     
-                     if (intervalsService.isConnected) {
-                       uploads.add(intervalsService.uploadActivity(file).then((_) => debugPrint("Intervals upload completed")));
-                     }
-                     if (integrationService.isStravaConnected) {
-                        uploads.add(integrationService.uploadActivityToStrava(file).then((_) => debugPrint("Strava upload completed")));
-                     }
-                     
-                     // Wait for exports but don't block UI indefinitely if they are slow?
-                     // Verify requirement: "Simultaneously".
-                     // We can fire and forget OR wait. Let's wait up to 5s then move on?
-                     // Or just await all.
-                     if (uploads.isNotEmpty) {
-                        try {
-                           await Future.wait(uploads).timeout(const Duration(seconds: 10));
-                        } catch (e) {
-                           debugPrint("Export timeout or error: $e");
-                        }
-                     }
-
-                     // 4. Analysis Trigger
-                      final profileService = context.read<src_profile.AthleteProfileService>();
-                      profileService.calculateAndSaveVLamax(workoutService.powerHistory, workoutService.userFtp).then((_) {
-                          debugPrint("VLamax calculation completed");
-                      }).catchError((err) {
-                          debugPrint("VLamax calculation error: $err");
-                      });
-
-                  } catch (e) {
-                      debugPrint("Critical Save Error: $e");
-                      if (context.mounted) {
-                        Navigator.pop(context); // Pop dialog
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error saving workout locally: $e"), backgroundColor: Colors.red));
-                      }
-                      return; // Exit, do not nav
+                  if (context.mounted) {
+                    Navigator.pop(context); // Pop loading dialog
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PostWorkoutAnalysisScreen(
+                          fitFilePath: file.path, 
+                          workoutId: workoutService.currentWorkout?.id,
+                          isNewWorkout: true, // Flag to show Save/Discard buttons
+                        )
+                      ),
+                    );
                   }
-
-                 if (context.mounted) {
-                   Navigator.pop(context); // Pop dialog
-                   Navigator.pushReplacement(
-                     context,
-                     MaterialPageRoute(builder: (context) => PostWorkoutAnalysisScreen(fitFilePath: file.path, workoutId: workoutService.currentWorkout?.id)),
-                   );
-                 }
               } catch (e) {
                  if (context.mounted) {
                    Navigator.pop(context); // Pop dialog

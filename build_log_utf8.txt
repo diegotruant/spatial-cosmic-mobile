@@ -1,0 +1,82 @@
+﻿Running Gradle task 'assembleRelease'...                        
+flutter : lib/src/ui/screens/profile/metabolic_calcula
+tor_screen.dart:263:126: Error: No named parameter 
+with the name 'uppercase'.
+In riga:1 car:1
++ flutter build apk --release > build_log.txt 2>&1
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (lib/src/ 
+   ui/scre...me 'uppercase'.:String) [], RemoteExcep  
+  tion
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+        const Text("Dati Potenza (Test)", style: 
+TextStyle(color: Colors.white54, fontSize: 11, 
+fontWeight: FontWeight.w900, uppercase: true, 
+letterSpacing: 1.2)),
+                                                      
+                                    ^^^^^^^^^
+/C:/dev/flutter/packages/flutter/lib/src/painting/text
+_style.dart:480:9: Context: Found this candidate, but 
+the arguments don't match.
+  const TextStyle({
+        ^^^^^^^^^
+lib/src/ui/screens/profile/metabolic_calculator_screen
+.dart:362:145: Error: Member not found: 'emerald'.
+            decoration: BoxDecoration(color: const 
+Color(0xFF1E293B), borderRadius: 
+BorderRadius.circular(24), border: Border.all(color: 
+Colors.emerald, width: 0.5)),
+                                                      
+                                    ^^^^^^^
+lib/src/ui/screens/profile/metabolic_calculator_screen
+.dart:366:69: Error: Member not found: 'emerald'.
+                const Text("FatMax", style: 
+TextStyle(color: Colors.emerald, fontSize: 10, 
+fontWeight: FontWeight.w900, letterSpacing: 1)),
+                                                      
+              ^^^^^^^
+lib/src/ui/screens/profile/metabolic_calculator_screen
+.dart:406:29: Error: Member not found: 'emerald'.
+              color: Colors.emerald,
+                            ^^^^^^^
+lib/src/ui/screens/profile/metabolic_calculator_screen
+.dart:433:84: Error: Member not found: 'emerald'.
+          if (z.color.contains('emerald') || 
+z.color.contains('green')) c = Colors.emerald;
+                                                      
+                             ^^^^^^^
+lib/src/ui/screens/profile/metabolic_calculator_screen
+.dart:447:109: Error: No named parameter with the 
+name 'uppercase'.
+                  child: Text(z.name, style: 
+TextStyle(color: c, fontWeight: FontWeight.w900, 
+fontSize: 13, uppercase: true)),
+                                                      
+                                    ^^^^^^^^^
+/C:/dev/flutter/packages/flutter/lib/src/painting/text
+_style.dart:480:9: Context: Found this candidate, but 
+the arguments don't match.
+  const TextStyle({
+        ^^^^^^^^^
+Target kernel_snapshot_program failed: Exception
+
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+Execution failed for task 
+':app:compileFlutterBuildRelease'.
+> Process 'command 'C:\dev\flutter\bin\flutter.bat'' 
+finished with non-zero exit value 1
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log 
+output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 12s
+Running Gradle task 'assembleRelease'...                           12,4s
+Gradle task assembleRelease failed with exit code 1

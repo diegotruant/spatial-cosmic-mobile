@@ -5,12 +5,14 @@ import '../../widgets/glass_card.dart';
 import '../../widgets/workout_chart.dart';
 import '../../../services/physiological_service.dart';
 import '../../../services/athlete_profile_service.dart';
+import '../../../services/events_service.dart';
 import '../../../services/settings_service.dart';
 import '../physiological/hrv_measurement_screen.dart';
 import '../workout/modern_workout_screen.dart';
 import '../settings/settings_screens.dart';
 import '../settings/bluetooth_scan_screen.dart';
 import '../profile/medical_certificate_screen.dart';
+import '../profile/metabolic_calculator_screen.dart';
 import '../workout/workout_history_screen.dart';
 import '../../../logic/zwo_parser.dart';
 import '../../../services/workout_service.dart';
@@ -24,6 +26,10 @@ import '../../../logic/fit_generator.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import '../../widgets/platform_selector.dart';
+import '../events/add_event_screen.dart';
+import '../../widgets/anaerobic_battery_gauge.dart';
+import '../../../models/metabolic_profile.dart';
+import '../../../services/w_prime_service.dart';
 
 class ModernDashboardScreen extends StatefulWidget {
   const ModernDashboardScreen({super.key});
@@ -73,9 +79,15 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         // Fix: Do not default to 45.0 if rmssd is null. 
         // We only update if we have actual data.
         if (rmssd != null && rmssd > 0) {
-           physio.updateFromOura(rmssd, score);
+           final result = await physio.updateFromOura(rmssd, score);
+           final isError = result.startsWith('Error') || result.startsWith('DB Error');
+           final isWarning = result.contains('Saved Locally');
+           
            ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(content: Text('Sincronizzazione Oura completata!'))
+             SnackBar(
+               content: Text('Sync Oura: $result'), 
+               backgroundColor: isError ? Colors.red : (isWarning ? Colors.orange : Colors.green)
+              )
            );
         } else {
              ScaffoldMessenger.of(context).showSnackBar(
@@ -387,9 +399,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   Widget _buildProgressTab() {
     final profileService = context.watch<AthleteProfileService>();
     final profile = profileService.currentProfile;
+    final metabolicProfile = profileService.metabolicProfile;
 
-    // Check if profile is initialized
-    if (profile.type == AthleteType.unknown || profile.vlamax == null || profile.ftp == null) {
+    // We no longer return an empty screen if ANY data is present.
+    // We only show the "No Data" screen if absolutely everything is null.
+    if (profile.vlamax == null && profile.vo2max == null && profile.ftp == null && metabolicProfile == null) {
       return ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -413,11 +427,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                  const SizedBox(height: 24),
                  ElevatedButton(
                    onPressed: () {
-                      // Navigate to Test Library maybe?
-                      setState(() => _currentIndex = 1);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen()));
                    }, 
                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                   child: const Text("VAI AI TEST"),
+                   child: const Text("CALCOLA PROFILO"),
                  )
                ],
              ),
@@ -453,6 +466,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     return ListView(
       padding: const EdgeInsets.all(20),
       children: [
+        // Metabolic Curve Section (Prominent)
+        _buildMetabolicCurveSection(profileService),
+        const SizedBox(height: 24),
+
         // Athlete Type Card
         Text(AppLocalizations.of(context).get('athlete_profile'), style: const TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.5)),
         const SizedBox(height: 16),
@@ -555,19 +572,40 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         const SizedBox(height: 20),
         
         // FTP Card
-        GlassCard(
-          padding: const EdgeInsets.all(20),
-          borderRadius: 16,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('FTP Stimato', style: TextStyle(color: Colors.white70)),
-              const SizedBox(height: 8),
-              Text('${profile.ftp?.toInt() ?? '-'} W', style: const TextStyle(color: Colors.cyanAccent, fontSize: 36, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 4),
-              Text('+12W rispetto a 4 settimane fa', style: TextStyle(color: Colors.greenAccent.withOpacity(0.8), fontSize: 12)),
-            ],
-          ),
+        const Text('POTENZA CRITICA', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: GlassCard(
+                padding: const EdgeInsets.all(20),
+                borderRadius: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('FTP Stimato', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text('${profile.ftp?.toInt() ?? '-'} W', style: const TextStyle(color: Colors.cyanAccent, fontSize: 28, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: GlassCard(
+                padding: const EdgeInsets.all(20),
+                borderRadius: 16,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('W\' (Battery)', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text('${((profile.wPrime ?? 0) / 1000).toStringAsFixed(1)} kJ', style: const TextStyle(color: Colors.orangeAccent, fontSize: 28, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 20),
         
@@ -592,19 +630,110 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ),
         ),
         const SizedBox(height: 24),
-        
+        const SizedBox(height: 24),
+      ],
+    );
+  }
 
-        
-        // Training History - Removed as data is not yet available in ProfileService
-        // Use History Tab for details.
+
+  Widget _buildMetabolicCurveSection(AthleteProfileService profileService) {
+    final metabolicProfile = profileService.metabolicProfile;
+    
+    if (metabolicProfile == null || metabolicProfile.combustionCurve.isEmpty) {
+      // No curve data - show button to calculate
+      return GlassCard(
+        padding: const EdgeInsets.all(20),
+        borderRadius: 16,
+        child: Column(
+          children: [
+            const Icon(LucideIcons.flame, color: Colors.orangeAccent, size: 40),
+            const SizedBox(height: 16),
+            const Text('CURVA METABOLICA', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+            const SizedBox(height: 8),
+            Text(
+              'Esegui il calcolo del profilo metabolico per visualizzare la tua curva di utilizzo grassi/carboidrati.',
+              textAlign: TextAlign.center,
+              style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
+              icon: const Icon(LucideIcons.calculator, size: 18),
+              label: const Text('CALCOLA PROFILO'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orangeAccent,
+                foregroundColor: Colors.black,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    // Show the curve
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('CURVA METABOLICA', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.5)),
+        const SizedBox(height: 12),
+        GlassCard(
+          padding: const EdgeInsets.all(16),
+          borderRadius: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.orangeAccent, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 6),
+                      const Text('Grassi', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Container(width: 12, height: 12, decoration: BoxDecoration(color: Colors.blueAccent, borderRadius: BorderRadius.circular(2))),
+                      const SizedBox(width: 6),
+                      const Text('Carboidrati', style: TextStyle(color: Colors.white70, fontSize: 11)),
+                    ],
+                  ),
+                  Text('FatMax: ${metabolicProfile.metabolic.fatMaxWatt.toInt()}W', 
+                       style: const TextStyle(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.bold)),
+                ],
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                height: 180,
+                child: CustomPaint(
+                  size: const Size(double.infinity, 180),
+                  painter: _MetabolicCurvePainter(metabolicProfile.combustionCurve),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
+                  icon: const Icon(LucideIcons.refreshCw, size: 16),
+                  label: const Text('Ricalcola'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white54),
+                ),
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
 
 
 
+
   Widget _buildSettingsTab(BuildContext context) {
     final settings = context.watch<SettingsService>();
+    final profile = context.watch<AthleteProfileService>();
     
     return ListView(
       padding: const EdgeInsets.all(20),
@@ -612,6 +741,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         // Main Settings
         _buildSettingsRow('Sport:', settings.sport, onTap: () {}),
         _buildSettingsFtpRow('CYCLING FTP', settings.ftp, (val) => settings.setFtp(val)),
+        _buildSettingsFtpRow('MAX HEART RATE', settings.hrMax, (val) => settings.setHrMax(val)), // Using FtpRow generic style for number input
         _buildSettingsRow(AppLocalizations.of(context).get('add_devices'), '', isAction: true, icon: Icons.add_circle_outline, onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const BluetoothScanScreen()));
         }),
@@ -1091,12 +1221,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         const SizedBox(height: 32),
         _buildMainWorkoutCard(),
         const SizedBox(height: 30),
+        _buildMetabolicProfile(context),
+        const SizedBox(height: 30),
+        _buildUpcomingEvents(context),
+        const SizedBox(height: 30),
         _buildActionButtons(context),
         const SizedBox(height: 40),
-// _buildMetricsGrid(), // Removed as per user request
       ],
     );
   }
+
 
   Widget _buildMedicalCertificateAlert(BuildContext context) {
     final profile = context.watch<AthleteProfileService>();
@@ -1371,6 +1505,77 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     );
   }
 
+  Widget _buildWPrimeCard(BuildContext context) {
+    return Consumer<WPrimeService>(
+      builder: (context, wPrime, _) {
+        // Only show if maxWPrime is configured (meaning profile is set)
+        if (wPrime.maxWPrime <= 0) return const SizedBox.shrink();
+
+        return GlassCard(
+          padding: const EdgeInsets.all(20),
+          borderRadius: 16,
+          // Change border color based on depletion status
+          borderColor: wPrime.isDepleting ? Colors.orangeAccent.withOpacity(0.5) : Colors.greenAccent.withOpacity(0.3),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text("ANAEROBIC BATTERY (W')", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                  Icon(LucideIcons.batteryCharging, color: wPrime.isDepleting ? Colors.orangeAccent : Colors.greenAccent, size: 20),
+                ],
+              ),
+              const SizedBox(height: 16),
+              AnaerobicBatteryGauge(
+                currentWPrime: wPrime.currentWPrime, 
+                maxWPrime: wPrime.maxWPrime, 
+                isDepleting: wPrime.isDepleting
+              ),
+              const SizedBox(height: 8),
+              Text(
+                "${(wPrime.currentWPrime / 1000).toStringAsFixed(1)} kJ / ${(wPrime.maxWPrime / 1000).toStringAsFixed(1)} kJ",
+                style: const TextStyle(color: Colors.white54, fontSize: 12, fontFamily: 'monospace'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+
+
+  Widget _buildAprCalculatorButton(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        child: InkWell(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(LucideIcons.calculator, color: Colors.purpleAccent, size: 24),
+                  const SizedBox(width: 16),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("CALCOLO APR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                      Text("Configura Profilo Metabolico", style: TextStyle(color: Colors.white54, fontSize: 12)),
+                    ],
+                  ),
+                ],
+              ),
+              Icon(LucideIcons.chevronRight, color: Colors.white54),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildMainWorkoutCard() {
     return Consumer<SyncService>(
       builder: (context, sync, child) {
@@ -1409,22 +1614,23 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             // If strictly ZWO string:
             final rawData = workoutData['workout_data'] as String?;
             final workoutId = workoutData['id'] as String;
+            final workoutName = workoutData['workout_name'] as String?; // Get name from database
             
             WorkoutWorkout? workout;
             int duration = 0;
             int targetPower = 0;
             String timeStr = "--:--";
             
-            // 1. Try Parsing ZWO (String)
+            // 1. Try Parsing ZWO (String) - pass workoutName as title override
             if (rawData != null && rawData.isNotEmpty) {
                try {
-                 workout = ZwoParser.parse(rawData);
+                 workout = ZwoParser.parse(rawData, titleOverride: workoutName);
                } catch (e) {
                  debugPrint("Error parsing ZWO XML: $e");
                }
             }
 
-            // 2. Fallback: Parse JSON Structure
+            // 2. Fallback: Parse JSON Structure (already uses workout_name)
             if (workout == null || workout.blocks.isEmpty) {
                try {
                  workout = ZwoParser.parseJson(workoutData);
@@ -1627,22 +1833,27 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        InkWell(
-          onTap: () {
-            setState(() {
-              _currentIndex = 2; // Navigate to Settings tab
-            });
-          },
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            height: 60, // Match button height approx
-            width: 50,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.white10),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: () {
+               Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen()));
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.cyanAccent.withOpacity(0.2),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Colors.cyanAccent.withOpacity(0.5)),
+              ),
             ),
-            child: const Icon(LucideIcons.settings, color: Colors.white70),
+            child: Column(
+              children: const [
+                 Icon(LucideIcons.flaskConical, color: Colors.cyanAccent),
+                 SizedBox(height: 4),
+                 Text('MOTORE META', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+              ],
+            ),
           ),
         ),
       ],
@@ -1713,4 +1924,286 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       ),
     );
   }
+
+  Widget _buildMetabolicProfile(BuildContext context) {
+    final profileService = context.watch<AthleteProfileService>();
+    final profile = profileService.currentProfile;
+    final vlamax = profile.vlamax;
+    final vo2max = profile.vo2max;
+    final metabolicProfile = profileService.metabolicProfile;
+    
+    // Map profile type to Italian labels
+    String typeLabel = profileService.getTypeLabel(profile.type);
+
+    return GlassCard(
+      padding: const EdgeInsets.all(20),
+      borderRadius: 20,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'MOTORE METABOLICO',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 14,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.primary.withOpacity(0.5)),
+                ),
+                child: Text(
+                  typeLabel,
+                  style: const TextStyle(
+                      color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetabolicMetric(
+                  'VLamax',
+                  vlamax?.toStringAsFixed(3) ?? '-',
+                  'mmol/L/s',
+                  Colors.orangeAccent,
+                ),
+              ),
+              Container(width: 1, height: 40, color: Colors.white10),
+              Expanded(
+                child: _buildMetabolicMetric(
+                  'VO2max',
+                  vo2max?.toStringAsFixed(1) ?? '-',
+                  'mL/min/kg',
+                  Colors.blueAccent,
+                ),
+              ),
+            ],
+          ),
+          
+          if (metabolicProfile != null) ...[
+            const SizedBox(height: 24),
+            _buildMetabolicCurveSection(profileService),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMetabolicMetric(String label, String value, String unit, Color color) {
+    return Column(
+      children: [
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 12)),
+        const SizedBox(height: 4),
+        Text(value, style: TextStyle(color: color, fontSize: 24, fontWeight: FontWeight.bold)),
+        Text(unit, style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10)),
+      ],
+    );
+  }
+
+  Widget _buildUpcomingEvents(BuildContext context) {
+    return Consumer<EventsService>(
+      builder: (context, eventsService, _) {
+        final upcoming = eventsService.upcomingEvents;
+        // Take top 3
+        final displayEvents = upcoming.take(3).toList();
+        
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                 const Text(
+                    'PROSSIMI EVENTI',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.plus, color: AppColors.primary, size: 20),
+                    onPressed: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AddEventScreen()));
+                    },
+                  )
+              ],
+            ),
+            const SizedBox(height: 8),
+            if (displayEvents.isEmpty)
+              GlassCard(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    const Icon(LucideIcons.calendar, color: Colors.white24),
+                    const SizedBox(width: 12),
+                    const Text("Nessun evento in programma.", style: TextStyle(color: Colors.white54)),
+                  ],
+                ),
+              )
+            else
+              ...displayEvents.map((e) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white.withOpacity(0.05)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: _getEventColor(e.type).withOpacity(0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        children: [
+                           Text(e.date.day.toString(), style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                           Text(_getMonthName(e.date.month), style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(e.type.name.toUpperCase(), style: TextStyle(color: _getEventColor(e.type), fontSize: 10, fontWeight: FontWeight.bold)),
+                          const SizedBox(height: 4),
+                          Text(e.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                          if (e.description != null && e.description!.isNotEmpty)
+                            Text(e.description!, style: const TextStyle(color: Colors.white54, fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              )).toList(),
+          ],
+        );
+      }
+    );
+  }
+  
+  Color _getEventColor(EventType type) {
+    switch(type) {
+      case EventType.race: return AppColors.primary;
+      case EventType.test: return Colors.purpleAccent;
+      case EventType.objective: return Colors.greenAccent;
+      default: return Colors.blueAccent;
+    }
+  }
+  
+  String _getMonthName(int month) {
+    const months = ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'];
+    return months[month - 1];
+  }
+}
+
+/// Custom painter for metabolic curve (fat/carb oxidation)
+class _MetabolicCurvePainter extends CustomPainter {
+  final List<CombustionData> data;
+  
+  _MetabolicCurvePainter(this.data);
+  
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+    
+    final fatPaint = Paint()
+      ..color = Colors.orangeAccent
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    
+    final carbPaint = Paint()
+      ..color = Colors.blueAccent
+      ..strokeWidth = 2.5
+      ..style = PaintingStyle.stroke;
+    
+    final fatFillPaint = Paint()
+      ..color = Colors.orangeAccent.withOpacity(0.15)
+      ..style = PaintingStyle.fill;
+    
+    final carbFillPaint = Paint()
+      ..color = Colors.blueAccent.withOpacity(0.15)
+      ..style = PaintingStyle.fill;
+    
+    // Find max values for scaling
+    final maxWatt = data.map((d) => d.watt).reduce((a, b) => a > b ? a : b);
+    final maxOxidation = data.map((d) => d.fatOxidation > d.carbOxidation ? d.fatOxidation : d.carbOxidation)
+        .reduce((a, b) => a > b ? a : b);
+    
+    if (maxWatt == 0 || maxOxidation == 0) return;
+    
+    // Build paths
+    final fatPath = Path();
+    final carbPath = Path();
+    final fatFillPath = Path();
+    final carbFillPath = Path();
+    
+    fatFillPath.moveTo(0, size.height);
+    carbFillPath.moveTo(0, size.height);
+    
+    for (int i = 0; i < data.length; i++) {
+      final x = (data[i].watt / maxWatt) * size.width;
+      final fatY = size.height - (data[i].fatOxidation / maxOxidation) * size.height * 0.9;
+      final carbY = size.height - (data[i].carbOxidation / maxOxidation) * size.height * 0.9;
+      
+      if (i == 0) {
+        fatPath.moveTo(x, fatY);
+        carbPath.moveTo(x, carbY);
+        fatFillPath.lineTo(x, fatY);
+        carbFillPath.lineTo(x, carbY);
+      } else {
+        fatPath.lineTo(x, fatY);
+        carbPath.lineTo(x, carbY);
+        fatFillPath.lineTo(x, fatY);
+        carbFillPath.lineTo(x, carbY);
+      }
+    }
+    
+    // Close fill paths
+    final lastX = (data.last.watt / maxWatt) * size.width;
+    fatFillPath.lineTo(lastX, size.height);
+    fatFillPath.close();
+    carbFillPath.lineTo(lastX, size.height);
+    carbFillPath.close();
+    
+    // Draw fills first
+    canvas.drawPath(fatFillPath, fatFillPaint);
+    canvas.drawPath(carbFillPath, carbFillPaint);
+    
+    // Draw lines on top
+    canvas.drawPath(fatPath, fatPaint);
+    canvas.drawPath(carbPath, carbPaint);
+    
+    // Draw axis labels
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+    
+    // X-axis: 0W ... maxW
+    textPainter.text = TextSpan(text: '0W', style: TextStyle(color: Colors.white38, fontSize: 9));
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(2, size.height - 12));
+    
+    textPainter.text = TextSpan(text: '${maxWatt.toInt()}W', style: TextStyle(color: Colors.white38, fontSize: 9));
+    textPainter.layout();
+    textPainter.paint(canvas, Offset(size.width - textPainter.width - 2, size.height - 12));
+  }
+  
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }

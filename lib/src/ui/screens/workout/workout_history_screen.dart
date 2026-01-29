@@ -8,6 +8,10 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
 import '../../../logic/fit_reader.dart';
 import 'post_workout_analysis_screen.dart';
+import 'package:provider/provider.dart';
+import '../../../services/sync_service.dart';
+import '../../../services/integration_service.dart';
+import '../../../services/intervals_service.dart';
 
 class WorkoutHistoryScreen extends StatefulWidget {
   const WorkoutHistoryScreen({super.key});
@@ -116,16 +120,77 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
               ),
               const Icon(Icons.chevron_right, color: Colors.white30),
               const SizedBox(width: 8),
-              IconButton(
-                icon: const Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20),
-                onPressed: () => _showDeleteConfirmation(context, path),
-              ),
+              _buildActionMenu(context, path, title),
             ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildActionMenu(BuildContext context, String path, String title) {
+    return PopupMenuButton<String>(
+      icon: const Icon(LucideIcons.moreVertical, color: Colors.white54),
+      color: const Color(0xFF1A1A2E),
+      onSelected: (value) => _handleAction(context, value, path),
+      itemBuilder: (context) => [
+        PopupMenuItem(
+          value: 'sync',
+          child: Row(children: [Icon(LucideIcons.upload, color: Colors.blueAccent, size: 20), SizedBox(width: 12), Text('Sincronizza Cloud', style: TextStyle(color: Colors.white))]),
+        ),
+        PopupMenuItem(
+          value: 'strava',
+          child: Row(children: [Icon(LucideIcons.activity, color: Colors.orange, size: 20), SizedBox(width: 12), Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
+        ),
+        PopupMenuItem(
+          value: 'intervals',
+          child: Row(children: [Icon(LucideIcons.barChart, color: Colors.purpleAccent, size: 20), SizedBox(width: 12), Text('Invia a Intervals.icu', style: TextStyle(color: Colors.white))]),
+        ),
+        PopupMenuItem(
+          value: 'delete',
+          child: Row(children: [Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20), SizedBox(width: 12), Text('Elimina', style: TextStyle(color: Colors.white))]),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _handleAction(BuildContext context, String action, String path) async {
+    final file = File(path);
+    if (!file.existsSync()) return;
+
+    try {
+      if (action == 'delete') {
+         _showDeleteConfirmation(context, path);
+      } else if (action == 'sync') {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Caricamento su Cloud in corso...')));
+         await context.read<SyncService>().uploadWorkoutFile(path, 'history');
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sincronizzazione completata!'), backgroundColor: Colors.green));
+      } else if (action == 'strava') {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invio a Strava in corso...')));
+         await context.read<IntegrationService>().uploadActivityToStrava(file);
+         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inviato a Strava!'), backgroundColor: Colors.orange));
+      } else if (action == 'intervals') {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invio a Intervals.icu in corso...')));
+         final result = await context.read<IntervalsService>().uploadActivity(file);
+         
+         if (mounted) {
+           if (result == 'Success') {
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inviato a Intervals.icu!'), backgroundColor: Colors.purpleAccent));
+           } else {
+              // Show detailed error in a dialog or long snackbar
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text(result), 
+                backgroundColor: Colors.red, 
+                duration: const Duration(seconds: 5)
+              ));
+           }
+         }
+      }
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.red));
+    }
+  }
+
 
   Future<void> _showDeleteConfirmation(BuildContext context, String path) async {
      final confirmed = await showDialog<bool>(
@@ -153,16 +218,15 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
 
      if (confirmed == true) {
         try {
-          final file = File(path);
-          if (await file.exists()) {
-             await file.delete();
-             _loadFiles(); // Refresh list
-             if (context.mounted) {
+           // Use Sync Service to delete local and remote (if synced)
+           await context.read<SyncService>().deleteWorkout(path);
+           _loadFiles(); // Refresh list
+           
+           if (context.mounted) {
                ScaffoldMessenger.of(context).showSnackBar(
                  const SnackBar(content: Text('Allenamento eliminato')),
                );
-             }
-          }
+           }
         } catch (e) {
            if (context.mounted) {
              ScaffoldMessenger.of(context).showSnackBar(

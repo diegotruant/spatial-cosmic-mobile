@@ -55,7 +55,7 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
 
   void _startWorkout(WorkoutTemplate template) {
     try {
-      final parsedWorkout = ZwoParser.parse(template.zwoContent);
+      final parsedWorkout = ZwoParser.parse(template.zwoContent, titleOverride: template.title);
       final ftp = context.read<SettingsService>().ftp;
       context.read<WorkoutService>().startWorkout(parsedWorkout, workoutId: template.id, ftp: ftp);
       
@@ -116,7 +116,7 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
       // 1. Try ZWO
       if (template.zwoContent.isNotEmpty) {
         try {
-           parsedWorkout = ZwoParser.parse(template.zwoContent);
+           parsedWorkout = ZwoParser.parse(template.zwoContent, titleOverride: template.title);
         } catch (e) {
            debugPrint('Error parsing ZWO for ${template.title}: $e');
         }

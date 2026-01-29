@@ -78,17 +78,17 @@ class IntervalsService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> uploadActivity(File fitFile) async {
-    if (!_isConnected) return;
+  Future<String> uploadActivity(File fitFile) async {
+    // Retry loading credentials if not connected
+    if (!_isConnected) {
+      await _loadCredentials();
+    }
     
-    // API Key is used as username, 'api_key' as password for Basic Auth, OR Bearer if instructed.
-    // Intervals.icu specifies: Basic Auth with username 'API_KEY' for older endpoints, 
-    // but for uploads, standard Basic Auth or Bearer should work.
-    // Documentation says: POST /api/v1/athlete/{id}/events
-    // Body: file content. 
+    if (!_isConnected) {
+       return "Non connesso (ID: ${_athleteId.isEmpty ? 'Mancante' : 'Presente'}, Key: ${_apiKey.isEmpty ? 'Mancante' : 'Presente'})";
+    }
     
     try {
-      // POST /api/v1/athlete/{id}/activities is the correct endpoint for uploading FIT files
       final uri = Uri.parse('https://intervals.icu/api/v1/athlete/$_athleteId/activities');
       final auth = base64Encode(utf8.encode('API_KEY:$_apiKey'));
       
@@ -100,12 +100,15 @@ class IntervalsService extends ChangeNotifier {
       
       if (response.statusCode >= 200 && response.statusCode < 300) {
         debugPrint('Intervals Upload Success');
+        return "Success";
       } else {
         final respStr = await response.stream.bytesToString();
         debugPrint('Intervals Upload Failed: ${response.statusCode} $respStr');
+        return "Errore ${response.statusCode}: ${respStr.isEmpty ? 'Errore sconosciuto' : respStr}";
       }
     } catch (e) {
       debugPrint('Intervals Upload Exception: $e');
+      return "Errore di connessione: $e";
     }
   }
 }

@@ -45,33 +45,43 @@ class _NeonGraphPainter extends CustomPainter {
 
     for (final block in workout!.blocks) {
       final w = (block.duration / totalDuration) * size.width;
-      double hRatio = 0.0;
+      double hStartRatio = 0.0;
+      double hEndRatio = 0.0;
       
       if (block is SteadyState) {
-        hRatio = block.power;
+        hStartRatio = block.power;
+        hEndRatio = block.power;
+      } else if (block is Ramp) {
+        hStartRatio = block.powerLow;
+        hEndRatio = block.powerHigh;
       } else if (block is IntervalsT) {
-        // For intervals, we'll draw the simplified "on" power representative block 
-        // Or we could expand them, but let's keep it simple for the dashboard chart
-        hRatio = block.onPower; 
+        hStartRatio = block.onPower; 
+        hEndRatio = block.onPower;
       }
 
-      final h = hRatio * size.height;
-      final y = size.height - h;
+      final yStart = size.height - (hStartRatio * size.height);
+      final yEnd = size.height - (hEndRatio * size.height);
 
-      path.lineTo(currentX, y);
-      path.lineTo(currentX + w, y);
-      
-      // Block fill
-      final rect = Rect.fromLTWH(currentX, y, w, h);
-      canvas.drawRect(rect, blockPaint..shader = LinearGradient(
+      // Block fill path (polygon)
+      final fillPath = Path();
+      fillPath.moveTo(currentX, size.height);
+      fillPath.lineTo(currentX, yStart);
+      fillPath.lineTo(currentX + w, yEnd);
+      fillPath.lineTo(currentX + w, size.height);
+      fillPath.close();
+
+      canvas.drawPath(fillPath, blockPaint..shader = LinearGradient(
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
           const Color(0xFF00E5FF).withOpacity(0.2),
           const Color(0xFF00E5FF).withOpacity(0.05),
         ],
-      ).createShader(rect));
+      ).createShader(Rect.fromLTWH(currentX, min(yStart, yEnd), w, size.height - min(yStart, yEnd))));
 
+      path.lineTo(currentX, yStart);
+      path.lineTo(currentX + w, yEnd);
+      
       currentX += w;
     }
     path.lineTo(size.width, size.height);

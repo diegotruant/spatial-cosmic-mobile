@@ -2,18 +2,27 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import '../../widgets/glass_card.dart';
 import '../../../logic/fit_reader.dart';
 import '../../../logic/analysis_engine.dart';
 import '../../../services/settings_service.dart';
+import '../../../services/sync_service.dart' as src;
+import '../../../services/integration_service.dart';
+import '../../../services/intervals_service.dart';
 import '../../../l10n/app_localizations.dart';
 
 class PostWorkoutAnalysisScreen extends StatefulWidget {
   final String fitFilePath;
-
   final String? workoutId;
+  final bool isNewWorkout; // Flag to determine if we show Save/Discard controls
 
-  const PostWorkoutAnalysisScreen({super.key, required this.fitFilePath, this.workoutId});
+  const PostWorkoutAnalysisScreen({
+    super.key, 
+    required this.fitFilePath, 
+    this.workoutId,
+    this.isNewWorkout = false,
+  });
 
   @override
   State<PostWorkoutAnalysisScreen> createState() => _PostWorkoutAnalysisScreenState();
@@ -21,8 +30,9 @@ class PostWorkoutAnalysisScreen extends StatefulWidget {
 
 class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   bool _isLoading = true;
+  bool _isSaving = false; // For save button state
   String? _error;
-  int? _newFtp; // Detected FTP from test
+  int? _newFtp; 
 
   // Data
   List<double> _power = [];
@@ -45,6 +55,11 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   @override
   void initState() {
     super.initState();
+    if (!File(widget.fitFilePath).existsSync()) {
+       setState(() => _error = "File temporaneo non trovato: ${widget.fitFilePath}");
+       _isLoading = false;
+       return;
+    }
     _analyzeWorkout();
   }
 
@@ -56,8 +71,20 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       final hr = data['heartRate']?.map((e) => e.toInt()).toList() ?? [];
       final cadence = data['cadence']?.map((e) => e.toInt()).toList() ?? [];
       final timestamps = data['timestamps']?.map((e) => e.toDouble()).toList() ?? [];
-
-      if (power.isEmpty) throw Exception("No power data found");
+      
+      // Prefer using Total Calories from FIT file if available in 'totalCalories' field
+      // FitReader needs to support reading session messages for this. 
+      // Assuming FitReader returns a flat map of record data for now.
+      // If we upgraded FitReader to return Session info, we'd use that.
+      // Fallback to calculation if not present.
+      
+      if (power.isEmpty) {
+        // Handle empty file (e.g. 0 duration)
+         setState(() {
+           _isLoading = false;
+         });
+         return; 
+      }
 
       // Get User FTP
       if (!mounted) return;
@@ -70,19 +97,20 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       final tss = AnalysisEngine.calculateTSS(np, ftp, duration);
       final peaks = AnalysisEngine.calculatePowerCurve(power);
       
-      // Simple Calorie estimation (kJ -> kCal)
+      // Calorie estimation
+      // Use FIT 'total_calories' if we were parsing it. 
+      // Since FitReader (custom) returns 'records' data primarily, we use our estimator or if we added it to the map.
+      // Let's assume for now we stick to estimation unless we update FitReader.
       final avgPower = power.reduce((a, b) => a + b) / power.length;
       final kCal = (avgPower * duration) / 4.184 / 0.24;
 
       // Test Protocol Logic
       int? calculatedFtp;
       if (widget.workoutId == 'ramp_test_01') {
-          // Ramp Test: 75% of Best 1 Minute Power (MAP)
           if (peaks.containsKey('1m')) {
               calculatedFtp = (peaks['1m']! * 0.75).round();
           }
       } else if (widget.workoutId == 'ftp_test_20') {
-          // 20 Min Test: 95% of Best 20 Minute Power
           if (peaks.containsKey('20m')) {
               calculatedFtp = (peaks['20m']! * 0.95).round();
           }
@@ -142,26 +170,189 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
         title: const Text('ANALISI WORKOUT', style: TextStyle(color: Colors.white, fontSize: 16, letterSpacing: 1.5)),
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst),
+          onPressed: () {
+             // If manual workflow, strict control? No, allow closing (defaults to discard? or just back?)
+             // Better to force choice if it's new.
+             if (widget.isNewWorkout) {
+               _handleDiscard(context);
+             } else {
+               Navigator.of(context).pop();
+             }
+          },
         ),
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSummaryCards(),
-              const SizedBox(height: 24),
-              _buildChartSection(),
-              const SizedBox(height: 24),
-              _buildPowerCurveSection(),
-              const SizedBox(height: 20), // Extra bottom padding
-            ],
-          ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildSummaryCards(),
+                    const SizedBox(height: 24),
+                    _buildChartSection(),
+                    const SizedBox(height: 24),
+                    _buildPowerCurveSection(),
+                    const SizedBox(height: 100), // Space for bottom bar
+                  ],
+                ),
+              ),
+            ),
+            if (widget.isNewWorkout) _buildSaveBar(context),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildSaveBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A2E),
+        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.1))),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: _isSaving ? null : () => _handleDiscard(context),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: Colors.redAccent.withOpacity(0.5)),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: const Text("SCARTA", style: TextStyle(color: Colors.redAccent)),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : () => _handleSave(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: _isSaving 
+                   ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                   : const Text("SALVA UTENTE", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleSave(BuildContext context) async {
+    // Show filename dialog first
+    final defaultName = widget.workoutId ?? 'workout_${DateTime.now().toIso8601String().split('T')[0]}';
+    final customName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text('Nome Sessione', style: TextStyle(color: Colors.white)),
+        content: TextFormField(
+          initialValue: defaultName,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Inserisci nome sessione',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+            enabledBorder: OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+            ),
+            focusedBorder: const OutlineInputBorder(
+              borderSide: BorderSide(color: Colors.blueAccent),
+            ),
+          ),
+          onFieldSubmitted: (value) => Navigator.pop(ctx, value),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+            onPressed: () {
+              // Get value from TextFormField - using default if empty
+              Navigator.pop(ctx, defaultName);
+            },
+            child: const Text('Salva', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (customName == null || customName.isEmpty) return; // User cancelled
+
+    setState(() => _isSaving = true);
+    try {
+      // Save and Sync with custom name
+      final newPath = await context.read<src.SyncService>().saveAndSyncWorkout(
+        widget.fitFilePath, 
+        customName,
+      );
+      final newFile = File(newPath);
+
+      // Trigger Exports
+      final integrationService = context.read<IntegrationService>();
+      final intervalsService = context.read<IntervalsService>();
+
+      if (integrationService.isStravaConnected) {
+         integrationService.uploadActivityToStrava(newFile).ignore();
+      }
+      if (intervalsService.isConnected) {
+         intervalsService.uploadActivity(newFile).ignore();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Allenamento salvato con successo!"), backgroundColor: Colors.green));
+        Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
+      }
+    } catch (e) {
+      if (mounted) {
+         setState(() => _isSaving = false);
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore salvataggio: $e"), backgroundColor: Colors.red));
+      }
+    }
+  }
+
+  Future<void> _handleDiscard(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text("Scarta Allenamento?", style: TextStyle(color: Colors.white)),
+        content: const Text("Sei sicuro di voler eliminare questi dati? Questa azione è irreversibile.", style: TextStyle(color: Colors.white70)),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text("Annulla")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () => Navigator.pop(ctx, true), 
+            child: const Text("Elimina")
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+       try {
+         final file = File(widget.fitFilePath);
+         if (await file.exists()) {
+           await file.delete();
+         }
+         if (context.mounted) {
+           Navigator.of(context).popUntil((route) => route.isFirst);
+         }
+       } catch (e) {
+         debugPrint("Error deleting temp file: $e");
+       }
+    }
   }
 
   Widget _buildSummaryCards() {

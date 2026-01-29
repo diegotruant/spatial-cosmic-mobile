@@ -76,6 +76,47 @@ class LibraryService {
 </workout_file>
 ''',
       ),
+      // FLOW PERFORMANCE LAB PROTOCOLS
+      WorkoutTemplate(
+        id: 'flow_protocol_1',
+        title: 'FLOW Test 1 (Sprint & MMP15)',
+        description: 'Protocollo 1: Warmup, 20" Sprint Max, MMP15. Eseguire in modalità Slope/Resistance.',
+        durationSeconds: 2700, // Approx 45 min
+        tss: 60,
+        category: 'Test',
+        zwoContent: '''
+<workout_file>
+  <workout>
+    <SteadyState Duration="600" Power="0.60" /> <!-- WarmUp Z2 -->
+    <SteadyState Duration="180" Power="0.55" /> <!-- 3' @ 50-100w -->
+    <SteadyState Duration="120" Power="0.0" />  <!-- 2' fermo (0w) -->
+    <SteadyState Duration="20" Power="3.0" />   <!-- TRIAL 1: 20" Sprint ALL OUT -->
+    <SteadyState Duration="900" Power="0.45" /> <!-- 15' Recupero Z1/Z2 -->
+    <SteadyState Duration="900" Power="1.05" /> <!-- TRIAL 2: MMP15 (Max Effort 15 min) -->
+    <SteadyState Duration="300" Power="0.40" /> <!-- CoolDown -->
+  </workout>
+</workout_file>
+''',
+      ),
+      WorkoutTemplate(
+        id: 'flow_protocol_2',
+        title: 'FLOW Test 2 (MMP3 & MMP6)',
+        description: 'Protocollo 2: MMP3 e MMP6 con ampio recupero. Eseguire in modalità Slope/Resistance.',
+        durationSeconds: 3300, // Approx 55 min
+        tss: 80,
+        category: 'Test',
+        zwoContent: '''
+<workout_file>
+  <workout>
+    <SteadyState Duration="600" Power="0.60" /> <!-- WarmUp Z2 -->
+    <SteadyState Duration="180" Power="1.30" /> <!-- TRIAL 1: MMP3 (3 min Max) -->
+    <SteadyState Duration="1800" Power="0.45" /> <!-- 30' Recupero Z1/Z2 -->
+    <SteadyState Duration="360" Power="1.15" /> <!-- TRIAL 2: MMP6 (6 min Max) -->
+    <SteadyState Duration="300" Power="0.40" /> <!-- CoolDown -->
+  </workout>
+</workout_file>
+''',
+      ),
       // NEW TESTS
       WorkoutTemplate(
         id: 'cp3_test',

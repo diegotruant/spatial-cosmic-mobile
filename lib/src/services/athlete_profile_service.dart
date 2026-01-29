@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../logic/metabolic_calculator.dart';
+import '../models/metabolic_profile.dart';
 
 enum AthleteType { sprinter, allRounder, timeTrialist, climber, unknown }
 
@@ -13,6 +15,7 @@ class AthleteProfile {
   final double? height;
   final DateTime? dob;
   final double? leanMass;
+  final double? wPrime; // Joules
 
   AthleteProfile({
     this.vlamax,
@@ -24,14 +27,20 @@ class AthleteProfile {
     this.height,
     this.dob,
     this.leanMass,
+    this.wPrime,
   });
 }
+
+
 
 class AthleteProfileService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
   
   // Power curve data (duration in seconds -> power in watts)
   final Map<int, double> powerCurve = {};
+
+  // Dependency
+  String? _athleteId;
 
   double? _ftp;
   double? _vo2max;
@@ -42,6 +51,16 @@ class AthleteProfileService extends ChangeNotifier {
   DateTime? _dob;
   double? _leanMass;
   DateTime? _certExpiryDate;
+  double? _wPrime;
+  
+  // Metabolic v4.0 specific
+  double? _bodyFat;
+  String _somatotype = 'ectomorph'; // Default: ectomorph, stored as string
+  String _athleteLevel = 'amateur'; // Default: amateur
+  String _gender = 'male'; // Default: male
+
+  // Output profile
+  MetabolicProfile? _lastCalculatedProfile;
 
   bool _isLoading = false;
 
@@ -53,16 +72,31 @@ class AthleteProfileService extends ChangeNotifier {
   DateTime? get dob => _dob;
   double? get leanMass => _leanMass;
   DateTime? get certExpiryDate => _certExpiryDate;
+  double? get wPrime => _wPrime;
+  
+  double? get bodyFat => _bodyFat;
+  String get somatotype => _somatotype;
+  String get athleteLevel => _athleteLevel;
+  String get gender => _gender;
+  
+  MetabolicProfile? get metabolicProfile => _lastCalculatedProfile;
   
   bool get isLoading => _isLoading;
 
-  AthleteProfileService() {
-    _loadFromSupabase();
+  AthleteProfileService();
+
+  void updateAthleteId(String? id) {
+    if (id != _athleteId) {
+      _athleteId = id;
+      if (_athleteId != null) {
+        _loadFromSupabase();
+      }
+    }
   }
 
   Future<void> _loadFromSupabase() async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
+    if (targetId == null) return;
 
     _isLoading = true;
     notifyListeners();
@@ -70,20 +104,46 @@ class AthleteProfileService extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('athletes')
-          .select('ftp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date')
-          .eq('id', user.id)
+          .select('ftp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile')
+          .eq('id', targetId)
           .maybeSingle();
 
       if (data != null) {
         if (data['ftp'] != null) _ftp = (data['ftp'] as num).toDouble();
         if (data['vo2max'] != null) _vo2max = (data['vo2max'] as num).toDouble();
         if (data['vlamax'] != null) _vlamax = (data['vlamax'] as num).toDouble();
+        if (data['w_prime'] != null) _wPrime = (data['w_prime'] as num).toDouble();
         
         if (data['weight'] != null) _weight = (data['weight'] as num).toDouble();
         if (data['height'] != null) _height = (data['height'] as num).toDouble();
         if (data['lean_mass'] != null) _leanMass = (data['lean_mass'] as num).toDouble();
         if (data['dob'] != null) _dob = DateTime.tryParse(data['dob']);
         if (data['cert_expiry_date'] != null) _certExpiryDate = DateTime.tryParse(data['cert_expiry_date']);
+        
+        if (data['body_fat'] != null) _bodyFat = (data['body_fat'] as num).toDouble();
+        if (data['somatotype'] != null) _somatotype = data['somatotype'];
+        if (data['athlete_level'] != null) _athleteLevel = data['athlete_level'];
+        if (data['gender'] != null) _gender = data['gender'];
+        
+        if (data['metabolic_profile'] != null) {
+          try {
+            final mpMap = data['metabolic_profile'];
+            if (mpMap is Map<String, dynamic>) {
+              final mp = MetabolicProfile.fromJson(mpMap);
+              _lastCalculatedProfile = mp;
+              
+              // Sync individual metrics if columns were null or 0
+              if (_ftp == null || _ftp == 0) _ftp = mp.metabolic.estimatedFtp;
+              if (_vo2max == null || _vo2max == 0) _vo2max = mp.vo2max;
+              if (_vlamax == null || _vlamax == 0) _vlamax = mp.vlamax;
+              if (_wPrime == null || _wPrime == 0) _wPrime = mp.wPrime ?? _wPrime;
+              
+              debugPrint('[AthleteProfile] Successfully loaded metabolic profile JSON. FTP: $_ftp');
+            }
+          } catch (e, stack) {
+            debugPrint('[AthleteProfile] Error parsing metabolic_profile JSON: $e');
+          }
+        }
         
         notifyListeners();
       }
@@ -95,15 +155,21 @@ class AthleteProfileService extends ChangeNotifier {
     }
   }
 
+
   Future<void> updateProfile({
     double? weight,
     double? height,
     DateTime? dob,
     double? leanMass,
     DateTime? certExpiryDate,
+    double? bodyFat,
+    String? somatotype,
+    String? athleteLevel,
+    String? gender,
+    double? wPrime,
   }) async {
-    final user = _supabase.auth.currentUser;
-    if (user == null) return;
+    final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
+    if (targetId == null) return;
     
     final updates = <String, dynamic>{};
     if (weight != null) updates['weight'] = weight;
@@ -111,11 +177,17 @@ class AthleteProfileService extends ChangeNotifier {
     if (dob != null) updates['dob'] = dob.toIso8601String();
     if (leanMass != null) updates['lean_mass'] = leanMass;
     if (certExpiryDate != null) updates['cert_expiry_date'] = certExpiryDate.toIso8601String();
+    if (wPrime != null) updates['w_prime'] = wPrime;
+    
+    if (bodyFat != null) updates['body_fat'] = bodyFat;
+    if (somatotype != null) updates['somatotype'] = somatotype;
+    if (athleteLevel != null) updates['athlete_level'] = athleteLevel;
+    if (gender != null) updates['gender'] = gender;
     
     if (updates.isEmpty) return;
 
     try {
-      await _supabase.from('athletes').update(updates).eq('id', user.id);
+      await _supabase.from('athletes').update(updates).eq('id', targetId);
       
       // Update local state
       if (weight != null) _weight = weight;
@@ -123,6 +195,12 @@ class AthleteProfileService extends ChangeNotifier {
       if (dob != null) _dob = dob;
       if (leanMass != null) _leanMass = leanMass;
       if (certExpiryDate != null) _certExpiryDate = certExpiryDate;
+      
+      if (bodyFat != null) _bodyFat = bodyFat;
+      if (somatotype != null) _somatotype = somatotype;
+      if (athleteLevel != null) _athleteLevel = athleteLevel;
+      if (gender != null) _gender = gender;
+      if (wPrime != null) _wPrime = wPrime;
       
       notifyListeners();
     } catch (e) {
@@ -143,6 +221,7 @@ class AthleteProfileService extends ChangeNotifier {
       height: _height,
       dob: _dob,
       leanMass: _leanMass,
+      wPrime: _wPrime,
     );
   }
 
@@ -322,11 +401,14 @@ class AthleteProfileService extends ChangeNotifier {
      // Save to DB
      await updateProfile(); // Syncs _vlamax to DB?
      // Need to update vlamax specifically
-     try {
-       await _supabase.from('athletes').update({
-         'vlamax': _vlamax,
-         'updated_at': DateTime.now().toIso8601String()
-       }).eq('id', _supabase.auth.currentUser!.id);
+      final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
+      if (targetId == null) return;
+      
+      try {
+        await _supabase.from('athletes').update({
+          'vlamax': _vlamax,
+          'updated_at': DateTime.now().toIso8601String()
+        }).eq('id', targetId);
      } catch(e) { 
         debugPrint("Error saving vlamax: $e");
      }
@@ -407,4 +489,118 @@ class AthleteProfileService extends ChangeNotifier {
         return 'Esegui il test VLamax o un test FTP per ottenere raccomandazioni personalizzate.';
     }
   }
+
+  void calculateMetabolicProfile({
+    required double pMax,
+    required double mmp3,
+    required double mmp6,
+    required double mmp15, // FROM FLOW TEST
+    // Optional overrides
+    double? customWeight,
+    double? customBodyFat,
+    String? customSomatotype,
+    String? customAthleteLevel,
+    String? customGender,
+  }) {
+    final w = customWeight ?? _weight ?? 70.0;
+    final h = height ?? _height ?? 175.0;
+    final bf = customBodyFat ?? _bodyFat ?? 12.0; 
+    
+    // Calculate Age
+    int age = 30;
+    if (_dob != null) {
+      age = DateTime.now().year - _dob!.year;
+      if (DateTime.now().month < _dob!.month || (DateTime.now().month == _dob!.month && DateTime.now().day < _dob!.day)) {
+        age--;
+      }
+    }
+    if (age <= 0) age = 30;
+
+    // Parse enums safely
+    Somatotype sType = Somatotype.ectomorph;
+    try {
+      final sStr = customSomatotype ?? _somatotype;
+      sType = Somatotype.values.firstWhere((e) => e.toString().split('.').last == sStr);
+    } catch (_) {}
+    
+    final gStr = customGender ?? _gender ?? 'male';
+    
+    _lastCalculatedProfile = AntigravityEngine.calculateProfile(
+      weight: w,
+      height: h,
+      age: age,
+      gender: gStr,
+      bodyFatPercentage: bf,
+      somatotype: sType,
+      pMax: pMax,
+      mmp3: mmp3,
+      mmp6: mmp6,
+      mmp15: mmp15,
+    );
+
+    
+    notifyListeners();
+  }
+  
+  Future<void> applyMetabolicResult() async {
+     if (_lastCalculatedProfile == null) return;
+     
+     final p = _lastCalculatedProfile!;
+     
+     // Update local state metrics
+     if (p.vlamax > 0) _vlamax = p.vlamax;
+     if (p.vo2max > 0) _vo2max = p.vo2max;
+     
+     final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
+     if (targetId == null) return;
+
+     if (p.wPrime != null && p.wPrime! > 0) _wPrime = p.wPrime;
+     
+     // Prepare the update payload with full metabolic profile
+     final updatePayload = <String, dynamic>{
+       'vlamax': _vlamax,
+       'vo2max': _vo2max,
+       'w_prime': _wPrime,
+       'updated_at': DateTime.now().toIso8601String(),
+       // Save the full metabolic profile as JSON for Lab visualization
+       'metabolic_profile': p.toJson(),
+     };
+     
+     // Auto-update FTP if available
+     if (p.metabolic.estimatedFtp > 0) {
+       updatePayload['ftp'] = p.metabolic.estimatedFtp.round();
+     }
+     
+     try {
+       await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
+       debugPrint("Metabolic profile saved successfully with full curve data");
+     } catch (e) {
+       debugPrint("Error saving metabolic profile: $e");
+     }
+     
+     notifyListeners();
+  }
+
+  /// Loads the saved metabolic profile from the database
+  Future<void> loadSavedMetabolicProfile() async {
+    final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
+    if (targetId == null) return;
+
+    try {
+      final data = await _supabase
+          .from('athletes')
+          .select('metabolic_profile')
+          .eq('id', targetId)
+          .maybeSingle();
+
+      if (data != null && data['metabolic_profile'] != null) {
+        _lastCalculatedProfile = MetabolicProfile.fromJson(data['metabolic_profile']);
+        notifyListeners();
+        debugPrint("Loaded saved metabolic profile from database");
+      }
+    } catch (e) {
+      debugPrint("Error loading metabolic profile: $e");
+    }
+  }
 }
+

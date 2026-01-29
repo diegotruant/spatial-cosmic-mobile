@@ -16,6 +16,7 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
   bool _isMeasuring = false;
   double _progress = 0.0;
   List<int> _capturedRR = [];
+  int _selectedDurationMinutes = 3; // Default 3 minutes, option for 5
 
   void _startMeasurement() {
     setState(() {
@@ -24,14 +25,19 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
       _capturedRR = [];
     });
 
-    // Simulate a 30-second measurement for demonstration
+    // Calculate progress increment based on selected duration
+    // 500ms interval = 2 updates per second
+    // Total updates = duration_minutes * 60 * 2
+    final totalUpdates = _selectedDurationMinutes * 60 * 2;
+    final increment = 1.0 / totalUpdates;
+
     Future.doWhile(() async {
       await Future.delayed(const Duration(milliseconds: 500));
       if (!mounted || !_isMeasuring) return false;
       
       setState(() {
-        _progress += 0.016; // Approx for 30s
-        // Mocking RR intervals if sensor not available
+        _progress += increment;
+        // Capture RR interval from sensor (mocking if sensor not available)
         _capturedRR.add(800 + (DateTime.now().millisecond % 50));
       });
 
@@ -66,6 +72,12 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
         title: const Text('HRV Measurement', style: TextStyle(color: Colors.white)),
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            icon: const Icon(LucideIcons.info),
+            onPressed: _showProtocolDialog,
+          ),
+        ],
       ),
       body: Center(
         child: Padding(
@@ -98,6 +110,38 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
                   'Measure your HRV to determine your training readiness for today.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: Colors.white54),
+                ),
+                const SizedBox(height: 24),
+                GestureDetector(
+                  onTap: _showProtocolDialog,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                       color: Colors.white.withOpacity(0.1),
+                       borderRadius: BorderRadius.circular(20),
+                       border: Border.all(color: Colors.white24)
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(LucideIcons.bookOpen, size: 14, color: Colors.cyanAccent),
+                        SizedBox(width: 8),
+                        Text("Protocollo Migliaccio", style: TextStyle(color: Colors.cyanAccent, fontSize: 12))
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Duration Selector
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Text('Durata: ', style: TextStyle(color: Colors.white54)),
+                    const SizedBox(width: 8),
+                    _buildDurationOption(3),
+                    const SizedBox(width: 12),
+                    _buildDurationOption(5),
+                  ],
                 ),
                 const SizedBox(height: 48),
                 SizedBox(
@@ -141,6 +185,41 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
     );
   }
 
+  void _showProtocolDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Row(
+           children: [
+             Icon(LucideIcons.fileText, color: Colors.cyanAccent),
+             SizedBox(width: 12),
+             Text('Protocollo di Misurazione', style: TextStyle(color: Colors.white, fontSize: 18))
+           ]
+        ),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text("Seguire scrupolosamente le indicazioni del Dott. Migliaccio per garantire la validità del dato:", style: TextStyle(color: Colors.white70, fontStyle: FontStyle.italic)),
+            SizedBox(height: 16),
+            _ProtocolStep(idx: "1", text: "Eseguire la misurazione al mattino appena svegli, prima di alzarsi dal letto."),
+            _ProtocolStep(idx: "2", text: "Posizionare la fascia cardio e assumere posizione supina (sdraiati a pancia in su)."),
+            _ProtocolStep(idx: "3", text: "Rimanere immobili e rilassati per 1-2 minuti per stabilizzare il battito."),
+            _ProtocolStep(idx: "4", text: "Avviare la misurazione (durata standard 3-5 min) respirando naturalmente senza forzature."),
+            SizedBox(height: 16),
+            Text("Nota: Evitare movimenti bruschi, parlare o guardare il telefono durante il test.", style: TextStyle(color: Colors.white54, fontSize: 12)),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Ho capito', style: TextStyle(color: Colors.cyanAccent)),
+          ),
+        ],
+      ),
+    );
+  }
   Widget _buildPulseCircle() {
     return Container(
       width: 150,
@@ -159,6 +238,55 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
         ],
       ),
       child: const Icon(LucideIcons.heart, color: Colors.cyanAccent, size: 50),
+    );
+  }
+
+  Widget _buildDurationOption(int minutes) {
+    final isSelected = _selectedDurationMinutes == minutes;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedDurationMinutes = minutes),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? Colors.cyanAccent : Colors.white.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? Colors.cyanAccent : Colors.white24,
+          ),
+        ),
+        child: Text(
+          '$minutes min',
+          style: TextStyle(
+            color: isSelected ? Colors.black : Colors.white,
+            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProtocolStep extends StatelessWidget {
+  final String idx;
+  final String text;
+  const _ProtocolStep({required this.idx, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(color: Colors.cyanAccent.withOpacity(0.2), shape: BoxShape.circle),
+            child: Text(idx, style: const TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: const TextStyle(color: Colors.white))),
+        ],
+      ),
     );
   }
 }
