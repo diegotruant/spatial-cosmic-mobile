@@ -39,7 +39,11 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
     List<WorkoutTemplate> combined = [];
 
     if (widget.isTab) {
-      combined = standardWorkouts.where((w) => w.category == 'Test').toList();
+      // If it's the main Workout Tab, we want assigned AND standard workouts
+      // Previously it filtered only 'Test', which was incorrect for a general 'Workouts' tab
+      final assignedWorkouts = await _libraryService.getAssignedWorkouts();
+      // Optionally filter standard workouts? No, show all.
+      combined = [...assignedWorkouts, ...standardWorkouts];
     } else {
       final assignedWorkouts = await _libraryService.getAssignedWorkouts();
       combined = [...assignedWorkouts, ...standardWorkouts];
