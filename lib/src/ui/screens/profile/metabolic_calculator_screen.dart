@@ -369,8 +369,8 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text("AFFIDABILITÀ STIMA", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.black, letterSpacing: 1)),
-              Text("$label (${(conf * 100).toInt()}%)", style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.black)),
+              const Text("AFFIDABILITÀ STIMA", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+              Text("$label (${(conf * 100).toInt()}%)", style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
             ],
           ),
           const SizedBox(height: 12),
@@ -407,7 +407,7 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
           SizedBox(height: 12),
           Text(
             "METODOLOGIA E RESPONSABILITÀ",
-            style: TextStyle(color: Colors.white54, fontWeight: FontWeight.black, fontSize: 10, letterSpacing: 1),
+            style: TextStyle(color: Colors.white54, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1),
           ),
           SizedBox(height: 8),
           Text(
@@ -430,7 +430,7 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
     return const Center(
       child: Column(
         children: [
-          Text("MODELLO PREDITTIVO v4.2", style: TextStyle(color: Colors.indigoAccent, fontSize: 10, fontWeight: FontWeight.black, letterSpacing: 2)),
+          Text("MODELLO PREDITTIVO v4.2", style: TextStyle(color: Colors.indigoAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 2)),
           SizedBox(height: 4),
           Text("RISULTATI ANALISI", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 24, letterSpacing: -0.5)),
         ],
