@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../logic/metabolic_calculator.dart';
 import '../models/metabolic_profile.dart';
