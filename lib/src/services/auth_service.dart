@@ -93,6 +93,18 @@ class AuthService extends ChangeNotifier {
   }
 
   Future<void> signOut() async {
+    // Clear integration tokens on logout to prevent persistence across accounts
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('strava_access_token');
+    await prefs.remove('strava_refresh_token');
+    await prefs.remove('strava_expires_at');
+    await prefs.remove('garmin_connected');
+    await prefs.remove('wahoo_connected');
+    await prefs.remove('tp_connected');
+    await prefs.remove('oura_access_token');
+    await prefs.remove('intervals_api_key');
+    await prefs.remove('intervals_athlete_id');
+
     await _supabase.auth.signOut();
     _athleteId = null;
     notifyListeners();

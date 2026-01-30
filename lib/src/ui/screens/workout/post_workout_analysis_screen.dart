@@ -311,6 +311,27 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       }
 
       if (mounted) {
+        // Trigger Metabolic Recalculation if it was a metabolic test protocol
+        final isMetabolicTest = widget.workoutId == 'pmax_slope_test' || 
+                               widget.workoutId == 'flow_protocol_1' || 
+                               widget.workoutId == 'flow_protocol_2';
+        
+        if (isMetabolicTest) {
+          final profileService = context.read<src_profile.AthleteProfileService>();
+          profileService.calculateMetabolicProfile(
+            pMax: _peaks['5s'] ?? 0,
+            mmp3: _peaks['3m'] ?? 0,
+            mmp6: _peaks['6m'] ?? 0,
+            mmp15: _peaks['15m'] ?? 0,
+          );
+          await profileService.applyMetabolicResult();
+          if (mounted) {
+             ScaffoldMessenger.of(context).showSnackBar(
+               const SnackBar(content: Text("Profilo Metabolico aggiornato automaticamente!"), backgroundColor: Colors.blueAccent)
+             );
+          }
+        }
+
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Allenamento salvato con successo!"), backgroundColor: Colors.green));
         Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
       }

@@ -525,7 +525,7 @@ class AthleteProfileService extends ChangeNotifier {
     
     final gStr = customGender ?? _gender ?? 'male';
     
-    _lastCalculatedProfile = AntigravityEngine.calculateProfile(
+    _lastCalculatedProfile = MetabolicEngine.calculateProfile(
       weight: w,
       height: h,
       age: age,

@@ -73,13 +73,20 @@ class AnalysisEngine {
      return maxSum / durationSeconds;
   }
   
-  /// Returns a map of standard peak powers: 5s, 1m, 5m, 20m
+  /// Returns a map of standard peak powers: 5s, 1m, 5m, 20m + Metabolic buckets
   static Map<String, double> calculatePowerCurve(List<double> powerData) {
     return {
       '5s': calculatePeakPower(powerData, 5),
+      '15s': calculatePeakPower(powerData, 15),
       '1m': calculatePeakPower(powerData, 60),
+      '3m': calculatePeakPower(powerData, 180),
       '5m': calculatePeakPower(powerData, 300),
+      '6m': calculatePeakPower(powerData, 360),
+      '10m': calculatePeakPower(powerData, 600),
+      '12m': calculatePeakPower(powerData, 720),
+      '15m': calculatePeakPower(powerData, 900),
       '20m': calculatePeakPower(powerData, 1200),
+      '60m': calculatePeakPower(powerData, 3600),
     };
   }
 
