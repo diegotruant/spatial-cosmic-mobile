@@ -10,6 +10,7 @@ import '../../../services/settings_service.dart';
 import '../../../services/sync_service.dart' as src;
 import '../../../services/integration_service.dart';
 import '../../../services/intervals_service.dart';
+import '../../../services/athlete_profile_service.dart' as src_profile;
 import '../../../l10n/app_localizations.dart';
 
 class PostWorkoutAnalysisScreen extends StatefulWidget {
