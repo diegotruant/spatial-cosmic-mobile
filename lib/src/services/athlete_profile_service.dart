@@ -127,8 +127,16 @@ class AthleteProfileService extends ChangeNotifier {
         
         if (data['metabolic_profile'] != null) {
           try {
-            final mpMap = data['metabolic_profile'];
-            if (mpMap is Map<String, dynamic>) {
+            var mpRaw = data['metabolic_profile'];
+            Map<String, dynamic>? mpMap;
+            
+            if (mpRaw is Map) {
+              mpMap = Map<String, dynamic>.from(mpRaw);
+            } else if (mpRaw is String) {
+              mpMap = jsonDecode(mpRaw) as Map<String, dynamic>?;
+            }
+
+            if (mpMap != null) {
               final mp = MetabolicProfile.fromJson(mpMap);
               _lastCalculatedProfile = mp;
               
@@ -138,7 +146,7 @@ class AthleteProfileService extends ChangeNotifier {
               if (_vlamax == null || _vlamax == 0) _vlamax = mp.vlamax;
               if (_wPrime == null || _wPrime == 0) _wPrime = mp.wPrime ?? _wPrime;
               
-              debugPrint('[AthleteProfile] Successfully loaded metabolic profile JSON. FTP: $_ftp');
+              debugPrint('[AthleteProfile] Successfully loaded metabolic profile. FTP: $_ftp');
             }
           } catch (e, stack) {
             debugPrint('[AthleteProfile] Error parsing metabolic_profile JSON: $e');

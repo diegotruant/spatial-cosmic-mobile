@@ -155,30 +155,75 @@ class IntegrationService extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> uploadActivityToStrava(File fitFile) async {
-    if (!_isStravaConnected || _stravaAccessToken == null) return;
+  Future<bool> _ensureValidStravaToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final expiresAt = prefs.getInt('strava_expires_at') ?? 0;
+    final refreshToken = prefs.getString('strava_refresh_token');
+
+    // If it expires in less than 5 minutes, refresh
+    if (DateTime.now().millisecondsSinceEpoch / 1000 > (expiresAt - 300)) {
+      if (refreshToken == null) return false;
+
+      debugPrint('Strava Token Expired. Refreshing...');
+      try {
+        final response = await http.post(
+          Uri.parse('https://www.strava.com/oauth/token'),
+          body: {
+            'client_id': _stravaClientId,
+            'client_secret': _stravaClientSecret,
+            'grant_type': 'refresh_token',
+            'refresh_token': refreshToken,
+          },
+        );
+
+        if (response.statusCode == 200) {
+          final data = jsonDecode(response.body);
+          await _saveStravaCredentials(
+            data['access_token'],
+            data['refresh_token'],
+            data['expires_at'],
+          );
+          return true;
+        } else {
+          debugPrint('Strava Token Refresh Failed: ${response.body}');
+          return false;
+        }
+      } catch (e) {
+        debugPrint('Strava Token Refresh Exception: $e');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  Future<String> uploadActivityToStrava(File fitFile) async {
+    if (!_isStravaConnected || _stravaAccessToken == null) return "Strava non connesso";
     
-    // Check token expiry and refresh if needed (simplified for now)
-    // In production: check expires_at, if expired call oauth/token with grant_type=refresh_token
+    // Ensure token is valid
+    final ok = await _ensureValidStravaToken();
+    if (!ok) return "Errore rinnovo token Strava";
 
     try {
       final uri = Uri.parse('https://www.strava.com/api/v3/uploads');
       final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $_stravaAccessToken'
         ..fields['data_type'] = 'fit'
-        ..fields['name'] = 'Spatial Cosmic Workout' // Or dynamic name
+        ..fields['name'] = 'Spatial Cosmic Workout'
         ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
         
       final response = await request.send();
+      final respStr = await response.stream.bytesToString();
       
       if (response.statusCode == 201) {
         debugPrint('Strava Upload Started Successfully!');
+        return "Success";
       } else {
-        debugPrint('Strava Upload Failed: ${response.statusCode}');
-        // If 401, token might be expired.
+        debugPrint('Strava Upload Failed: ${response.statusCode} $respStr');
+        return "Errore Strava ${response.statusCode}: $respStr";
       }
     } catch (e) {
       debugPrint('Strava Upload Exception: $e');
+      return "Eccezione Strava: $e";
     }
   }
 

@@ -304,14 +304,25 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       final integrationService = context.read<IntegrationService>();
       final intervalsService = context.read<IntervalsService>();
 
+      List<String> results = [];
       if (integrationService.isStravaConnected) {
-         integrationService.uploadActivityToStrava(newFile).ignore();
+         final res = await integrationService.uploadActivityToStrava(newFile);
+         results.add("Strava: ${res == 'Success' ? '✅' : '❌ $res'}");
       }
       if (intervalsService.isConnected) {
-         intervalsService.uploadActivity(newFile).ignore();
+         final res = await intervalsService.uploadActivity(newFile);
+         results.add("Intervals: ${res == 'Success' ? '✅' : '❌ $res'}");
       }
 
       if (mounted) {
+        String syncMsg = results.isEmpty ? "" : "\nSync: ${results.join(', ')}";
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text("Allenamento salvato con successo!$syncMsg"), 
+            backgroundColor: results.any((r) => r.contains('❌')) ? Colors.orange : Colors.green,
+            duration: const Duration(seconds: 5),
+          )
+        );
         // Trigger Metabolic Recalculation if it was a metabolic test protocol
         final isMetabolicTest = widget.workoutId == 'pmax_slope_test' || 
                                widget.workoutId == 'flow_protocol_1' || 
@@ -333,7 +344,6 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
           }
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Allenamento salvato con successo!"), backgroundColor: Colors.green));
         Navigator.of(context).popUntil((route) => route.isFirst); // Go to home
       }
     } catch (e) {

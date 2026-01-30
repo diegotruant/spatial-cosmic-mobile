@@ -137,11 +137,11 @@ class MetabolicZone {
   };
 
   factory MetabolicZone.fromJson(Map<String, dynamic> json) => MetabolicZone(
-    name: json['name'],
-    range: json['range'],
-    target: json['target'],
-    fuel: json['fuel'],
-    color: json['color'],
+    name: json['name'] ?? 'Unknown',
+    range: json['range'] ?? (json['minWatt'] != null ? '${json['minWatt']} - ${json['maxWatt']}W' : ''),
+    target: json['target'] ?? json['description'] ?? '',
+    fuel: json['fuel'] ?? '',
+    color: json['color'] ?? 'text-slate-400',
     minWatt: json['minWatt'] != null ? (json['minWatt'] as num).toDouble() : null,
     maxWatt: json['maxWatt'] != null ? (json['maxWatt'] as num).toDouble() : null,
   );
