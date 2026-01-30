@@ -117,7 +117,7 @@ class FitGenerator {
     // 1. File ID
     builder.add(FileIdMessage()
       ..type = FileType.activity
-      ..manufacturer = Manufacturer.development.value
+      ..manufacturer = 32 // Wahoo - more widely accepted than dev
       ..product = 1
       ..timeCreated = startFitTime
       ..serialNumber = 12345678
@@ -167,8 +167,6 @@ class FitGenerator {
       ..messageIndex = 0
       ..timestamp = endFitTime 
       ..startTime = startFitTime
-      ..startPositionLat = null
-      ..startPositionLong = null
       ..totalElapsedTime = durationSeconds.toDouble()
       ..totalTimerTime = durationSeconds.toDouble()
       ..totalDistance = totalDistance
@@ -182,7 +180,7 @@ class FitGenerator {
       ..avgPower = avgPower.toInt()
       ..maxPower = maxPower
       ..sport = Sport.cycling
-      ..totalAscent = 0;
+      ..subSport = SubSport.generic;
       // ..event and ..eventType not valid for SessionMessage
       // The presence of a SessionMessage implies the session summary.
 
@@ -195,9 +193,7 @@ class FitGenerator {
       ..timestamp = endFitTime
       ..totalTimerTime = durationSeconds.toDouble()
       ..numSessions = 1
-      ..type = Activity.manual 
-      ..event = Event.activity
-      ..eventType = EventType.stop;
+      ..type = Activity.manual;
       
     builder.add(activityMsg);
 

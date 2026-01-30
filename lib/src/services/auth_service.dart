@@ -42,7 +42,7 @@ class AuthService extends ChangeNotifier {
       final data = await _supabase
           .from('athletes')
           .select('id')
-          .eq('email', _currentUser!.email!)
+          .ilike('email', _currentUser!.email!)
           .maybeSingle();
 
       if (data != null) {

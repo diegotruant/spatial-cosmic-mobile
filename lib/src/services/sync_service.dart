@@ -153,7 +153,8 @@ class SyncService extends ChangeNotifier {
       await _supabase.from('workouts').upsert({
         'user_id': user.id,
         'file_path': path,
-        'date': dateStr, 
+        'date': dateStr,
+        'extra_data': {},
       }); 
 
       debugPrint('Workout saved to storage successfully: $path');

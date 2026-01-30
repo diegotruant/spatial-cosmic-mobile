@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 enum Somatotype {
   ectomorph, // Longilineo
@@ -63,21 +64,35 @@ class MetabolicProfile {
     'combustionCurve': combustionCurve.map((c) => c.toJson()).toList(),
   };
 
-  factory MetabolicProfile.fromJson(Map<String, dynamic> json) => MetabolicProfile(
-    vlamax: (json['vlamax'] as num).toDouble(),
-    map: (json['map'] as num).toDouble(),
-    vo2max: (json['vo2max'] as num).toDouble(),
-    mlss: json['mlss'] != null ? (json['mlss'] as num).toDouble() : null,
-    fatMax: json['fatMax'] != null ? (json['fatMax'] as num).toDouble() : null,
-    wPrime: json['wPrime'] != null ? (json['wPrime'] as num).toDouble() : null,
-    confidenceScore: json['confidenceScore'] != null ? (json['confidenceScore'] as num).toDouble() : null,
-    inputSources: json['inputSources'] != null ? Map<String, dynamic>.from(json['inputSources']) : null,
-    bmr: json['bmr'] != null ? (json['bmr'] as num).toDouble() : null,
-    tdee: json['tdee'] != null ? (json['tdee'] as num).toDouble() : null,
-    metabolic: MetabolicStats.fromJson(json['metabolic']),
-    zones: (json['zones'] as List).map((z) => MetabolicZone.fromJson(z)).toList(),
-    combustionCurve: (json['combustionCurve'] as List).map((c) => CombustionData.fromJson(c)).toList(),
-  );
+  factory MetabolicProfile.fromJson(Map<String, dynamic> json) {
+    try {
+      return MetabolicProfile(
+        vlamax: (json['vlamax'] ?? 0.0 as num).toDouble(),
+        map: (json['map'] ?? json['ftp'] ?? 0.0 as num).toDouble(),
+        vo2max: (json['vo2max'] ?? 0.0 as num).toDouble(),
+        mlss: json['mlss'] != null ? (json['mlss'] as num).toDouble() : null,
+        fatMax: json['fatMax'] != null ? (json['fatMax'] as num).toDouble() : null,
+        wPrime: json['wPrime'] != null ? (json['wPrime'] as num).toDouble() : null,
+        confidenceScore: json['confidenceScore'] != null ? (json['confidenceScore'] as num).toDouble() : null,
+        inputSources: json['inputSources'] != null ? Map<String, dynamic>.from(json['inputSources']) : null,
+        bmr: json['bmr'] != null ? (json['bmr'] as num).toDouble() : null,
+        tdee: json['tdee'] != null ? (json['tdee'] as num).toDouble() : null,
+        metabolic: json['metabolic'] != null 
+            ? MetabolicStats.fromJson(Map<String, dynamic>.from(json['metabolic']))
+            : MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
+        zones: (json['zones'] as List?)?.map((z) => MetabolicZone.fromJson(Map<String, dynamic>.from(z))).toList() ?? [],
+        combustionCurve: (json['combustionCurve'] as List?)?.map((c) => CombustionData.fromJson(Map<String, dynamic>.from(c))).toList() ?? [],
+      );
+    } catch (e) {
+      debugPrint("Severe error parsing MetabolicProfile: $e");
+      // Return a skeleton profile instead of crashing
+      return MetabolicProfile(
+        vlamax: 0, map: 0, vo2max: 0,
+        metabolic: MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
+        zones: [], combustionCurve: []
+      );
+    }
+  }
 
   String toJsonString() => jsonEncode(toJson());
   static MetabolicProfile fromJsonString(String jsonStr) => MetabolicProfile.fromJson(jsonDecode(jsonStr));
@@ -101,9 +116,9 @@ class MetabolicStats {
   };
 
   factory MetabolicStats.fromJson(Map<String, dynamic> json) => MetabolicStats(
-    estimatedFtp: (json['estimatedFtp'] as num).toDouble(),
-    fatMaxWatt: (json['fatMaxWatt'] as num).toDouble(),
-    carbRateAtFtp: (json['carbRateAtFtp'] as num).toDouble(),
+    estimatedFtp: (json['estimatedFtp'] ?? json['ftp'] ?? 0.0 as num).toDouble(),
+    fatMaxWatt: (json['fatMaxWatt'] ?? 0.0 as num).toDouble(),
+    carbRateAtFtp: (json['carbRateAtFtp'] ?? 0.0 as num).toDouble(),
   );
 }
 
@@ -165,8 +180,8 @@ class CombustionData {
   };
 
   factory CombustionData.fromJson(Map<String, dynamic> json) => CombustionData(
-    watt: (json['watt'] as num).toDouble(),
-    fatOxidation: (json['fatOxidation'] as num).toDouble(),
-    carbOxidation: (json['carbOxidation'] as num).toDouble(),
+    watt: (json['watt'] ?? 0.0 as num).toDouble(),
+    fatOxidation: (json['fatOxidation'] ?? 0.0 as num).toDouble(),
+    carbOxidation: (json['carbOxidation'] ?? 0.0 as num).toDouble(),
   );
 }

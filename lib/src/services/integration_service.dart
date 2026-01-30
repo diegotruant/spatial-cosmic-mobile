@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io';
@@ -121,6 +122,40 @@ class IntegrationService extends ChangeNotifier {
     _stravaAccessToken = accessToken;
     _isStravaConnected = true;
     notifyListeners();
+
+    // Sync to Supabase for Edge Functions (Option B)
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        // Fetch current extra_data to merge
+        final response = await supabase
+            .from('athletes')
+            .select('extra_data')
+            .ilike('email', user.email!)
+            .maybeSingle();
+            
+        Map<String, dynamic> extraData = {};
+        if (response != null && response['extra_data'] != null) {
+          extraData = Map<String, dynamic>.from(response['extra_data']);
+        }
+        
+        extraData['strava'] = {
+          'accessToken': accessToken,
+          'refreshToken': refreshToken,
+          'expiresAt': expiresAt,
+          'updatedAt': DateTime.now().toIso8601String(),
+        };
+
+        await supabase
+            .from('athletes')
+            .update({'extra_data': extraData})
+            .ilike('email', user.email!);
+        debugPrint('Strava tokens synced to Supabase');
+      }
+    } catch (e) {
+      debugPrint('Supabase Sync Error: $e');
+    }
   }
   
   Future<void> disconnectStrava() async {
@@ -132,6 +167,31 @@ class IntegrationService extends ChangeNotifier {
     _stravaAccessToken = null;
     _isStravaConnected = false;
     notifyListeners();
+
+    // Remove from Supabase
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        final response = await supabase
+            .from('athletes')
+            .select('extra_data')
+            .ilike('email', user.email!)
+            .maybeSingle();
+            
+        if (response != null && response['extra_data'] != null) {
+          Map<String, dynamic> extraData = Map<String, dynamic>.from(response['extra_data']);
+          extraData.remove('strava');
+          await supabase
+              .from('athletes')
+              .update({'extra_data': extraData})
+              .ilike('email', user.email!);
+          debugPrint('Strava tokens removed from Supabase');
+        }
+      }
+    } catch (e) {
+      debugPrint('Supabase Disconnect Error: $e');
+    }
   }
 
   Future<void> disconnectGarmin() async {
@@ -208,22 +268,65 @@ class IntegrationService extends ChangeNotifier {
       final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $_stravaAccessToken'
         ..fields['data_type'] = 'fit'
-        ..fields['name'] = 'Spatial Cosmic Workout'
+        ..fields['name'] = 'Spatial Cosmic: ${fitFile.path.split('/').last.split('_').last.replaceAll('.fit', '')}'
+        ..fields['description'] = 'Allenamento indoor completato con Spatial Cosmic App'
+        ..fields['sport_type'] = 'VirtualRide'
+        ..fields['activity_type'] = 'VirtualRide'
+        ..fields['external_id'] = 'sc_${fitFile.path.split('/').last}'
         ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
         
       final response = await request.send();
-      final respStr = await response.stream.bytesToString();
+      final respBytes = await response.stream.toBytes();
+      final respStr = utf8.decode(respBytes);
       
       if (response.statusCode == 201) {
-        debugPrint('Strava Upload Started Successfully!');
-        return "Success";
+        final data = jsonDecode(respStr);
+        final uploadId = data['id_str'] ?? data['id'].toString();
+        debugPrint('Strava Upload Created: $uploadId');
+        
+        // Wait and poll for status (Max 3 attempts, every 2 seconds)
+        for (int i = 0; i < 3; i++) {
+          await Future.delayed(const Duration(seconds: 2));
+          final status = await checkStravaUploadStatus(uploadId);
+          if (status == "Success") return "Success";
+          if (status.contains("duplicate")) return "Duplicato (Già presente)";
+          if (status.contains("error")) return status;
+        }
+        
+        return "Success (In elaborazione)";
       } else {
         debugPrint('Strava Upload Failed: ${response.statusCode} $respStr');
-        return "Errore Strava ${response.statusCode}: $respStr";
+        if (respStr.contains("duplicate")) return "Duplicato";
+        return "Errore Strava ${response.statusCode}";
       }
     } catch (e) {
       debugPrint('Strava Upload Exception: $e');
       return "Eccezione Strava: $e";
+    }
+  }
+
+  Future<String> checkStravaUploadStatus(String uploadId) async {
+    if (_stravaAccessToken == null) return "Errore: Token Mancante";
+    
+    try {
+      final response = await http.get(
+        Uri.parse('https://www.strava.com/api/v3/uploads/$uploadId'),
+        headers: {'Authorization': 'Bearer $_stravaAccessToken'},
+      );
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final status = data['status'];
+        final error = data['error'];
+        
+        if (error != null) return "Errore Strava: $error";
+        if (status == "Your activity is ready.") return "Success";
+        if (status != null) return status.toLowerCase();
+        return "In elaborazione";
+      }
+      return "Status Error ${response.statusCode}";
+    } catch (e) {
+      return "Status Exception: $e";
     }
   }
 

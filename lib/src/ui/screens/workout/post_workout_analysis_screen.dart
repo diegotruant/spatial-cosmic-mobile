@@ -308,10 +308,15 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       if (integrationService.isStravaConnected) {
          final res = await integrationService.uploadActivityToStrava(newFile);
          results.add("Strava: ${res == 'Success' ? '✅' : '❌ $res'}");
+      } else {
+         results.add("Strava: ⚠️ Non connesso");
       }
+      
       if (intervalsService.isConnected) {
          final res = await intervalsService.uploadActivity(newFile);
          results.add("Intervals: ${res == 'Success' ? '✅' : '❌ $res'}");
+      } else {
+         results.add("Intervals: ⚠️ Non connesso");
       }
 
       if (mounted) {
