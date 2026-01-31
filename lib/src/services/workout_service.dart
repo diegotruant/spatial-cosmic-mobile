@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart'; // For HapticFeedback
+import 'package:flutter/services.dart'; // For HapticFeedback and SystemSound
+import 'package:audioplayers/audioplayers.dart';
 import '../logic/zwo_parser.dart';
 import 'bluetooth_service.dart';
 import 'settings_service.dart';
@@ -13,6 +14,7 @@ class WorkoutService extends ChangeNotifier {
   int currentBlockIndex = 0;
   int elapsedInBlock = 0;
   Timer? _timer;
+  final AudioPlayer _audioPlayer = AudioPlayer();
 
   bool isActive = false;
   bool isPaused = false;
@@ -435,6 +437,12 @@ class WorkoutService extends ChangeNotifier {
        }
     }
 
+    // 3 Beeps at the end of the step (3s remaining)
+    int remainingInBlock = currentBlock.duration - elapsedInBlock;
+    if (remainingInBlock <= 3 && remainingInBlock > 0 && !shouldExtend) {
+       _playBeep();
+    }
+
     if (!shouldExtend && elapsedInBlock >= currentBlock.duration) {
       nextInterval();
     }
@@ -459,6 +467,19 @@ class WorkoutService extends ChangeNotifier {
     notifyListeners();
   }
   
+  void _playBeep() {
+    if (settingsService?.intervalBeepType == 'Silenzioso') return;
+    
+    // Use SystemSound as a reliable fallback for beeps
+    SystemSound.play(SystemSoundType.click);
+  }
+  
   // State for command optimization
   int _lastSentTargetWatts = -1;
+
+  @override
+  void dispose() {
+    _audioPlayer.dispose();
+    super.dispose();
+  }
 }

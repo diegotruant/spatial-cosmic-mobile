@@ -13,9 +13,9 @@ class IntegrationService extends ChangeNotifier {
   // Strava Configuration
   static const String _stravaClientId = '69269'; 
   static const String _stravaClientSecret = '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
-  static const String _stravaRedirectUri = 'spatialcosmic://spatialcosmic.app/auth';
+  static const String _stravaRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
   // Use 'activity:write' to allow uploads. 'activity:read_all' for reading.
-  static const String _stravaScope = 'activity:read_all,activity:write';
+  static const String _stravaScope = 'read,activity:write';
 
   bool _isStravaConnected = false;
   bool get isStravaConnected => _isStravaConnected;
@@ -48,6 +48,10 @@ class IntegrationService extends ChangeNotifier {
   }
 
   Future<void> initiateStravaAuth() async {
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    final email = user?.email ?? '';
+
     final Uri url = Uri.https(
       'www.strava.com',
       '/oauth/authorize',
@@ -57,6 +61,7 @@ class IntegrationService extends ChangeNotifier {
         'redirect_uri': _stravaRedirectUri,
         'approval_prompt': 'force',
         'scope': _stravaScope,
+        'state': 'mobile:$email',
       },
     );
 
@@ -70,18 +75,55 @@ class IntegrationService extends ChangeNotifier {
   
   Future<void> handleAuthCallback(Uri uri) async {
     if (uri.scheme == 'spatialcosmic' && uri.host == 'spatialcosmic.app') {
-      final code = uri.queryParameters['code'];
+      final success = uri.queryParameters['success'] == 'true';
       final error = uri.queryParameters['error'];
       
       if (error != null) {
-        debugPrint('Strava Auth Error: $error');
+        debugPrint('Strava Auth Error from Callback: $error');
         return;
       }
       
-      if (code != null) {
-        debugPrint('Received Strava Auth Code: $code');
-        await _exchangeToken(code);
+      if (success) {
+        debugPrint('Received Successful Strava Auth from Edge Function');
+        await syncFromSupabase();
       }
+    }
+  }
+
+  Future<void> syncFromSupabase() async {
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      if (user == null) return;
+
+      final response = await supabase
+          .from('athletes')
+          .select('extra_data')
+          .ilike('email', user.email!)
+          .maybeSingle();
+
+      if (response != null && response['extra_data'] != null) {
+        final extraData = Map<String, dynamic>.from(response['extra_data']);
+        Map<String, dynamic>? strava;
+        
+        if (extraData.containsKey('integrations') && extraData['integrations']['strava'] != null) {
+          strava = Map<String, dynamic>.from(extraData['integrations']['strava']);
+        } else if (extraData.containsKey('strava')) {
+          strava = Map<String, dynamic>.from(extraData['strava']);
+        }
+
+        if (strava != null) {
+          await _saveStravaCredentials(
+            strava['accessToken'],
+            strava['refreshToken'],
+            strava['expiresAt'],
+            syncToSupabase: false, 
+          );
+          debugPrint('Strava credentials synced from Supabase');
+        }
+      }
+    } catch (e) {
+      debugPrint('Sync from Supabase failed: $e');
     }
   }
 
@@ -113,7 +155,7 @@ class IntegrationService extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt) async {
+  Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt, {bool syncToSupabase = true}) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('strava_access_token', accessToken);
     await prefs.setString('strava_refresh_token', refreshToken);
@@ -122,6 +164,7 @@ class IntegrationService extends ChangeNotifier {
     _stravaAccessToken = accessToken;
     _isStravaConnected = true;
     notifyListeners();
+    if (!syncToSupabase) return;
 
     // Sync to Supabase for Edge Functions (Option B)
     try {
@@ -140,18 +183,27 @@ class IntegrationService extends ChangeNotifier {
           extraData = Map<String, dynamic>.from(response['extra_data']);
         }
         
-        extraData['strava'] = {
+        final stravaData = {
           'accessToken': accessToken,
           'refreshToken': refreshToken,
           'expiresAt': expiresAt,
           'updatedAt': DateTime.now().toIso8601String(),
         };
 
+        // Save to both top-level (for legacy) and nested integrations (for web app)
+        extraData['strava'] = stravaData;
+        
+        Map<String, dynamic> integrations = extraData.containsKey('integrations') 
+            ? Map<String, dynamic>.from(extraData['integrations']) 
+            : {};
+        integrations['strava'] = stravaData;
+        extraData['integrations'] = integrations;
+
         await supabase
             .from('athletes')
             .update({'extra_data': extraData})
             .ilike('email', user.email!);
-        debugPrint('Strava tokens synced to Supabase');
+        debugPrint('Strava tokens synced to Supabase (nested)');
       }
     } catch (e) {
       debugPrint('Supabase Sync Error: $e');
@@ -338,7 +390,20 @@ class IntegrationService extends ChangeNotifier {
 
   // Wahoo Cloud
   Future<void> initiateWahooAuth() async {
-    final Uri url = Uri.parse('https://api.wahooligan.com/oauth/authorize?client_id=WAHOO_CLIENT_ID&response_type=code&redirect_uri=$_stravaRedirectUri&scope=user_read+workouts_read');
+    final supabase = Supabase.instance.client;
+    final user = supabase.auth.currentUser;
+    final email = user?.email ?? '';
+
+    const String wahooScopes = 'email+user_read+user_write+power_zones_read+power_zones_write+workouts_read+workouts_write+plans_read+plans_write+routes_read+routes_write+offline_data';
+    const String wahooRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/wahoo-auth';
+
+    final Uri url = Uri.parse('https://api.wahooligan.com/oauth/authorize'
+        '?client_id=VDQH3O2-OkPJ8H-V8dxtvopcq_LXaVmA-w6g5UKGW1w' 
+        '&response_type=code'
+        '&redirect_uri=$wahooRedirectUri'
+        '&scope=$wahooScopes'
+        '&state=mobile:$email');
+        
     await _launchAuthUrl(url);
   }
 

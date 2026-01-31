@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:vibration/vibration.dart';
 import '../../../services/bluetooth_service.dart';
 import '../../../services/physiological_service.dart';
 import '../../widgets/glass_card.dart';
@@ -12,18 +14,41 @@ class HrvMeasurementScreen extends StatefulWidget {
   State<HrvMeasurementScreen> createState() => _HrvMeasurementScreenState();
 }
 
-class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
+class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> with SingleTickerProviderStateMixin {
   bool _isMeasuring = false;
   double _progress = 0.0;
   List<int> _capturedRR = [];
   int _selectedDurationMinutes = 3; // Default 3 minutes, option for 5
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    );
+    _pulseAnimation = Tween<double>(begin: 1.0, end: 1.25).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _pulseController.dispose();
+    WakelockPlus.disable();
+    super.dispose();
+  }
 
   void _startMeasurement() {
+    WakelockPlus.enable();
     setState(() {
       _isMeasuring = true;
       _progress = 0.0;
       _capturedRR = [];
     });
+    _pulseController.repeat(reverse: true);
 
     // Calculate progress increment based on selected duration
     // 500ms interval = 2 updates per second
@@ -49,10 +74,18 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
     });
   }
 
-  void _finishMeasurement() {
+  void _finishMeasurement() async {
     final physiologicalService = context.read<PhysiologicalService>();
     final rmssd = physiologicalService.calculateRMSSD(_capturedRR);
     physiologicalService.addHRVMeasurement(rmssd, 62); // Mock avg HR
+    
+    // Vibrate for 2 seconds at the end
+    if (await Vibration.hasVibrator() ?? false) {
+      Vibration.vibrate(duration: 2000);
+    }
+
+    _pulseController.stop();
+    WakelockPlus.disable();
     
     setState(() {
       _isMeasuring = false;
@@ -221,23 +254,26 @@ class _HrvMeasurementScreenState extends State<HrvMeasurementScreen> {
     );
   }
   Widget _buildPulseCircle() {
-    return Container(
-      width: 150,
-      height: 150,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: Colors.white.withOpacity(0.05),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.3), width: 2),
-        boxShadow: [
-          if (_isMeasuring)
-            BoxShadow(
-              color: Colors.cyanAccent.withOpacity(0.2),
-              blurRadius: 30,
-              spreadRadius: 10,
-            )
-        ],
+    return ScaleTransition(
+      scale: _pulseAnimation,
+      child: Container(
+        width: 150,
+        height: 150,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white.withOpacity(0.05),
+          border: Border.all(color: Colors.cyanAccent.withOpacity(0.3), width: 2),
+          boxShadow: [
+            if (_isMeasuring)
+              BoxShadow(
+                color: Colors.cyanAccent.withOpacity(0.2),
+                blurRadius: 30,
+                spreadRadius: 10,
+              )
+          ],
+        ),
+        child: const Icon(LucideIcons.heart, color: Colors.cyanAccent, size: 50),
       ),
-      child: const Icon(LucideIcons.heart, color: Colors.cyanAccent, size: 50),
     );
   }
 

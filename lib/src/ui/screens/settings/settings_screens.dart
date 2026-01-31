@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'workout_recovery_screen.dart';
 import 'terms_screen.dart';
+import 'privacy_policy_screen.dart';
 import '../../../services/settings_service.dart';
 import '../../../services/integration_service.dart';
 import '../../../services/oura_service.dart';
@@ -70,8 +71,9 @@ class AdvancedOptionsScreen extends StatelessWidget {
           _buildMenuRow(context, 'Recupera Workout Persi', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const WorkoutRecoveryScreen()))),
           _buildMenuRow(context, 'Termini e Condizioni', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const TermsScreen()))), // New
           _buildMenuRow(context, l10n.get('privacy_policy'), () {
-             // Open URL
-          }),const SizedBox(height: 24),
+             Navigator.push(context, MaterialPageRoute(builder: (context) => const PrivacyPolicyScreen()));
+          }),
+          const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
