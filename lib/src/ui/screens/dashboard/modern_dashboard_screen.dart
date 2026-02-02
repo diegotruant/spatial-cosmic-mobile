@@ -12,7 +12,6 @@ import '../workout/modern_workout_screen.dart';
 import '../settings/settings_screens.dart';
 import '../settings/bluetooth_scan_screen.dart';
 import '../profile/medical_certificate_screen.dart';
-import '../profile/metabolic_calculator_screen.dart';
 import '../workout/workout_history_screen.dart';
 import '../../../logic/zwo_parser.dart';
 import '../../../services/workout_service.dart';
@@ -25,6 +24,7 @@ import '../../../services/integration_service.dart';
 import '../../../logic/fit_generator.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
+import '../../theme/app_animations.dart';
 import '../../widgets/platform_selector.dart';
 import '../events/add_event_screen.dart';
 import '../../widgets/anaerobic_battery_gauge.dart';
@@ -46,6 +46,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    // Force refresh metabolic profile on startup to get latest data from webapp
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final profileService = context.read<AthleteProfileService>();
+      profileService.refreshProfile();
+    });
     // Fetch Oura Data on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchOuraData();
@@ -112,34 +117,17 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // Background Glows
-          Positioned(
-            top: -100,
-            right: -100,
-            child: _buildGlowCircle(AppColors.primary.withOpacity(0.15), 300),
-          ),
-          Positioned(
-            bottom: -50,
-            left: -50,
-            child: _buildGlowCircle(AppColors.accentPurple.withOpacity(0.1), 250),
-          ),
-          
-          SafeArea(
-            child: IndexedStack(
-              index: _currentIndex,
-              children: [
-                _buildHomeTab(context),
-                const WorkoutLibraryScreen(isTab: true),
-                _buildScheduleTab(),
-                _buildProgressTab(), // Lab Tab
-                const WorkoutHistoryScreen(),
-                _buildSettingsTab(context),
-              ],
-            ),
-          ),
-        ],
+      body: SafeArea(
+        child: IndexedStack(
+          index: _currentIndex,
+          children: [
+            _buildHomeTab(context),
+            const WorkoutLibraryScreen(isTab: true),
+            _buildScheduleTab(),
+            const WorkoutHistoryScreen(),
+            _buildSettingsTab(context),
+          ],
+        ),
       ),
       bottomNavigationBar: _buildBottomNav(),
     );
@@ -150,7 +138,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       future: context.read<SyncService>().fetchCalendar(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator(color: Colors.blueAccent));
+          return const Center(child: CircularProgressIndicator(color: AppColors.primary));
         }
         
         final workouts = snapshot.data ?? [];
@@ -233,21 +221,21 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       child: GlassCard(
         padding: const EdgeInsets.all(16),
         borderRadius: 12,
-        borderColor: isToday ? Colors.blueAccent.withOpacity(0.5) : (isDone ? Colors.greenAccent.withOpacity(0.3) : Colors.white10),
+        borderColor: isToday ? AppColors.primary.withOpacity(0.5) : (isDone ? AppColors.success.withOpacity(0.3) : AppColors.border),
         child: Row(
           children: [
             Container(
               width: 50, height: 50,
               decoration: BoxDecoration(
-                color: isToday ? Colors.blueAccent.withOpacity(0.2) : (isDone ? Colors.greenAccent.withOpacity(0.1) : Colors.white.withOpacity(0.05)),
+                color: isToday ? AppColors.primary.withOpacity(0.2) : (isDone ? AppColors.success.withOpacity(0.1) : AppColors.surface.withOpacity(0.5)),
                 borderRadius: BorderRadius.circular(12),
-                border: isToday ? Border.all(color: Colors.blueAccent.withOpacity(0.5)) : null,
+                border: isToday ? Border.all(color: AppColors.primary.withOpacity(0.5)) : null,
               ),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(dayName, style: TextStyle(color: isToday ? Colors.blueAccent : (isDone ? Colors.greenAccent : Colors.white70), fontWeight: FontWeight.bold, fontSize: 12)),
-                  Text(dayNum, style: TextStyle(color: isToday ? Colors.white : (isDone ? Colors.greenAccent : Colors.white), fontWeight: FontWeight.bold, fontSize: 16)),
+                  Text(dayName, style: TextStyle(color: isToday ? AppColors.primary : (isDone ? AppColors.success : AppColors.textSecondary), fontWeight: FontWeight.bold, fontSize: 12)),
+                  Text(dayNum, style: TextStyle(color: isToday ? AppColors.textPrimary : (isDone ? AppColors.success : AppColors.textPrimary), fontWeight: FontWeight.bold, fontSize: 16)),
                 ],
               ),
             ),
@@ -259,34 +247,34 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   Text(
                     title, 
                     style: TextStyle(
-                      color: isPlaceholder ? Colors.white38 : Colors.white, 
+                      color: isPlaceholder ? AppColors.textTertiary : AppColors.textPrimary, 
                       fontWeight: isPlaceholder ? FontWeight.normal : FontWeight.w600, 
                       fontSize: 16
                     )
                   ),
                   Text(
                     subtitle, 
-                    style: TextStyle(color: isDone ? Colors.greenAccent : Colors.white38, fontSize: 12)
+                    style: TextStyle(color: isDone ? AppColors.success : AppColors.textTertiary, fontSize: 12)
                   ),
                 ],
               ),
             ),
-            if (isDone) const Icon(LucideIcons.checkCircle, color: Colors.greenAccent, size: 24),
+            if (isDone) const Icon(LucideIcons.checkCircle, color: AppColors.success, size: 24),
             if (!isDone && !isPlaceholder) 
               Row(
                 children: [
                   if (onSendToDevice != null)
                     IconButton(
-                      icon: const Icon(LucideIcons.send, color: Colors.blueAccent, size: 18),
+                      icon: const Icon(LucideIcons.send, color: AppColors.primary, size: 18),
                       onPressed: onSendToDevice,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
                   const SizedBox(width: 12),
-                  const Icon(LucideIcons.chevronRight, color: Colors.white24, size: 20),
+                  const Icon(LucideIcons.chevronRight, color: AppColors.textTertiary, size: 20),
                 ],
               ),
-            if (isPlaceholder) Icon(LucideIcons.coffee, color: Colors.white.withOpacity(0.1), size: 20),
+            if (isPlaceholder) Icon(LucideIcons.coffee, color: AppColors.textTertiary.withOpacity(0.3), size: 20),
           ],
         ),
       ),
@@ -323,7 +311,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const CircularProgressIndicator(color: Colors.blueAccent),
+                const CircularProgressIndicator(color: AppColors.primary),
                 const SizedBox(height: 20),
                 Text(
                   "Sincronizzazione in corso...", 
@@ -342,12 +330,20 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       
       bool success = false;
       if (platform == 'wahoo') {
-        if (!integrationService.isWahooConnected) {
-          if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
-          await integrationService.initiateWahooAuth();
-          return;
+        // Wahoo doesn't need OAuth - uses file sharing
+        if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
+        final result = await integrationService.uploadActivityToWahoo(file);
+        success = result == "Success";
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(success ? "✅ File condiviso! Apri con Wahoo SYSTM o ELEMNT" : "❌ Errore: $result"),
+              backgroundColor: success ? Colors.blue : Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
         }
-        success = await integrationService.uploadWorkoutToWahoo(file);
+        return; // File sharing handled by share sheet
       } else if (platform == 'tp') {
         if (!integrationService.isTPConnected) {
           if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
@@ -382,7 +378,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text("❌ $e"),
-            backgroundColor: Colors.redAccent,
+            backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -419,17 +415,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                  const Text("Nessun Dato Metabolic Lab", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                  const SizedBox(height: 12),
                  Text(
-                   "Esegui un test di performance o aspetta che il coach analizzi i tuoi allenamenti per vedere qui il tuo profilo fisiologico (VLamax, VO2max, FTP).",
+                   "Il profilo metabolico viene calcolato automaticamente dal server quando vengono sincronizzate nuove attività da Strava.",
                    textAlign: TextAlign.center,
                    style: TextStyle(color: Colors.white.withOpacity(0.6), height: 1.5),
-                 ),
-                 const SizedBox(height: 24),
-                 ElevatedButton(
-                   onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen()));
-                   }, 
-                   style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
-                   child: const Text("CALCOLA PROFILO"),
                  ),
                  const SizedBox(height: 12),
                  TextButton.icon(
@@ -665,16 +653,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
               style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
             ),
             const SizedBox(height: 16),
-            ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
-              icon: const Icon(LucideIcons.calculator, size: 18),
-              label: const Text('CALCOLA PROFILO'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orangeAccent,
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              ),
-            ),
+            // Metabolic profile is now calculated server-side automatically
           ],
         ),
       );
@@ -722,14 +701,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              Center(
-                child: TextButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
-                  icon: const Icon(LucideIcons.refreshCw, size: 16),
-                  label: const Text('Ricalcola'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.white54),
-                ),
-              ),
+              // Metabolic profile is calculated server-side automatically
+              const SizedBox.shrink(),
             ],
           ),
         ),
@@ -760,10 +733,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         const SizedBox(height: 16),
         
         // Menu Items
-        _buildMenuRow('Altre opzioni', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdvancedOptionsScreen()))),
-        _buildMenuRow('Lingua', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LanguageScreen()))),
-        _buildMenuRow('Informazioni sull\'account utente', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AccountInfoScreen()))),
-        _buildMenuRow('Connessioni', () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ConnectionsScreen()))),
+        _buildMenuRow('Altre opzioni', () => Navigator.push(context, AppAnimations.pageRoute(const AdvancedOptionsScreen()))),
+        _buildMenuRow('Lingua', () => Navigator.push(context, AppAnimations.pageRoute(const LanguageScreen()))),
+        _buildMenuRow('Informazioni sull\'account utente', () => Navigator.push(context, AppAnimations.pageRoute(const AccountInfoScreen()))),
+        _buildMenuRow('Connessioni', () => Navigator.push(context, AppAnimations.pageRoute(const ConnectionsScreen()))),
 
         
         const SizedBox(height: 24),
@@ -1206,12 +1179,22 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ElevatedButton(
             onPressed: onTap,
             style: ElevatedButton.styleFrom(
-              backgroundColor: isConnected ? Colors.grey.shade800 : Colors.redAccent,
-              foregroundColor: Colors.white,
+              backgroundColor: isConnected ? Colors.orange.withOpacity(0.2) : Colors.redAccent,
+              foregroundColor: isConnected ? Colors.orange : Colors.white,
+              side: isConnected ? BorderSide(color: Colors.orange, width: 2) : null,
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
-            child: Text(isConnected ? 'Scollega' : 'Collega'),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isConnected) ...[
+                  const Icon(Icons.check_circle, size: 18),
+                  const SizedBox(width: 8),
+                ],
+                Text(isConnected ? 'Scollega' : 'Collega'),
+              ],
+            ),
           ),
         ],
       ),
@@ -1293,6 +1276,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     );
   }
 
+  // Removed glow effects for more professional look
+  @Deprecated('Glow effects removed for professional design')
   Widget _buildGlowCircle(Color color, double size) {
     return Container(
       width: size,
@@ -1559,27 +1544,24 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: GlassCard(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-        child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(LucideIcons.calculator, color: Colors.purpleAccent, size: 24),
-                  const SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("CALCOLO APR", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
-                      Text("Configura Profilo Metabolico", style: TextStyle(color: Colors.white54, fontSize: 12)),
-                    ],
-                  ),
-                ],
-              ),
-              Icon(LucideIcons.chevronRight, color: Colors.white54),
-            ],
-          ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.calculator, color: AppColors.info, size: 24),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text("CALCOLO APR", style: AppTextStyles.h4),
+                    Text("Configura Profilo Metabolico", style: AppTextStyles.bodySmall),
+                  ],
+                ),
+              ],
+            ),
+            Icon(LucideIcons.chevronRight, color: AppColors.textTertiary),
+          ],
         ),
       ),
     );
@@ -1595,7 +1577,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
                return GlassCard(
                   padding: const EdgeInsets.all(24),
-                  child: const Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                  child: const Center(child: CircularProgressIndicator(color: AppColors.primary)),
                );
             }
 
@@ -1759,7 +1741,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.dark(
-               primary: Colors.blueAccent,
+               primary: AppColors.primary,
                onPrimary: Colors.white,
                surface: Color(0xFF1A1A2E),
                onSurface: Colors.white,
@@ -1824,17 +1806,17 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                Navigator.push(context, MaterialPageRoute(builder: (_) => const ModernWorkoutScreen()));
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.greenAccent.withOpacity(0.2),
-              foregroundColor: Colors.white,
+              backgroundColor: AppColors.success.withOpacity(0.2),
+              foregroundColor: AppColors.textPrimary,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.greenAccent.withOpacity(0.5)),
+                side: BorderSide(color: AppColors.success.withOpacity(0.5)),
               ),
             ),
             child: Column(
-              children: const [
-                 Icon(LucideIcons.bike, color: Colors.greenAccent),
+              children: [
+                 Icon(LucideIcons.bike, color: AppColors.success),
                  SizedBox(height: 4),
                  Text('GIRO LIBERO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               ],
@@ -1842,29 +1824,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ),
         ),
         const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen()));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.cyanAccent.withOpacity(0.2),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.cyanAccent.withOpacity(0.5)),
-              ),
-            ),
-            child: Column(
-              children: const [
-                 const Icon(LucideIcons.flaskConical, color: Colors.cyanAccent),
-                 const SizedBox(height: 4),
-                 const Text('METABOLIC LAB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-              ],
-            ),
-          ),
-        ),
+        // Metabolic Lab removed - profile is calculated server-side
+        const SizedBox.shrink(),
       ],
     );
   }
@@ -1878,10 +1839,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       mainAxisSpacing: 16,
       childAspectRatio: 1.4,
       children: [
-        _buildMetricItem(LucideIcons.activity, 'Heart Rate', '142 BPM', Colors.redAccent),
-        _buildMetricItem(LucideIcons.repeat, 'Cadence', '92 RPM', Colors.greenAccent),
-        _buildMetricItem(LucideIcons.zap, 'Avg Power', '224 W', Colors.orangeAccent),
-        _buildMetricItem(LucideIcons.flame, 'Calories', '842 kCal', Colors.deepOrange),
+        _buildMetricItem(LucideIcons.activity, 'Heart Rate', '142 BPM', AppColors.error),
+        _buildMetricItem(LucideIcons.repeat, 'Cadence', '92 RPM', AppColors.success),
+        _buildMetricItem(LucideIcons.zap, 'Avg Power', '224 W', AppColors.warning),
+        _buildMetricItem(LucideIcons.flame, 'Calories', '842 kCal', AppColors.errorDark),
       ],
     );
   }
@@ -1907,29 +1868,65 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   Widget _buildBottomNav() {
     return Container(
       decoration: BoxDecoration(
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.05))),
-      ),
-      child: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        backgroundColor: Colors.black,
-        selectedItemColor: Colors.blueAccent,
-        unselectedItemColor: Colors.white24,
-        type: BottomNavigationBarType.fixed,
-        selectedFontSize: 10,
-        unselectedFontSize: 10,
-        items: [
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.layoutDashboard), label: 'Home'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.library), label: 'Test'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.calendar), label: 'Schedule'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.flaskConical), label: 'Metabolic Lab'), 
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.history), label: 'History'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.settings), label: 'Settings'),
+        color: AppColors.surfaceElevated,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.border,
+            width: 1,
+          ),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
         ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          selectedItemColor: AppColors.primary,
+          unselectedItemColor: AppColors.textTertiary,
+          selectedLabelStyle: AppTextStyles.labelSmall,
+          unselectedLabelStyle: AppTextStyles.labelSmall,
+          type: BottomNavigationBarType.fixed,
+          items: [
+            BottomNavigationBarItem(
+              icon: const Icon(LucideIcons.layoutDashboard, size: 22),
+              activeIcon: const Icon(LucideIcons.layoutDashboard, size: 22),
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(LucideIcons.library, size: 22),
+              activeIcon: const Icon(LucideIcons.library, size: 22),
+              label: 'Test',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(LucideIcons.calendar, size: 22),
+              activeIcon: const Icon(LucideIcons.calendar, size: 22),
+              label: 'Schedule',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(LucideIcons.history, size: 22),
+              activeIcon: const Icon(LucideIcons.history, size: 22),
+              label: 'Storico',
+            ),
+            BottomNavigationBarItem(
+              icon: const Icon(LucideIcons.settings, size: 22),
+              activeIcon: const Icon(LucideIcons.settings, size: 22),
+              label: 'Settings',
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1937,13 +1934,25 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   Widget _buildMetabolicProfile(BuildContext context) {
     final profileService = context.watch<AthleteProfileService>();
     final profile = profileService.currentProfile;
-    final vlamax = profile.vlamax;
-    final vo2max = profile.vo2max;
     final metabolicProfile = profileService.metabolicProfile;
     
-    // Map profile type to Italian labels
-    String typeLabel = profileService.getTypeLabel(profile.type);
+    // Prefer values from metabolic_profile JSON (server-side calculated)
+    // Fallback to individual columns if JSON not available
+    final vlamax = metabolicProfile?.vlamax ?? profile.vlamax;
+    final vo2max = metabolicProfile?.vo2max ?? profile.vo2max;
+    final mlss = metabolicProfile?.mlss ?? profile.ftp; // MLSS or FTP as threshold
+    final fatMax = metabolicProfile?.fatMax ?? metabolicProfile?.metabolic.fatMaxWatt;
+    
+    // Determine type using values from JSON if available
+    final type = metabolicProfile != null && metabolicProfile.vlamax > 0
+        ? (metabolicProfile.vlamax >= 0.60 
+            ? 'SPRINTER' 
+            : metabolicProfile.vlamax <= 0.35 
+              ? 'CRONOMAN' 
+              : 'ALL-ROUNDER')
+        : profileService.getTypeLabel(profile.type);
 
+    // Always show the card, even if data is missing
     return GlassCard(
       padding: const EdgeInsets.all(20),
       borderRadius: 20,
@@ -1970,7 +1979,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   border: Border.all(color: AppColors.primary.withOpacity(0.5)),
                 ),
                 child: Text(
-                  typeLabel,
+                  type,
                   style: const TextStyle(
                       color: AppColors.primary, fontWeight: FontWeight.bold, fontSize: 10),
                 ),
@@ -1978,6 +1987,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             ],
           ),
           const SizedBox(height: 20),
+          // Main metrics row
           Row(
             children: [
               Expanded(
@@ -1985,7 +1995,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   'VLamax',
                   vlamax?.toStringAsFixed(3) ?? '-',
                   'mmol/L/s',
-                  Colors.orangeAccent,
+                  AppColors.warning,
                 ),
               ),
               Container(width: 1, height: 40, color: Colors.white10),
@@ -1994,15 +2004,87 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   'VO2max',
                   vo2max?.toStringAsFixed(1) ?? '-',
                   'mL/min/kg',
-                  Colors.blueAccent,
+                  AppColors.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Secondary metrics row
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetabolicMetric(
+                  'MLSS',
+                  mlss?.toStringAsFixed(0) ?? '-',
+                  'W',
+                  Colors.redAccent,
+                ),
+              ),
+              Container(width: 1, height: 40, color: Colors.white10),
+              Expanded(
+                child: _buildMetabolicMetric(
+                  'FatMax',
+                  fatMax?.toStringAsFixed(0) ?? '-',
+                  'W',
+                  Colors.greenAccent,
                 ),
               ),
             ],
           ),
           
-          if (metabolicProfile != null) ...[
+          // Show curve if available
+          if (metabolicProfile != null && metabolicProfile.combustionCurve.isNotEmpty) ...[
             const SizedBox(height: 24),
             _buildMetabolicCurveSection(profileService),
+          ] else if (metabolicProfile == null) ...[
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orangeAccent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orangeAccent.withOpacity(0.3)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(LucideIcons.info, color: Colors.orangeAccent, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Il profilo metabolico viene calcolato automaticamente quando sincronizzi attività da Strava.',
+                          style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 11),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  ElevatedButton.icon(
+                    onPressed: () async {
+                      // Force refresh profile from Supabase
+                      await profileService.refreshProfile();
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Profilo aggiornato'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(LucideIcons.refreshCw, size: 14),
+                    label: const Text('Aggiorna Profilo', style: TextStyle(fontSize: 11)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orangeAccent.withOpacity(0.2),
+                      foregroundColor: Colors.orangeAccent,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ],
       ),

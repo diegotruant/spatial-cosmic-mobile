@@ -168,18 +168,25 @@ class AthleteProfileService extends ChangeNotifier {
               if (mp.wPrime != null && mp.wPrime! > 0) _wPrime = mp.wPrime;
               
               // Log tutti i valori per debug
-              debugPrint('[AthleteProfile] Full profile loaded:');
-              debugPrint('  - VLamax: ${mp.vlamax}');
-              debugPrint('  - VO2max: ${mp.vo2max}');
-              debugPrint('  - MLSS: ${mp.mlss}');
-              debugPrint('  - FatMax: ${mp.fatMax}');
-              debugPrint('  - WPrime: ${mp.wPrime}');
-              debugPrint('  - EstimatedFTP: ${mp.metabolic.estimatedFtp}');
+              debugPrint('[AthleteProfile] ✅ Full profile loaded from database:');
+              debugPrint('  - VLamax: ${mp.vlamax} (from JSON)');
+              debugPrint('  - VO2max: ${mp.vo2max} (from JSON)');
+              debugPrint('  - MLSS: ${mp.mlss} (from JSON)');
+              debugPrint('  - FatMax: ${mp.fatMax} (from JSON)');
+              debugPrint('  - WPrime: ${mp.wPrime} (from JSON)');
+              debugPrint('  - EstimatedFTP: ${mp.metabolic.estimatedFtp} (from JSON)');
               debugPrint('  - Zones count: ${mp.zones.length}');
               debugPrint('  - CombustionCurve count: ${mp.combustionCurve.length}');
               
+              // FORZA l'uso dei valori dal JSON, anche se sono > 0 (non solo se > 0)
+              // Questo assicura che i valori dalla webapp vengano sempre mostrati
+              _ftp = mp.metabolic.estimatedFtp;
+              _vo2max = mp.vo2max;
+              _vlamax = mp.vlamax;
+              if (mp.wPrime != null) _wPrime = mp.wPrime;
+              
               final profileType = _categorizeAthlete();
-              debugPrint('[AthleteProfile] Successfully loaded metabolic profile. VLamax: $_vlamax, VO2max: $_vo2max, FTP: $_ftp');
+              debugPrint('[AthleteProfile] ✅ Successfully loaded metabolic profile. VLamax: $_vlamax, VO2max: $_vo2max, FTP: $_ftp');
               debugPrint('[AthleteProfile] Profile type determined: $profileType');
             } else {
               debugPrint('[AthleteProfile] WARNING: mpMap is null after parsing!');
