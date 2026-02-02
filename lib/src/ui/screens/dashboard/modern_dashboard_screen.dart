@@ -1936,11 +1936,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     final profile = profileService.currentProfile;
     final metabolicProfile = profileService.metabolicProfile;
     
-    // Prefer values from metabolic_profile JSON (server-side calculated)
-    // Fallback to individual columns if JSON not available
-    final vlamax = metabolicProfile?.vlamax ?? profile.vlamax;
-    final vo2max = metabolicProfile?.vo2max ?? profile.vo2max;
-    final mlss = metabolicProfile?.mlss ?? profile.ftp; // MLSS or FTP as threshold
+    // SEMPRE usa i valori dal metabolic_profile JSON se disponibile (dalla webapp)
+    // I valori dalla webapp sono la fonte di verità - non usare fallback
+    final vlamax = metabolicProfile?.vlamax;
+    final vo2max = metabolicProfile?.vo2max;
+    final mlss = metabolicProfile?.mlss;
     final fatMax = metabolicProfile?.fatMax ?? metabolicProfile?.metabolic.fatMaxWatt;
     
     // Determine type using values from JSON if available
