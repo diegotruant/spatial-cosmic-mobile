@@ -67,16 +67,16 @@ class MetabolicProfile {
   factory MetabolicProfile.fromJson(Map<String, dynamic> json) {
     try {
       return MetabolicProfile(
-        vlamax: (json['vlamax'] ?? 0.0 as num).toDouble(),
-        map: (json['map'] ?? json['ftp'] ?? 0.0 as num).toDouble(),
-        vo2max: (json['vo2max'] ?? 0.0 as num).toDouble(),
-        mlss: json['mlss'] != null ? (json['mlss'] as num).toDouble() : null,
-        fatMax: json['fatMax'] != null ? (json['fatMax'] as num).toDouble() : null,
-        wPrime: json['wPrime'] != null ? (json['wPrime'] as num).toDouble() : null,
-        confidenceScore: json['confidenceScore'] != null ? (json['confidenceScore'] as num).toDouble() : null,
+        vlamax: _toDouble(json['vlamax']) ?? 0.0,
+        map: _toDouble(json['map'] ?? json['ftp']) ?? 0.0,
+        vo2max: _toDouble(json['vo2max']) ?? 0.0,
+        mlss: _toDouble(json['mlss']),
+        fatMax: _toDouble(json['fatMax']),
+        wPrime: _toDouble(json['wPrime']),
+        confidenceScore: _toDouble(json['confidenceScore']),
         inputSources: json['inputSources'] != null ? Map<String, dynamic>.from(json['inputSources']) : null,
-        bmr: json['bmr'] != null ? (json['bmr'] as num).toDouble() : null,
-        tdee: json['tdee'] != null ? (json['tdee'] as num).toDouble() : null,
+        bmr: _toDouble(json['bmr']),
+        tdee: _toDouble(json['tdee']),
         metabolic: json['metabolic'] != null 
             ? MetabolicStats.fromJson(Map<String, dynamic>.from(json['metabolic']))
             : MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
@@ -96,6 +96,13 @@ class MetabolicProfile {
 
   String toJsonString() => jsonEncode(toJson());
   static MetabolicProfile fromJsonString(String jsonStr) => MetabolicProfile.fromJson(jsonDecode(jsonStr));
+
+  static double? _toDouble(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val);
+    return null;
+  }
 }
 
 class MetabolicStats {

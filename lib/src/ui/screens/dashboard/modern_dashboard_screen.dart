@@ -429,6 +429,16 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                    }, 
                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                    child: const Text("CALCOLA PROFILO"),
+                 ),
+                 const SizedBox(height: 12),
+                 TextButton.icon(
+                   onPressed: () {
+                      final uid = Supabase.instance.client.auth.currentUser?.id;
+                      context.read<AthleteProfileService>().updateAthleteId(uid);
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Ricaricamento dati...")));
+                   },
+                   icon: const Icon(LucideIcons.refreshCw, size: 16, color: Colors.white54),
+                   label: const Text("RICARICA DATI", style: TextStyle(color: Colors.white54)),
                  )
                ],
              ),

@@ -114,19 +114,19 @@ class AthleteProfileService extends ChangeNotifier {
           .maybeSingle();
 
       if (data != null) {
-        if (data['ftp'] != null) _ftp = (data['ftp'] as num).toDouble();
-        if (data['cp'] != null) _cp = (data['cp'] as num).toDouble();
-        if (data['vo2max'] != null) _vo2max = (data['vo2max'] as num).toDouble();
-        if (data['vlamax'] != null) _vlamax = (data['vlamax'] as num).toDouble();
-        if (data['w_prime'] != null) _wPrime = (data['w_prime'] as num).toDouble();
+        _ftp = _toDouble(data['ftp']);
+        _cp = _toDouble(data['cp']);
+        _vo2max = _toDouble(data['vo2max']);
+        _vlamax = _toDouble(data['vlamax']);
+        _wPrime = _toDouble(data['w_prime']);
         
-        if (data['weight'] != null) _weight = (data['weight'] as num).toDouble();
-        if (data['height'] != null) _height = (data['height'] as num).toDouble();
-        if (data['lean_mass'] != null) _leanMass = (data['lean_mass'] as num).toDouble();
+        _weight = _toDouble(data['weight']);
+        _height = _toDouble(data['height']);
+        _leanMass = _toDouble(data['lean_mass']);
         if (data['dob'] != null) _dob = DateTime.tryParse(data['dob']);
         if (data['cert_expiry_date'] != null) _certExpiryDate = DateTime.tryParse(data['cert_expiry_date']);
         
-        if (data['body_fat'] != null) _bodyFat = (data['body_fat'] as num).toDouble();
+        _bodyFat = _toDouble(data['body_fat']);
         if (data['somatotype'] != null) _somatotype = data['somatotype'];
         if (data['athlete_level'] != null) _athleteLevel = data['athlete_level'];
         if (data['gender'] != null) _gender = data['gender'];
@@ -638,6 +638,13 @@ class AthleteProfileService extends ChangeNotifier {
     } catch (e) {
       debugPrint("Error loading metabolic profile: $e");
     }
+  }
+
+  double? _toDouble(dynamic val) {
+    if (val == null) return null;
+    if (val is num) return val.toDouble();
+    if (val is String) return double.tryParse(val);
+    return null;
   }
 }
 
