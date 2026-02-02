@@ -99,6 +99,11 @@ class AthleteProfileService extends ChangeNotifier {
     }
   }
 
+  /// Force refresh profile from Supabase
+  Future<void> refreshProfile() async {
+    await _loadFromSupabase();
+  }
+
   Future<void> _loadFromSupabase() async {
     final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
     if (targetId == null) return;
@@ -143,16 +148,41 @@ class AthleteProfileService extends ChangeNotifier {
             }
 
             if (mpMap != null) {
+              debugPrint('[AthleteProfile] Parsing metabolic_profile JSON. Keys: ${mpMap.keys.toList()}');
+              
               final mp = MetabolicProfile.fromJson(mpMap);
               _lastCalculatedProfile = mp;
               
-              // Sync individual metrics if columns were null or 0
-              if (_ftp == null || _ftp == 0) _ftp = mp.metabolic.estimatedFtp;
-              if (_vo2max == null || _vo2max == 0) _vo2max = mp.vo2max;
-              if (_vlamax == null || _vlamax == 0) _vlamax = mp.vlamax;
-              if (_wPrime == null || _wPrime == 0) _wPrime = mp.wPrime ?? _wPrime;
+              // Always use values from metabolic_profile JSON (server-side calculated)
+              // This ensures mobile app shows the latest calculated values
+              // Override column values with JSON values (JSON is source of truth)
+              if (mp.metabolic.estimatedFtp > 0) _ftp = mp.metabolic.estimatedFtp;
+              if (mp.vo2max > 0) {
+                _vo2max = mp.vo2max;
+                debugPrint('[AthleteProfile] VO2max from JSON: $_vo2max');
+              }
+              if (mp.vlamax > 0) {
+                _vlamax = mp.vlamax;
+                debugPrint('[AthleteProfile] VLamax from JSON: $_vlamax');
+              }
+              if (mp.wPrime != null && mp.wPrime! > 0) _wPrime = mp.wPrime;
               
-              debugPrint('[AthleteProfile] Successfully loaded metabolic profile. FTP: $_ftp');
+              // Log tutti i valori per debug
+              debugPrint('[AthleteProfile] Full profile loaded:');
+              debugPrint('  - VLamax: ${mp.vlamax}');
+              debugPrint('  - VO2max: ${mp.vo2max}');
+              debugPrint('  - MLSS: ${mp.mlss}');
+              debugPrint('  - FatMax: ${mp.fatMax}');
+              debugPrint('  - WPrime: ${mp.wPrime}');
+              debugPrint('  - EstimatedFTP: ${mp.metabolic.estimatedFtp}');
+              debugPrint('  - Zones count: ${mp.zones.length}');
+              debugPrint('  - CombustionCurve count: ${mp.combustionCurve.length}');
+              
+              final profileType = _categorizeAthlete();
+              debugPrint('[AthleteProfile] Successfully loaded metabolic profile. VLamax: $_vlamax, VO2max: $_vo2max, FTP: $_ftp');
+              debugPrint('[AthleteProfile] Profile type determined: $profileType');
+            } else {
+              debugPrint('[AthleteProfile] WARNING: mpMap is null after parsing!');
             }
           } catch (e, stack) {
             debugPrint('[AthleteProfile] Error parsing metabolic_profile JSON: $e');
@@ -460,11 +490,15 @@ class AthleteProfileService extends ChangeNotifier {
   }
 
   AthleteType _categorizeAthlete() {
-    if (_vlamax == null) return AthleteType.unknown;
+    // Prefer vlamax from metabolic_profile JSON (server-side calculated)
+    // Fallback to _vlamax column if JSON not available
+    final vlamax = _lastCalculatedProfile?.vlamax ?? _vlamax;
+    
+    if (vlamax == null || vlamax == 0) return AthleteType.unknown;
 
-    if (_vlamax! >= 0.60) { // Updated based on user ranges
+    if (vlamax >= 0.60) { // Updated based on user ranges
        return AthleteType.sprinter;
-    } else if (_vlamax! <= 0.35) {
+    } else if (vlamax <= 0.35) {
        return AthleteType.timeTrialist; // or climber depending on weight
     } else {
        return AthleteType.allRounder;
@@ -517,115 +551,33 @@ class AthleteProfileService extends ChangeNotifier {
     }
   }
 
+  // DEPRECATED: Metabolic profile calculation is now done server-side via Python service on Render
+  // This method is kept for backward compatibility but does nothing
+  // The profile is automatically calculated when activities are synced from Strava
+  @Deprecated('Use server-side calculation via Python service on Render')
   void calculateMetabolicProfile({
     required double pMax,
     required double mmp3,
     required double mmp6,
-    required double mmp15, // FROM FLOW TEST
-    // Optional overrides
+    required double mmp15,
     double? customWeight,
     double? customBodyFat,
     String? customSomatotype,
     String? customAthleteLevel,
     String? customGender,
   }) {
-    final w = customWeight ?? _weight ?? 70.0;
-    final h = height ?? _height ?? 175.0;
-    final bf = customBodyFat ?? _bodyFat ?? 12.0; 
-    
-    // Calculate Age
-    int age = 30;
-    if (_dob != null) {
-      age = DateTime.now().year - _dob!.year;
-      if (DateTime.now().month < _dob!.month || (DateTime.now().month == _dob!.month && DateTime.now().day < _dob!.day)) {
-        age--;
-      }
-    }
-    if (age <= 0) age = 30;
-
-    // Parse enums safely
-    Somatotype sType = Somatotype.ectomorph;
-    try {
-      final sStr = customSomatotype ?? _somatotype;
-      sType = Somatotype.values.firstWhere((e) => e.toString().split('.').last == sStr);
-    } catch (_) {}
-    
-    final gStr = customGender ?? _gender ?? 'male';
-    
-    _lastCalculatedProfile = MetabolicEngine.calculateProfile(
-      weight: w,
-      height: h,
-      age: age,
-      gender: gStr,
-      bodyFatPercentage: bf,
-      somatotype: sType,
-      pMax: pMax,
-      mmp3: mmp3,
-      mmp6: mmp6,
-      mmp15: mmp15,
-    );
-
-    
+    debugPrint('[AthleteProfileService] calculateMetabolicProfile is deprecated. Profile is now calculated server-side.');
+    // No-op: Calculation is done server-side
     notifyListeners();
   }
   
+  // DEPRECATED: Metabolic profile is now saved automatically by server-side calculation
+  // This method is kept for backward compatibility but does nothing
+  @Deprecated('Profile is automatically saved by server-side calculation')
   Future<void> applyMetabolicResult() async {
-     if (_lastCalculatedProfile == null) return;
-     
-     final p = _lastCalculatedProfile!;
-     
-     // Update local state metrics
-     if (p.vlamax > 0) _vlamax = p.vlamax;
-     if (p.vo2max > 0) _vo2max = p.vo2max;
-     
-     final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
-     if (targetId == null) return;
-
-     if (p.wPrime != null && p.wPrime! > 0) _wPrime = p.wPrime;
-     
-     // Prepare the update payload
-     final updatePayload = <String, dynamic>{
-       'vlamax': _vlamax,
-       'vo2max': _vo2max,
-       'w_prime': _wPrime,
-       'updated_at': DateTime.now().toIso8601String(),
-       'metabolic_profile': p.toJson(),
-     };
-     
-     // Fallback: Also save to extra_data for web app compatibility if column is missing
-     try {
-       final resp = await _supabase.from('athletes').select('extra_data').eq('id', targetId).maybeSingle();
-       if (resp != null) {
-         final Map<String, dynamic> extraData = Map<String, dynamic>.from(resp['extra_data'] ?? {});
-         extraData['metabolic_profile'] = p.toJson();
-         updatePayload['extra_data'] = extraData;
-       }
-     } catch (e) {
-       debugPrint("Note: Extra data merge failed: $e");
-     }
-
-     if (p.metabolic.estimatedFtp > 0) {
-       updatePayload['ftp'] = p.metabolic.estimatedFtp.round();
-     }
-     
-     try {
-       await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
-       debugPrint("Metabolic profile saved successfully (with extra_data fallback)");
-     } catch (e) {
-       debugPrint("Primary update failed (likely missing column): $e");
-       // Retry without the specific column, relying on extra_data
-       if (updatePayload.containsKey('metabolic_profile')) {
-          updatePayload.remove('metabolic_profile');
-          try {
-             await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
-             debugPrint("Fallback update (extra_data only) saved successfully");
-          } catch (e2) {
-             debugPrint("Critical error saving metabolic profile: $e2");
-          }
-       }
-     }
-     
-     notifyListeners();
+    debugPrint('[AthleteProfileService] applyMetabolicResult is deprecated. Profile is automatically saved by server-side calculation.');
+    // No-op: Profile is saved automatically by server-side calculation
+    notifyListeners();
   }
 
   /// Loads the saved metabolic profile from the database
