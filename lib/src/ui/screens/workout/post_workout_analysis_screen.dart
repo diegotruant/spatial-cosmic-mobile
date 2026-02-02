@@ -35,8 +35,9 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   String? _error;
   int? _newFtp; 
 
-  // Data
   List<double> _power = [];
+  List<double> _wBal = [];
+  List<double> _gearRatio = [];
   List<int> _hr = [];
   List<int> _cadence = [];
   List<double> _timestamps = [];
@@ -46,12 +47,16 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   double _tss = 0;
   double _if = 0;
   double _calories = 0;
+  double _avgSmoothness = 0;
   Map<String, double> _peaks = {};
 
   // Chart Toggles
   bool _showPower = true;
+  bool _showWBal = false;
   bool _showHr = false;
   bool _showCadence = false;
+  bool _showGear = false;
+  bool _showSmoothness = false;
 
   @override
   void initState() {
@@ -87,9 +92,14 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
          return; 
       }
 
-      // Get User FTP
+      // Get User FTP and CP
       if (!mounted) return;
-      final ftp = context.read<SettingsService>().ftp.toDouble();
+      final settings = context.read<SettingsService>();
+      final profile = context.read<AthleteProfileService>();
+      
+      final ftp = settings.ftp.toDouble();
+      final cp = profile.ftp ?? ftp; // Use CP if available, else FTP
+      final wPrime = profile.wPrime ?? 15000.0;
 
       // Computations
       final np = AnalysisEngine.calculateNP(power);
@@ -98,27 +108,17 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       final tss = AnalysisEngine.calculateTSS(np, ftp, duration);
       final peaks = AnalysisEngine.calculatePowerCurve(power);
       
-      // Calorie estimation
-      // Use FIT 'total_calories' if we were parsing it. 
-      // Since FitReader (custom) returns 'records' data primarily, we use our estimator or if we added it to the map.
-      // Let's assume for now we stick to estimation unless we update FitReader.
-      final avgPower = power.reduce((a, b) => a + b) / power.length;
-      final kCal = (avgPower * duration) / 4.184 / 0.24;
-
-      // Test Protocol Logic
-      int? calculatedFtp;
-      if (widget.workoutId == 'ramp_test_01') {
-          if (peaks.containsKey('1m')) {
-              calculatedFtp = (peaks['1m']! * 0.75).round();
-          }
-      } else if (widget.workoutId == 'ftp_test_20') {
-          if (peaks.containsKey('20m')) {
-              calculatedFtp = (peaks['20m']! * 0.95).round();
-          }
-      }
+      // Advanced Metrics
+      final wBal = AnalysisEngine.calculateWBalanceSeries(power, cp, wPrime);
+      final gearRatio = AnalysisEngine.calculateGearRatioSeries(data['speed']?.map((e) => e.toDouble()).toList() ?? [], cadence);
+      final leftSmooth = data['leftSmoothness']?.map((e) => e.toDouble()).toList() ?? [];
+      final rightSmooth = data['rightSmoothness']?.map((e) => e.toDouble()).toList() ?? [];
+      final avgSmooth = AnalysisEngine.calculateAveragePedalSmoothness(leftSmooth, rightSmooth);
 
       setState(() {
         _power = power;
+        _wBal = wBal;
+        _gearRatio = gearRatio;
         _hr = hr;
         _cadence = cadence;
         _timestamps = timestamps;
@@ -127,6 +127,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
         _tss = tss;
         _calories = kCal;
         _peaks = peaks;
+        _avgSmoothness = avgSmooth;
         _newFtp = calculatedFtp;
         _isLoading = false;
       });
@@ -297,12 +298,12 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       final newPath = await context.read<src.SyncService>().saveAndSyncWorkout(
         widget.fitFilePath, 
         customName,
+        assignmentId: widget.workoutId,
       );
       final newFile = File(newPath);
 
-      // Trigger Exports
+      // Trigger Exports (Prioritizing Strava per User Request)
       final integrationService = context.read<IntegrationService>();
-      final intervalsService = context.read<IntervalsService>();
 
       List<String> results = [];
       if (integrationService.isStravaConnected) {
@@ -312,12 +313,8 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
          results.add("Strava: ⚠️ Non connesso");
       }
       
-      if (intervalsService.isConnected) {
-         final res = await intervalsService.uploadActivity(newFile);
-         results.add("Intervals: ${res == 'Success' ? '✅' : '❌ $res'}");
-      } else {
-         results.add("Intervals: ⚠️ Non connesso");
-      }
+      // Intervals.icu upload disabled as per user request to simplify feed
+      // if (intervalsService.isConnected) { ... }
 
       if (mounted) {
         String syncMsg = results.isEmpty ? "" : "\nSync: ${results.join(', ')}";
@@ -407,7 +404,15 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
           children: [
             Expanded(child: _buildMetricCard('NP', '${_np.toStringAsFixed(0)} W', Colors.orangeAccent, LucideIcons.zap)),
             const SizedBox(width: 12),
+            Expanded(child: _buildMetricCard('PEDAL S.', '${_avgSmoothness.toStringAsFixed(1)}%', Colors.cyanAccent, LucideIcons.refreshCw)),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
             Expanded(child: _buildMetricCard('CALORIE', _calories.toStringAsFixed(0), Colors.redAccent, LucideIcons.flame)),
+            const SizedBox(width: 12),
+            Expanded(child: _buildMetricCard('W\' used', '${(((_wBal.first - _wBal.reduce(min)) / 1000)).toStringAsFixed(1)} kJ', Colors.purpleAccent, LucideIcons.batteryCharging)),
           ],
         ),
       ],
@@ -450,9 +455,13 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
                 children: [
                   _buildToggle('Pwr', Colors.orange, _showPower, () => setState(() => _showPower = !_showPower)),
                   const SizedBox(width: 8),
+                  _buildToggle('W\'bal', Colors.purpleAccent, _showWBal, () => setState(() => _showWBal = !_showWBal)),
+                  const SizedBox(width: 8),
                   _buildToggle('HR', Colors.red, _showHr, () => setState(() => _showHr = !_showHr)),
                   const SizedBox(width: 8),
                   _buildToggle('Cad', Colors.blue, _showCadence, () => setState(() => _showCadence = !_showCadence)),
+                  const SizedBox(width: 8),
+                  _buildToggle('Gear', Colors.orange, _showGear, () => setState(() => _showGear = !_showGear)),
                 ],
               ),
             ],
@@ -466,9 +475,11 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
                 titlesData: FlTitlesData(show: false),
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
-                  if (_showPower) _createLineData(_power, Colors.orangeAccent, 1.0),
+                   if (_showPower) _createLineData(_power, Colors.orangeAccent, 1.0),
+                  if (_showWBal) _createLineData(_wBal.map((e) => e / 100).toList(), Colors.purpleAccent, 0.8), // Normalized to show better
                   if (_showHr) _createLineData(_hr.map((e) => e.toDouble()).toList(), Colors.redAccent, 0.5),
                   if (_showCadence) _createLineData(_cadence.map((e) => e.toDouble()).toList(), Colors.blueAccent, 0.5),
+                  if (_showGear) _createLineData(_gearRatio, Colors.orange, 0.7),
                 ],
                 lineTouchData: LineTouchData(
                   touchTooltipData: LineTouchTooltipData(

@@ -20,6 +20,8 @@ import '../../../services/sync_service.dart';
 import '../../../services/intervals_service.dart';
 import '../../../services/integration_service.dart';
 import '../../../services/athlete_profile_service.dart' as src_profile;
+import '../../../services/w_prime_service.dart';
+import '../../widgets/anaerobic_battery_gauge.dart';
 
 class ModernWorkoutScreen extends StatefulWidget {
   const ModernWorkoutScreen({super.key});
@@ -160,8 +162,27 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
       children: [
         // Graph at top (Fixed height, no scroll)
         SizedBox(
-          height: 220, // Slightly taller for better visibility
-          child: _buildChartWithControls(),
+          height: 220, 
+          child: Stack(
+            children: [
+              _buildChartWithControls(),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: Consumer<WPrimeService>(
+                  builder: (context, wPrime, child) => Transform.scale(
+                    scale: 0.5,
+                    alignment: Alignment.topLeft,
+                    child: AnaerobicBatteryGauge(
+                      currentWPrime: wPrime.currentWPrime,
+                      maxWPrime: wPrime.maxWPrime,
+                      isDepleting: wPrime.isDepleting,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 12),
         // Metrics Grid (Expanded to fill remaining space)
@@ -298,12 +319,14 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         ),
       ),
 
-      // 2b. Kcal (New)
-      MetricTile(
-        label: 'CALORIES', 
-        value: workoutService.totalCalories.toStringAsFixed(0), 
-        unit: 'kcal', 
-        accentColor: Colors.orangeAccent
+      // 2b. W' Balance (Anaerobic Capacity)
+      Consumer<WPrimeService>(
+        builder: (context, wPrime, child) => MetricTile(
+          label: 'W\' BALANCE', 
+          value: '${((wPrime.currentWPrime) / 1000).toStringAsFixed(1)}', 
+          unit: 'kJ', 
+          accentColor: wPrime.isDepleting ? Colors.orangeAccent : Colors.purpleAccent,
+        ),
       ),
 
       // 3. Target Power

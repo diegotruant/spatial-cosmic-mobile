@@ -124,14 +124,31 @@ class PhysiologicalService extends ChangeNotifier {
   }
 
   HRVAnalysis analyzeHRV(double currentRMSSD, {int? ouraScore}) {
+    // 1. If no score passed, check if we already have an Oura score for today in history
+    if (ouraScore == null) {
+      final now = DateTime.now();
+      try {
+        final todayData = _history.firstWhere(
+          (e) => e.timestamp.year == now.year && 
+                 e.timestamp.month == now.month && 
+                 e.timestamp.day == now.day && 
+                 e.ouraScore != null
+        );
+        ouraScore = todayData.ouraScore;
+      } catch (_) {
+        // No Oura data for today yet
+      }
+    }
+
+    // 2. Prioritize Oura Critical Stress (Red/Yellow)
     if (ouraScore != null) {
       if (ouraScore < 60) {
         return HRVAnalysis(
           status: ReadinessStatus.red,
           deviation: 0, 
-          recommendation: 'Readiness Oura Bassa ($ouraScore). Il tuo corpo è sotto stress (possibile febbre o sovrallenamento). Riposo assoluto consigliato.',
+          recommendation: 'Readiness Oura Bassa ($ouraScore). Il tuo corpo è sotto stress critico (possibile febbre o sovrallenamento). Riposo assoluto consigliato.',
         );
-      } else if (ouraScore < 75) {
+      } else if (ouraScore < 70) { // Slightly adjusted threshold
         return HRVAnalysis(
           status: ReadinessStatus.yellow,
           deviation: 0,
@@ -140,6 +157,7 @@ class PhysiologicalService extends ChangeNotifier {
       }
     }
 
+    // 3. Baseline check
     if (_lastSevenDayAvg <= 0) {
       return HRVAnalysis(
         status: ReadinessStatus.green,
@@ -148,22 +166,44 @@ class PhysiologicalService extends ChangeNotifier {
       );
     }
 
+    // 4. Calculate Deviation
     final deviation = ((currentRMSSD - _lastSevenDayAvg) / _lastSevenDayAvg) * 100;
     
+    // 5. Dynamic Thresholds
+    // If Oura is good (>80) OR if we are in "Snapshot Mode" (no Oura, belt only),
+    // we apply wider buffers for the morning measurement.
+    bool hasOuraData = ouraScore != null;
+    bool isOuraExcellent = hasOuraData && ouraScore >= 80;
+    
+    // For belt-only users (no Oura), we use the same lenient thresholds as Oura Excellent
+    // because a manual measurement at wake-up is naturally more variable.
+    bool useLenientThresholds = isOuraExcellent || !hasOuraData;
+
+    double greenThreshold = useLenientThresholds ? -12.0 : -6.0;
+    double yellowThreshold = useLenientThresholds ? -25.0 : -16.0;
+
     ReadinessStatus status;
     String recommendation;
 
-    if (deviation >= -5) {
+    if (deviation >= greenThreshold) {
       status = ReadinessStatus.green;
-      recommendation = deviation > 5 
-        ? 'Ottimo! HRV elevata. Finestra ottimale per allenamento intenso.'
-        : 'Pronto per allenarsi. Sistema parasimpatico recuperato.';
-    } else if (deviation >= -15) {
+      if (useLenientThresholds && deviation < -5) {
+         recommendation = hasOuraData 
+           ? 'Oura conferma ottimo recupero ($ouraScore). Il calo mattutino dell\'HRV è fisiologico. Allenamento confermato.'
+           : 'Variazione mattutina nei parametri normali. Recupero parasimpatico ok. Allenamento confermato.';
+      } else {
+         recommendation = deviation > 5 
+           ? 'Ottimo! HRV elevata. Finestra ottimale per allenamento intenso.'
+           : 'Pronto per allenarsi. Sistema parasimpatico recuperato.';
+      }
+    } else if (deviation >= yellowThreshold) {
       status = ReadinessStatus.yellow;
-      recommendation = 'HRV leggermente depressa. Riduci volume 20% o intensità al 90%.';
+      recommendation = isOuraExcellent 
+        ? 'HRV mattutina bassa nonostante Oura Green ($ouraScore). Possibile stress acuto al risveglio. Allenamento moderato.'
+        : 'HRV depressa (${deviation.toStringAsFixed(0)}%). Considera riduzione volume o intensità (90% del target).';
     } else {
       status = ReadinessStatus.red;
-      recommendation = 'Sistema parasimpatico soppresso. Recupero attivo o riposo completo.';
+      recommendation = 'Sistema parasimpatico soppresso (${deviation.toStringAsFixed(0)}%). Recupero attivo o riposo completo consigliato.';
     }
 
     return HRVAnalysis(
@@ -212,6 +252,7 @@ class PhysiologicalService extends ChangeNotifier {
       recommendation: analysis.recommendation,
     ));
 
+    // Stable Recursive Average (7-day weight)
     _lastSevenDayAvg = (_lastSevenDayAvg * 6 + rmssd) / 7;
     notifyListeners();
   }

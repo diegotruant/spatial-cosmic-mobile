@@ -331,9 +331,7 @@ class AccountInfoScreen extends StatelessWidget {
             child: Text('INTEGRAZIONI DISPONIBILI', style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           
-          _buildAccountRow(
-            'Gestisci Connessioni', 
-            'Strava, Oura, Intervals.icu...',
+            'Strava, Oura...',
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectionsScreen()))
           ),
         ],
@@ -534,27 +532,17 @@ class ConnectionsScreen extends StatelessWidget {
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Consumer2<IntervalsService, OuraService>(
-          builder: (context, intervals, oura, _) => ListView(
+        child: Consumer2<IntegrationService, OuraService>(
+          builder: (context, integration, oura, _) => ListView(
             padding: const EdgeInsets.all(20),
             children: [
               _buildOuraSection(context, oura, l10n),
-              const SizedBox(height: 16),
-              _buildIntervalsSection(context, intervals, l10n),
               const SizedBox(height: 16),
               _buildConnectionCard(context, l10n, 'Strava', 'Sincronizza attività e percorsi.', Colors.orangeAccent, integration.isStravaConnected, () {
                 if (integration.isStravaConnected) {
                   integration.disconnectStrava();
                 } else {
                   integration.initiateStravaAuth();
-                }
-              }),
-              const SizedBox(height: 16),
-              _buildConnectionCard(context, l10n, 'Garmin Connect', 'Sincronizza allenamenti direttamente sui ciclocomputer Garmin.', Colors.blueAccent, integration.isGarminConnected, () {
-                if (integration.isGarminConnected) {
-                  integration.disconnectGarmin();
-                } else {
-                  integration.initiateGarminAuth();
                 }
               }),
               const SizedBox(height: 16),
@@ -573,7 +561,14 @@ class ConnectionsScreen extends StatelessWidget {
                   integration.initiateTrainingPeaksAuth();
                 }
               }),
-              const SizedBox(height: 80), // Extra space for safe scrolling
+              const SizedBox(height: 24),
+              const Divider(color: Colors.white10),
+              const SizedBox(height: 16),
+              const Text(
+                'NOTA: Garmin Connect non è più supportato direttamente. Utilizza "Esporta per Outdoor" dal calendario per caricare l\'allenamento sul tuo dispositivo Garmin via USB.',
+                style: TextStyle(color: Colors.white38, fontSize: 11, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 80),
             ],
           ),
         ),

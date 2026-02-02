@@ -10,6 +10,7 @@ class AthleteProfile {
   final double? vlamax; // mmol/L/s
   final double? vo2max; // ml/kg/min
   final double? ftp; // Watts
+  final double? cp; // Critical Power
   final AthleteType type;
   final String description;
   final double? weight;
@@ -22,6 +23,7 @@ class AthleteProfile {
     this.vlamax,
     this.vo2max,
     this.ftp,
+    this.cp,
     required this.type,
     required this.description,
     this.weight,
@@ -44,6 +46,7 @@ class AthleteProfileService extends ChangeNotifier {
   String? _athleteId;
 
   double? _ftp;
+  double? _cp;
   double? _vo2max;
   double? _vlamax;
   
@@ -66,6 +69,7 @@ class AthleteProfileService extends ChangeNotifier {
   bool _isLoading = false;
 
   double? get ftp => _ftp;
+  double? get cp => _cp;
   double? get vo2max => _vo2max;
   double? get vlamax => _vlamax;
   double? get weight => _weight;
@@ -105,12 +109,13 @@ class AthleteProfileService extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('athletes')
-          .select('ftp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile')
+          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile')
           .eq('id', targetId)
           .maybeSingle();
 
       if (data != null) {
         if (data['ftp'] != null) _ftp = (data['ftp'] as num).toDouble();
+        if (data['cp'] != null) _cp = (data['cp'] as num).toDouble();
         if (data['vo2max'] != null) _vo2max = (data['vo2max'] as num).toDouble();
         if (data['vlamax'] != null) _vlamax = (data['vlamax'] as num).toDouble();
         if (data['w_prime'] != null) _wPrime = (data['w_prime'] as num).toDouble();
@@ -176,6 +181,10 @@ class AthleteProfileService extends ChangeNotifier {
     String? athleteLevel,
     String? gender,
     double? wPrime,
+    double? cp,
+    double? ftp,
+    double? vo2max,
+    double? vlamax,
   }) async {
     final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
     if (targetId == null) return;
@@ -187,6 +196,10 @@ class AthleteProfileService extends ChangeNotifier {
     if (leanMass != null) updates['lean_mass'] = leanMass;
     if (certExpiryDate != null) updates['cert_expiry_date'] = certExpiryDate.toIso8601String();
     if (wPrime != null) updates['w_prime'] = wPrime;
+    if (cp != null) updates['cp'] = cp;
+    if (ftp != null) updates['ftp'] = ftp.round();
+    if (vo2max != null) updates['vo2max'] = vo2max;
+    if (vlamax != null) updates['vlamax'] = vlamax;
     
     if (bodyFat != null) updates['body_fat'] = bodyFat;
     if (somatotype != null) updates['somatotype'] = somatotype;
@@ -210,6 +223,10 @@ class AthleteProfileService extends ChangeNotifier {
       if (athleteLevel != null) _athleteLevel = athleteLevel;
       if (gender != null) _gender = gender;
       if (wPrime != null) _wPrime = wPrime;
+      if (cp != null) _cp = cp;
+      if (ftp != null) _ftp = ftp;
+      if (vo2max != null) _vo2max = vo2max;
+      if (vlamax != null) _vlamax = vlamax;
       
       notifyListeners();
     } catch (e) {
@@ -231,6 +248,7 @@ class AthleteProfileService extends ChangeNotifier {
       dob: _dob,
       leanMass: _leanMass,
       wPrime: _wPrime,
+      cp: _cp,
     );
   }
 
@@ -565,24 +583,34 @@ class AthleteProfileService extends ChangeNotifier {
 
      if (p.wPrime != null && p.wPrime! > 0) _wPrime = p.wPrime;
      
-     // Prepare the update payload with full metabolic profile
+     // Prepare the update payload
      final updatePayload = <String, dynamic>{
        'vlamax': _vlamax,
        'vo2max': _vo2max,
        'w_prime': _wPrime,
        'updated_at': DateTime.now().toIso8601String(),
-       // Save the full metabolic profile as JSON for Lab visualization
        'metabolic_profile': p.toJson(),
      };
      
-     // Auto-update FTP if available
+     // Fallback: Also save to extra_data for web app compatibility if column is missing
+     try {
+       final resp = await _supabase.from('athletes').select('extra_data').eq('id', targetId).maybeSingle();
+       if (resp != null) {
+         final Map<String, dynamic> extraData = Map<String, dynamic>.from(resp['extra_data'] ?? {});
+         extraData['metabolic_profile'] = p.toJson();
+         updatePayload['extra_data'] = extraData;
+       }
+     } catch (e) {
+       debugPrint("Note: Extra data merge failed: $e");
+     }
+
      if (p.metabolic.estimatedFtp > 0) {
        updatePayload['ftp'] = p.metabolic.estimatedFtp.round();
      }
      
      try {
        await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
-       debugPrint("Metabolic profile saved successfully with full curve data");
+       debugPrint("Metabolic profile saved successfully (with extra_data fallback)");
      } catch (e) {
        debugPrint("Error saving metabolic profile: $e");
      }

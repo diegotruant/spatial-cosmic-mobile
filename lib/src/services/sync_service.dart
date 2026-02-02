@@ -32,7 +32,7 @@ class SyncService extends ChangeNotifier {
   /// 1. Moves file from Temp to AppDocuments (Permanent)
   /// 2. Uploads to Supabase
   /// Returns the new permanent path
-  Future<String> saveAndSyncWorkout(String tempFilePath, String workoutId) async {
+  Future<String> saveAndSyncWorkout(String tempFilePath, String customName, {String? assignmentId}) async {
     _isUploading = true;
     notifyListeners();
 
@@ -57,7 +57,6 @@ class SyncService extends ChangeNotifier {
         if (nameParts.length > 2 && nameParts[0] == 'activity') {
            final ts = int.tryParse(nameParts[1]);
            if (ts != null) {
-             date = DateTime.fromMillisecondsSinceEpoch(ts * 1000); // Filename timestamp is often seconds or ms depending on generator
              // FitGenerator uses seconds for fileId.timeCreated, but let's check filename format in FitGenerator.
              // FitGenerator: activity_${startTime.millisecondsSinceEpoch}_Title
              // So it's MS.
@@ -66,7 +65,7 @@ class SyncService extends ChangeNotifier {
         }
       } catch (_) {}
 
-      await saveWorkoutToStorage(permanentFile, date);
+      await saveWorkoutToStorage(permanentFile, date, assignmentId: assignmentId);
       
       return newPath;
     } catch (e) {
@@ -94,15 +93,47 @@ class SyncService extends ChangeNotifier {
       // We can search by date or filename match?
       // Filename strategy:
       final fileName = filePath.split(Platform.pathSeparator).last;
-      // In saveWorkoutToStorage we used: '${user.id}/$timestamp.fit' which is different from local filename 'activity_...fit'
-      // This mismatch is a problem for deletion if we don't store the mapping.
       
-      // Strategy Update: 
-      // Option A: Just delete local for now.
-      // Option B: Try to match by rough timestamp.
+      // Filename strategy: extract timestamp from activity_{timestamp}_{title}.fit
+      // Matches the storage path format used in saveWorkoutToStorage: ${user.id}/$timestamp.fit
+      final parts = fileName.split('_');
+      String? timestampStr;
+      if (parts.length >= 2 && parts[0] == 'activity') {
+        timestampStr = parts[1];
+      }
+
+      if (timestampStr != null) {
+        final path = '${user.id}/$timestampStr.fit';
+        
+        // 1. Delete from storage bucket
+        try {
+          await _supabase.storage.from('workout-files').remove([path]);
+          debugPrint("Cloud Delete: Removed $path from storage");
+        } catch (e) {
+          debugPrint("Cloud Delete Warning: Storage removal failed: $e");
+        }
+
+        // 2. Delete from 'workouts' table
+        try {
+          await _supabase.from('workouts').delete().eq('file_path', path);
+          debugPrint("Cloud Delete: Removed record from workouts table");
+        } catch (e) {
+          debugPrint("Cloud Delete Warning: Table deletion failed: $e");
+        }
+
+        // 3. Mark corresponding assignment as PENDING (or delete?)
+        // Deleting the assignment is more consistent if the user wants it GONE from history.
+        try {
+           await _supabase.from('assignments')
+            .delete()
+            .eq('status', 'COMPLETED')
+            .filter('activity_data->>file_path', 'eq', path);
+           debugPrint("Cloud Delete: Removed assignment record");
+        } catch (e) {
+           debugPrint("Cloud Delete Warning: Assignment deletion failed: $e");
+        }
+      }
       
-      // For now, let's focus on Local Delete. 
-      // TODO: Implement robust Cloud Delete (requires storing remote_id/path locally or querying by date)
       debugPrint("Deleted local file: $filePath");
       
     } catch (e) {
@@ -113,7 +144,7 @@ class SyncService extends ChangeNotifier {
 
   /// Uploads a workout file to 'workout-files' bucket and creates a record in 'workouts' table.
   /// This is now private/internal or called by saveAndSync
-  Future<void> saveWorkoutToStorage(File fitFile, DateTime date) async {
+  Future<void> saveWorkoutToStorage(File fitFile, DateTime date, {String? assignmentId}) async {
     // _isUploading = true; // Handled by wrapper
     // notifyListeners();
 
@@ -132,39 +163,48 @@ class SyncService extends ChangeNotifier {
         final list = await _supabase.storage.from('workout-files').list(path: user.id);
         if (list.any((f) => f.name == remoteFileName)) {
           exists = true;
-          debugPrint("File $remoteFileName already exists in storage. Skipping upload.");
+          debugPrint("File $remoteFileName already exists in storage. Checking for record.");
         }
       } catch (e) {
         debugPrint("Error checking file existence: $e");
         // Proceed to try upload if check fails
       }
 
+      // 2. Upload if not exists
       if (!exists) {
-        // Only upload if new. If exists, we assume it's good (or we can't overwrite due to RLS)
-        await _supabase.storage.from('workout-files').upload(
-          path,
-          fitFile,
-          fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-        );
+        await _supabase.storage.from('workout-files').upload(path, fitFile);
+        debugPrint("Cloud Sync: Uploaded $path");
       }
 
-      // 2. Insert Record
-      final dateStr = date.toIso8601String();
+      // 3. Create or Update record in 'workouts' table
       await _supabase.from('workouts').upsert({
         'user_id': user.id,
         'file_path': path,
-        'date': dateStr,
-        'extra_data': {},
-      }); 
+        'date': date.toIso8601String(),
+        'extra_data': {
+          'assignment_id': assignmentId,
+          'local_filename': fitFile.path.split(Platform.pathSeparator).last,
+        },
+      });
+
+      // 4. Update assignment status if linked
+      if (assignmentId != null) {
+        // We update the assignment to COMPLETED and store the activity reference
+        await _supabase.from('assignments').update({
+          'status': 'COMPLETED',
+          'activity_data': {
+            'file_path': path,
+            'source': 'mobile_app',
+            'completed_at': DateTime.now().toIso8601String(),
+          }
+        }).eq('id', assignmentId);
+        debugPrint("Cloud Sync: Marked assignment $assignmentId as COMPLETED");
+      }
 
       debugPrint('Workout saved to storage successfully: $path');
 
     } catch (e) {
       debugPrint('Error saving workout to storage: $e');
-      // If it's the specific "row violates row-level security policy" (403), 
-      // it might be because we tried to Overwrite without UPDATE policy.
-      // But we added the check above.
-      // If it fails on DB Insert, we propagate.
       rethrow;
     } 
   }

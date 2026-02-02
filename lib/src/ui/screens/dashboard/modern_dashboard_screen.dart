@@ -30,6 +30,7 @@ import '../events/add_event_screen.dart';
 import '../../widgets/anaerobic_battery_gauge.dart';
 import '../../../models/metabolic_profile.dart';
 import '../../../services/w_prime_service.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ModernDashboardScreen extends StatefulWidget {
   const ModernDashboardScreen({super.key});
@@ -360,6 +361,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           return;
         }
         success = await integrationService.uploadWorkoutToTrainingPeaks(file);
+      } else if (platform == 'export') {
+        if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
+        await Share.shareXFiles([XFile(file.path)], text: 'Allenamento Spatial Cosmic: ${assignment['workout_name']}');
+        return; // Success handled by share sheet
       }
 
       if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading safely
@@ -417,7 +422,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                children: [
                  const Icon(LucideIcons.flaskConical, color: Colors.white24, size: 64),
                  const SizedBox(height: 24),
-                 const Text("Nessun Dato Lab", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                 const Text("Nessun Dato Metabolic Lab", style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                  const SizedBox(height: 12),
                  Text(
                    "Esegui un test di performance o aspetta che il coach analizzi i tuoi allenamenti per vedere qui il tuo profilo fisiologico (VLamax, VO2max, FTP).",
@@ -1849,9 +1854,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             ),
             child: Column(
               children: const [
-                 Icon(LucideIcons.flaskConical, color: Colors.cyanAccent),
-                 SizedBox(height: 4),
-                 Text('MOTORE META', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                 const Icon(LucideIcons.flaskConical, color: Colors.cyanAccent),
+                 const SizedBox(height: 4),
+                 const Text('METABOLIC LAB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
               ],
             ),
           ),
@@ -1917,7 +1922,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           BottomNavigationBarItem(icon: const Icon(LucideIcons.layoutDashboard), label: 'Home'),
           BottomNavigationBarItem(icon: const Icon(LucideIcons.library), label: 'Test'),
           BottomNavigationBarItem(icon: const Icon(LucideIcons.calendar), label: 'Schedule'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.flaskConical), label: 'Lab'), // New
+          BottomNavigationBarItem(icon: const Icon(LucideIcons.flaskConical), label: 'Metabolic Lab'), 
           BottomNavigationBarItem(icon: const Icon(LucideIcons.history), label: 'History'),
           BottomNavigationBarItem(icon: const Icon(LucideIcons.settings), label: 'Settings'),
         ],
@@ -1945,7 +1950,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'MOTORE METABOLICO',
+                'METABOLIC LAB',
                 style: TextStyle(
                   color: Colors.white,
                   fontWeight: FontWeight.w900,

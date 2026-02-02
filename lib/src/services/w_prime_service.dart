@@ -40,9 +40,10 @@ class WPrimeService extends ChangeNotifier {
   void _syncProfileData() {
     if (_profile == null) return;
     
-    // Use FTP as Critical Power (CP)
-    // If CP should be different, we might need a specific CP field in AthleteProfile
-    if (_profile!.ftp != null) {
+    // Use CP (Critical Power) if available, fallback to FTP
+    if (_profile!.cp != null && _profile!.cp! > 0) {
+      _cp = _profile!.cp!;
+    } else if (_profile!.ftp != null) {
       _cp = _profile!.ftp!;
     }
 

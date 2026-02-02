@@ -15,14 +15,11 @@ class IntegrationService extends ChangeNotifier {
   static const String _stravaClientSecret = '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
   static const String _stravaRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
   // Use 'activity:write' to allow uploads. 'activity:read_all' for reading.
-  static const String _stravaScope = 'read,activity:write';
+  static const String _stravaScope = 'read,activity:read_all';
 
   bool _isStravaConnected = false;
   bool get isStravaConnected => _isStravaConnected;
   
-  bool _isGarminConnected = false;
-  bool get isGarminConnected => _isGarminConnected;
-
   bool _isWahooConnected = false;
   bool get isWahooConnected => _isWahooConnected;
 
@@ -30,6 +27,7 @@ class IntegrationService extends ChangeNotifier {
   bool get isTPConnected => _isTPConnected;
 
   String? _stravaAccessToken;
+  String? _wahooAccessToken;
 
   IntegrationService() {
     _loadCredentials();
@@ -40,8 +38,9 @@ class IntegrationService extends ChangeNotifier {
     _stravaAccessToken = prefs.getString('strava_access_token');
     _isStravaConnected = _stravaAccessToken != null;
     
-    _isGarminConnected = prefs.getBool('garmin_connected') ?? false;
-    _isWahooConnected = prefs.getBool('wahoo_connected') ?? false;
+    _wahooAccessToken = prefs.getString('wahoo_access_token');
+    _isWahooConnected = _wahooAccessToken != null;
+    
     _isTPConnected = prefs.getBool('tp_connected') ?? false;
     
     notifyListeners();
@@ -77,14 +76,15 @@ class IntegrationService extends ChangeNotifier {
     if (uri.scheme == 'spatialcosmic' && uri.host == 'spatialcosmic.app') {
       final success = uri.queryParameters['success'] == 'true';
       final error = uri.queryParameters['error'];
+      final provider = uri.queryParameters['provider']; // 'strava' or 'wahoo'
       
       if (error != null) {
-        debugPrint('Strava Auth Error from Callback: $error');
+        debugPrint('$provider Auth Error from Callback: $error');
         return;
       }
       
       if (success) {
-        debugPrint('Received Successful Strava Auth from Edge Function');
+        debugPrint('Received Successful $provider Auth from Edge Function');
         await syncFromSupabase();
       }
     }
@@ -104,8 +104,9 @@ class IntegrationService extends ChangeNotifier {
 
       if (response != null && response['extra_data'] != null) {
         final extraData = Map<String, dynamic>.from(response['extra_data']);
-        Map<String, dynamic>? strava;
         
+        // Sync Strava
+        Map<String, dynamic>? strava;
         if (extraData.containsKey('integrations') && extraData['integrations']['strava'] != null) {
           strava = Map<String, dynamic>.from(extraData['integrations']['strava']);
         } else if (extraData.containsKey('strava')) {
@@ -120,6 +121,23 @@ class IntegrationService extends ChangeNotifier {
             syncToSupabase: false, 
           );
           debugPrint('Strava credentials synced from Supabase');
+        }
+
+        // Sync Wahoo
+        Map<String, dynamic>? wahoo;
+        if (extraData.containsKey('integrations') && extraData['integrations']['wahoo'] != null) {
+          wahoo = Map<String, dynamic>.from(extraData['integrations']['wahoo']);
+        } else if (extraData.containsKey('wahoo')) {
+          wahoo = Map<String, dynamic>.from(extraData['wahoo']);
+        }
+
+        if (wahoo != null) {
+          await _saveWahooCredentials(
+            wahoo['accessToken'],
+            wahoo['refreshToken'],
+            syncToSupabase: false,
+          );
+          debugPrint('Wahoo credentials synced from Supabase');
         }
       }
     } catch (e) {
@@ -152,6 +170,54 @@ class IntegrationService extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('Strava Token Exchange Exception: $e');
+    }
+  }
+
+  Future<void> _saveWahooCredentials(String accessToken, String refreshToken, {bool syncToSupabase = true}) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('wahoo_access_token', accessToken);
+    await prefs.setString('wahoo_refresh_token', refreshToken);
+    
+    _wahooAccessToken = accessToken;
+    _isWahooConnected = true;
+    notifyListeners();
+    if (!syncToSupabase) return;
+
+    try {
+      final supabase = Supabase.instance.client;
+      final user = supabase.auth.currentUser;
+      if (user != null) {
+        final response = await supabase
+            .from('athletes')
+            .select('extra_data')
+            .ilike('email', user.email!)
+            .maybeSingle();
+            
+        Map<String, dynamic> extraData = response != null && response['extra_data'] != null 
+            ? Map<String, dynamic>.from(response['extra_data']) 
+            : {};
+
+        final wahooData = {
+          'accessToken': accessToken,
+          'refreshToken': refreshToken,
+          'updatedAt': DateTime.now().millisecondsSinceEpoch,
+        };
+        
+        extraData['wahoo'] = wahooData;
+        Map<String, dynamic> integrations = extraData.containsKey('integrations') 
+            ? Map<String, dynamic>.from(extraData['integrations']) 
+            : {};
+        integrations['wahoo'] = wahooData;
+        extraData['integrations'] = integrations;
+
+        await supabase
+            .from('athletes')
+            .update({'extra_data': extraData})
+            .ilike('email', user.email!);
+        debugPrint('Wahoo credentials synced to Supabase');
+      }
+    } catch (e) {
+      debugPrint('Sync to Supabase failed: $e');
     }
   }
 
@@ -244,13 +310,6 @@ class IntegrationService extends ChangeNotifier {
     } catch (e) {
       debugPrint('Supabase Disconnect Error: $e');
     }
-  }
-
-  Future<void> disconnectGarmin() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('garmin_connected', false);
-    _isGarminConnected = false;
-    notifyListeners();
   }
 
   Future<void> disconnectWahoo() async {
@@ -382,27 +441,26 @@ class IntegrationService extends ChangeNotifier {
     }
   }
 
-  // Garmin Connect
-  Future<void> initiateGarminAuth() async {
-    final Uri url = Uri.parse('https://connect.garmin.com/oauthConfirm?oauth_token=YOUR_REQUEST_TOKEN'); 
-    await _launchAuthUrl(url);
-  }
-
   // Wahoo Cloud
   Future<void> initiateWahooAuth() async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
     final email = user?.email ?? '';
 
-    const String wahooScopes = 'email+user_read+user_write+power_zones_read+power_zones_write+workouts_read+workouts_write+plans_read+plans_write+routes_read+routes_write+offline_data';
+    const String wahooScopes = 'email user_read user_write power_zones_read power_zones_write workouts_read workouts_write offline_data';
     const String wahooRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/wahoo-auth';
 
-    final Uri url = Uri.parse('https://api.wahooligan.com/oauth/authorize'
-        '?client_id=VDQH3O2-OkPJ8H-V8dxtvopcq_LXaVmA-w6g5UKGW1w' 
-        '&response_type=code'
-        '&redirect_uri=$wahooRedirectUri'
-        '&scope=$wahooScopes'
-        '&state=mobile:$email');
+    final Uri url = Uri.https(
+      'api.wahooligan.com',
+      '/oauth/authorize',
+      {
+        'client_id': 'VDQH3O2-OkPJ8H-V8dxtvopcq_LXaVmA-w6g5UKGW1w',
+        'response_type': 'code',
+        'redirect_uri': wahooRedirectUri,
+        'scope': wahooScopes,
+        'state': 'mobile:$email',
+      },
+    );
         
     await _launchAuthUrl(url);
   }
@@ -424,31 +482,13 @@ class IntegrationService extends ChangeNotifier {
      await _launchAuthUrl(url);
   }
 
-  // Garmin Connect Workout Upload
-  Future<bool> uploadWorkoutToGarmin(File fitFile) async {
-    // In production, we'd use the Garmin Training API: POST /workout
-    // Using a simplified request placeholder for demonstration
-    try {
-      final uri = Uri.parse('https://connectapi.garmin.com/workout-service/workout');
-      final request = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer YOUR_GARMIN_TOKEN'
-        ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
-        
-      final response = await request.send();
-      return response.statusCode == 201 || response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Garmin Upload Error: $e');
-      return false;
-    }
-  }
-
   // Wahoo Workout Upload
   Future<bool> uploadWorkoutToWahoo(File fitFile) async {
     // Wahoo API documentation: POST /v1/workouts
     try {
       final uri = Uri.parse('https://api.wahooligan.com/v1/plan_workouts');
       final request = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer YOUR_WAHOO_TOKEN'
+        ..headers['Authorization'] = 'Bearer ${_wahooAccessToken ?? 'YOUR_WAHOO_TOKEN'}'
         ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
         
       final response = await request.send();
@@ -486,9 +526,6 @@ class IntegrationService extends ChangeNotifier {
 
     bool success = false;
     switch (platform) {
-      case 'garmin':
-        success = await uploadWorkoutToGarmin(file);
-        break;
       case 'wahoo':
         success = await uploadWorkoutToWahoo(file);
         break;

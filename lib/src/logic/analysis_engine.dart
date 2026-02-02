@@ -90,6 +90,83 @@ class AnalysisEngine {
     };
   }
 
+  /// Calculates W' Balance series based on Skiba's model
+  /// W' bal = W' - Integral((W' - W' bal) / tau)
+  /// Simplified version for post-analysis
+  static List<double> calculateWBalanceSeries(List<double> powerData, double cp, double wPrime) {
+    if (powerData.isEmpty) return [];
+    
+    List<double> wBal = [];
+    double currentW = wPrime;
+    
+    // Recovery constant (tau) - simplified approximation
+    // Tau = 546 * exp(-0.01 * (CP - P_recovery)) + 316
+    // We'll use a standard tau for the series calculation
+    
+    for (int i = 0; i < powerData.length; i++) {
+      final p = powerData[i];
+      if (p > cp) {
+        // Depletion
+        currentW -= (p - cp);
+      } else {
+        // Recovery
+        // Tau = 300s (approx 5 min) for 50% recovery
+        const double tau = 300.0; 
+        currentW += (wPrime - currentW) * (1 - exp(-1 / tau));
+      }
+      
+      if (currentW > wPrime) currentW = wPrime;
+      if (currentW < 0) currentW = 0;
+      
+      wBal.add(currentW);
+    }
+    
+    return wBal;
+  }
+
+  /// Calculates Gear Ratio (Rapporti)
+  /// Ratio = (Speed m/s) / (Cadence rev/s * WheelCircumference)
+  static List<double> calculateGearRatioSeries(List<double> speedKmh, List<int> cadenceRpm, {double wheelCirc = 2.095}) {
+    List<double> ratios = [];
+    final length = min(speedKmh.length, cadenceRpm.length);
+    
+    for (int i = 0; i < length; i++) {
+      final speedMs = speedKmh[i] / 3.6;
+      final cadRs = cadenceRpm[i] / 60.0;
+      
+      if (cadRs > 0.5 && speedMs > 1.0) { // Filtering for pedaling and moving
+        final ratio = speedMs / (cadRs * wheelCirc);
+        ratios.add(double.parse(ratio.toStringAsFixed(2)));
+      } else {
+        ratios.add(0.0);
+      }
+    }
+    return ratios;
+  }
+
+  /// Calculates combined Pedal Smoothness
+  static double calculateAveragePedalSmoothness(List<double> left, List<double> right) {
+    if (left.isEmpty && right.isEmpty) return 0.0;
+    
+    double sum = 0;
+    int count = 0;
+    
+    final length = min(left.length, right.length);
+    if (length == 0) {
+       final data = left.isNotEmpty ? left : right;
+       return data.reduce((a, b) => a + b) / data.length;
+    }
+
+    for (int i = 0; i < length; i++) {
+      if (left[i] > 0 || right[i] > 0) {
+        sum += (left[i] + right[i]) / 2.0;
+        count++;
+      }
+    }
+    
+    return count > 0 ? sum / count : 0.0;
+  }
+
   /// Applies a simple moving average smoothing
   static List<double> smoothData(List<double> data, int windowSize) {
     if (data.isEmpty || windowSize <= 1) return data;

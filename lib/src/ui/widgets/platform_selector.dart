@@ -31,13 +31,6 @@ class SyncPlatformSelector extends StatelessWidget {
           
           _buildPlatformItem(
             icon: LucideIcons.send, 
-            label: "Garmin Connect", 
-            onTap: () => onSelect('garmin'),
-            color: Colors.blueAccent
-          ),
-          const SizedBox(height: 12),
-          _buildPlatformItem(
-            icon: LucideIcons.send, 
             label: "Wahoo Cloud", 
             onTap: () => onSelect('wahoo'),
             color: Colors.orangeAccent
@@ -49,6 +42,14 @@ class SyncPlatformSelector extends StatelessWidget {
             subtitle: "Bryton / Karoo Hub",
             onTap: () => onSelect('tp'),
             color: Colors.cyanAccent
+          ),
+          const SizedBox(height: 12),
+          _buildPlatformItem(
+            icon: LucideIcons.download, 
+            label: "Esporta per Garmin / Altri", 
+            subtitle: "Scarica file .fit per caricamento USB",
+            onTap: () => onSelect('export'),
+            color: Colors.white70
           ),
           const SizedBox(height: 24),
         ],

@@ -30,10 +30,9 @@ class SettingsService extends ChangeNotifier {
   // Connections status
   Map<String, bool> connections = {
     'strava': true,
-    'intervalsIcu': false,
-    'dropbox': false,
-    'googleCalendar': false,
+    'oura': false,
     'wahoo': false,
+    'trainingpeaks': false, // Placeholder for manual export/future sync
   };
   
   // Toggle Options

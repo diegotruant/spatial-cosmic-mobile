@@ -18,6 +18,8 @@ class FitReader {
     final List<int> heartRates = [];
     final List<int> cadences = [];
     final List<double> speeds = [];
+    final List<double> leftSmoothness = [];
+    final List<double> rightSmoothness = [];
 
     // Iterate through all messages
     for (final record in fitFile.records) {
@@ -37,6 +39,11 @@ class FitReader {
          final hr = message.heartRate;
          final cad = message.cadence;
          final spd = message.speed;
+         
+         // Assuming standard field naming or using generic access if needed
+         // fit_tool's RecordMessage often has these mapped
+         final lpSmooth = message.leftPedalSmoothness; 
+         final rpSmooth = message.rightPedalSmoothness;
 
          if (ts != null) {
             timestamps.add(ts);
@@ -44,6 +51,8 @@ class FitReader {
             heartRates.add(hr ?? 0);
             cadences.add(cad ?? 0);
             speeds.add(spd ?? 0.0);
+            leftSmoothness.add(lpSmooth?.toDouble() ?? 0.0);
+            rightSmoothness.add(rpSmooth?.toDouble() ?? 0.0);
          }
        }
     }
@@ -58,6 +67,8 @@ class FitReader {
       'heartRate': heartRates,
       'cadence': cadences,
       'speed': speeds,
+      'leftSmoothness': leftSmoothness,
+      'rightSmoothness': rightSmoothness,
     };
   }
 
