@@ -67,16 +67,16 @@ class MetabolicProfile {
   factory MetabolicProfile.fromJson(Map<String, dynamic> json) {
     try {
       return MetabolicProfile(
-        vlamax: _toDouble(json['vlamax']) ?? 0.0,
-        map: _toDouble(json['map'] ?? json['ftp']) ?? 0.0,
-        vo2max: _toDouble(json['vo2max']) ?? 0.0,
-        mlss: _toDouble(json['mlss']),
-        fatMax: _toDouble(json['fatMax']),
-        wPrime: _toDouble(json['wPrime']),
-        confidenceScore: _toDouble(json['confidenceScore']),
+        vlamax: _safeDouble(json['vlamax']) ?? 0.0,
+        map: _safeDouble(json['map'] ?? json['ftp']) ?? 0.0,
+        vo2max: _safeDouble(json['vo2max']) ?? 0.0,
+        mlss: _safeDouble(json['mlss']),
+        fatMax: _safeDouble(json['fatMax']),
+        wPrime: _safeDouble(json['wPrime']),
+        confidenceScore: _safeDouble(json['confidenceScore']),
         inputSources: json['inputSources'] != null ? Map<String, dynamic>.from(json['inputSources']) : null,
-        bmr: _toDouble(json['bmr']),
-        tdee: _toDouble(json['tdee']),
+        bmr: _safeDouble(json['bmr']),
+        tdee: _safeDouble(json['tdee']),
         metabolic: json['metabolic'] != null 
             ? MetabolicStats.fromJson(Map<String, dynamic>.from(json['metabolic']))
             : MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
@@ -96,13 +96,6 @@ class MetabolicProfile {
 
   String toJsonString() => jsonEncode(toJson());
   static MetabolicProfile fromJsonString(String jsonStr) => MetabolicProfile.fromJson(jsonDecode(jsonStr));
-
-  static double? _toDouble(dynamic val) {
-    if (val == null) return null;
-    if (val is num) return val.toDouble();
-    if (val is String) return double.tryParse(val);
-    return null;
-  }
 }
 
 class MetabolicStats {
@@ -123,9 +116,9 @@ class MetabolicStats {
   };
 
   factory MetabolicStats.fromJson(Map<String, dynamic> json) => MetabolicStats(
-    estimatedFtp: (json['estimatedFtp'] ?? json['ftp'] ?? 0.0 as num).toDouble(),
-    fatMaxWatt: (json['fatMaxWatt'] ?? 0.0 as num).toDouble(),
-    carbRateAtFtp: (json['carbRateAtFtp'] ?? 0.0 as num).toDouble(),
+    estimatedFtp: _safeDouble(json['estimatedFtp'] ?? json['ftp']) ?? 0.0,
+    fatMaxWatt: _safeDouble(json['fatMaxWatt']) ?? 0.0,
+    carbRateAtFtp: _safeDouble(json['carbRateAtFtp']) ?? 0.0,
   );
 }
 
@@ -164,8 +157,8 @@ class MetabolicZone {
     target: json['target'] ?? json['description'] ?? '',
     fuel: json['fuel'] ?? '',
     color: json['color'] ?? 'text-slate-400',
-    minWatt: json['minWatt'] != null ? (json['minWatt'] as num).toDouble() : null,
-    maxWatt: json['maxWatt'] != null ? (json['maxWatt'] as num).toDouble() : null,
+    minWatt: _safeDouble(json['minWatt']),
+    maxWatt: _safeDouble(json['maxWatt']),
   );
 }
 
@@ -187,8 +180,15 @@ class CombustionData {
   };
 
   factory CombustionData.fromJson(Map<String, dynamic> json) => CombustionData(
-    watt: (json['watt'] ?? 0.0 as num).toDouble(),
-    fatOxidation: (json['fatOxidation'] ?? 0.0 as num).toDouble(),
-    carbOxidation: (json['carbOxidation'] ?? 0.0 as num).toDouble(),
+    watt: _safeDouble(json['watt']) ?? 0.0,
+    fatOxidation: _safeDouble(json['fatOxidation']) ?? 0.0,
+    carbOxidation: _safeDouble(json['carbOxidation']) ?? 0.0,
   );
+}
+
+double? _safeDouble(dynamic val) {
+  if (val == null) return null;
+  if (val is num) return val.toDouble();
+  if (val is String) return double.tryParse(val);
+  return null;
 }
