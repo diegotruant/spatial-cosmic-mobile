@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
@@ -95,7 +96,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       // Get User FTP and CP
       if (!mounted) return;
       final settings = context.read<SettingsService>();
-      final profile = context.read<AthleteProfileService>();
+      final profile = context.read<src_profile.AthleteProfileService>();
       
       final ftp = settings.ftp.toDouble();
       final cp = profile.ftp ?? ftp; // Use CP if available, else FTP
@@ -125,16 +126,16 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
         _np = np;
         _if = ifFactor;
         _tss = tss;
-        _calories = kCal;
+        _calories = (power.reduce((a, b) => a + b) / power.length) * duration / 1000;
         _peaks = peaks;
         _avgSmoothness = avgSmooth;
-        _newFtp = calculatedFtp;
+        _newFtp = null; // Calculated FTP not available in simplified engine
         _isLoading = false;
       });
       
-      if (calculatedFtp != null && mounted) {
+      if (_newFtp != null && mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-             _showFtpResultDialog(calculatedFtp!);
+             _showFtpResultDialog(_newFtp!);
           });
       }
 

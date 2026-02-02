@@ -340,14 +340,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       final file = await FitGenerator.generateFromAssignment(assignment, ftp);
       
       bool success = false;
-      if (platform == 'garmin') {
-        if (!integrationService.isGarminConnected) {
-          if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
-          await integrationService.initiateGarminAuth();
-          return;
-        }
-        success = await integrationService.uploadWorkoutToGarmin(file);
-      } else if (platform == 'wahoo') {
+      if (platform == 'wahoo') {
         if (!integrationService.isWahooConnected) {
           if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
           await integrationService.initiateWahooAuth();

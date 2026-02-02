@@ -1,0 +1,183 @@
+﻿flutter : [31mlib/src/ui/screens/dashboard/modern_das
+hboard_screen.dart:344:33: Error: The getter 
+'isGarminConnected' isn't defined for the type 
+'IntegrationService'.[39m
+In riga:1 car:1
++ flutter build apk --release 2> build_errors.txt
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: ([31mlib 
+   /src/ui...nService'.[39m:String) [], RemoteExcep  
+  tion
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[31m - 'IntegrationService' is from 'package:spatial_
+cosmic_mobile/src/services/integration_service.dart' 
+('lib/src/services/integration_service.dart').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'isGarminConnected'.[39m
+[31m        if 
+(!integrationService.isGarminConnected) {[39m
+[31m                                
+^^^^^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/dashboard/modern_dashboard_scr
+een.dart:346:36: Error: The method 
+'initiateGarminAuth' isn't defined for the type 
+'IntegrationService'.[39m
+[31m - 'IntegrationService' is from 'package:spatial_
+cosmic_mobile/src/services/integration_service.dart' 
+('lib/src/services/integration_service.dart').[39m
+[31mTry correcting the name to the name of an 
+existing method, or defining a method named 
+'initiateGarminAuth'.[39m
+[31m          await 
+integrationService.initiateGarminAuth();[39m
+[31m                                   
+^^^^^^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/dashboard/modern_dashboard_scr
+een.dart:349:44: Error: The method 
+'uploadWorkoutToGarmin' isn't defined for the type 
+'IntegrationService'.[39m
+[31m - 'IntegrationService' is from 'package:spatial_
+cosmic_mobile/src/services/integration_service.dart' 
+('lib/src/services/integration_service.dart').[39m
+[31mTry correcting the name to the name of an 
+existing method, or defining a method named 
+'uploadWorkoutToGarmin'.[39m
+[31m        success = await 
+integrationService.uploadWorkoutToGarmin(file);[39m
+[31m                                           
+^^^^^^^^^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/settings/settings_screens.dart
+:335:18: Error: Expected ']' before this.[39m
+[31m            onTap: () => Navigator.push(context, 
+MaterialPageRoute(builder: (context) => const 
+ConnectionsScreen()))[39m
+[31m                 ^[39m
+[31mlib/src/ui/screens/settings/settings_screens.dart
+:334:13: Error: A value of type 'String' can't be 
+assigned to a variable of type 'Widget'.[39m
+[31m - 'Widget' is from 
+'package:flutter/src/widgets/framework.dart' ('/C:/dev
+/flutter/packages/flutter/lib/src/widgets/framework.da
+rt').[39m
+[31m            'Strava, Oura...',[39m
+[31m            ^[39m
+[31mlib/src/ui/screens/settings/settings_screens.dart
+:335:13: Error: The getter 'onTap' isn't defined for 
+the type 'AccountInfoScreen'.[39m
+[31m - 'AccountInfoScreen' is from 'package:spatial_c
+osmic_mobile/src/ui/screens/settings/settings_screens.
+dart' ('lib/src/ui/screens/settings/settings_screens.d
+art').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'onTap'.[39m
+[31m            onTap: () => Navigator.push(context, 
+MaterialPageRoute(builder: (context) => const 
+ConnectionsScreen()))[39m
+[31m            ^^^^^[39m
+[31mlib/src/ui/screens/workout/post_workout_analysis_
+screen.dart:98:36: Error: 'AthleteProfileService' 
+isn't a type.[39m
+[31m      final profile = 
+context.read<AthleteProfileService>();[39m
+[31m                                   
+^^^^^^^^^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/workout/post_workout_analysis_
+screen.dart:128:21: Error: The getter 'kCal' isn't 
+defined for the type 
+'_PostWorkoutAnalysisScreenState'.[39m
+[31m - '_PostWorkoutAnalysisScreenState' is from 'pac
+kage:spatial_cosmic_mobile/src/ui/screens/workout/post
+_workout_analysis_screen.dart' ('lib/src/ui/screens/wo
+rkout/post_workout_analysis_screen.dart').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'kCal'.[39m
+[31m        _calories = kCal;[39m
+[31m                    ^^^^[39m
+[31mlib/src/ui/screens/workout/post_workout_analysis_
+screen.dart:131:19: Error: The getter 'calculatedFtp' 
+isn't defined for the type 
+'_PostWorkoutAnalysisScreenState'.[39m
+[31m - '_PostWorkoutAnalysisScreenState' is from 'pac
+kage:spatial_cosmic_mobile/src/ui/screens/workout/post
+_workout_analysis_screen.dart' ('lib/src/ui/screens/wo
+rkout/post_workout_analysis_screen.dart').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'calculatedFtp'.[39m
+[31m        _newFtp = calculatedFtp;[39m
+[31m                  ^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/workout/post_workout_analysis_
+screen.dart:135:11: Error: The getter 'calculatedFtp' 
+isn't defined for the type 
+'_PostWorkoutAnalysisScreenState'.[39m
+[31m - '_PostWorkoutAnalysisScreenState' is from 'pac
+kage:spatial_cosmic_mobile/src/ui/screens/workout/post
+_workout_analysis_screen.dart' ('lib/src/ui/screens/wo
+rkout/post_workout_analysis_screen.dart').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'calculatedFtp'.[39m
+[31m      if (calculatedFtp != null && mounted) 
+{[39m
+[31m          ^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/workout/post_workout_analysis_
+screen.dart:137:35: Error: The getter 'calculatedFtp' 
+isn't defined for the type 
+'_PostWorkoutAnalysisScreenState'.[39m
+[31m - '_PostWorkoutAnalysisScreenState' is from 'pac
+kage:spatial_cosmic_mobile/src/ui/screens/workout/post
+_workout_analysis_screen.dart' ('lib/src/ui/screens/wo
+rkout/post_workout_analysis_screen.dart').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'calculatedFtp'.[39m
+[31m             
+_showFtpResultDialog(calculatedFtp!);[39m
+[31m                                  
+^^^^^^^^^^^^^[39m
+[31mlib/src/ui/screens/workout/post_workout_analysis_
+screen.dart:415:91: Error: The getter 'min' isn't 
+defined for the type 
+'_PostWorkoutAnalysisScreenState'.[39m
+[31m - '_PostWorkoutAnalysisScreenState' is from 'pac
+kage:spatial_cosmic_mobile/src/ui/screens/workout/post
+_workout_analysis_screen.dart' ('lib/src/ui/screens/wo
+rkout/post_workout_analysis_screen.dart').[39m
+[31mTry correcting the name to the name of an 
+existing getter, or defining a getter or field named 
+'min'.[39m
+[31m            Expanded(child: 
+_buildMetricCard('W\' used', '${(((_wBal.first - 
+_wBal.reduce(min)) / 1000)).toStringAsFixed(1)} kJ', 
+Colors.purpleAccent, 
+LucideIcons.batteryCharging)),[39m
+[31m                                             
+^^^[39m
+[31mTarget kernel_snapshot_program failed: 
+Exception[39m
+
+
+[31mFAILURE: Build failed with an exception.[39m
+
+[31m* What went wrong:[39m
+[31mExecution failed for task 
+':app:compileFlutterBuildRelease'.[39m
+[31m> Process 'command 
+'C:\dev\flutter\bin\flutter.bat'' finished with 
+non-zero exit value 1[39m
+
+[31m* Try:[39m
+[31m> Run with --stacktrace option to get the stack 
+trace.[39m
+[31m> Run with --info or --debug option to get more 
+log output.[39m
+[31m> Run with --scan to get full insights.[39m
+[31m> Get more help at https://help.gradle.org.[39m
+
+[31mBUILD FAILED in 14s[39m
+[31mGradle task assembleRelease failed with exit 
+code 1[39m

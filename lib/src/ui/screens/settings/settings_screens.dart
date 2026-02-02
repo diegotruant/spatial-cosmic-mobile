@@ -331,9 +331,8 @@ class AccountInfoScreen extends StatelessWidget {
             child: Text('INTEGRAZIONI DISPONIBILI', style: TextStyle(color: Colors.cyanAccent, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
           
-            'Strava, Oura...',
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectionsScreen()))
-          ),
+          _buildMenuRow(context, 'Connessioni e App (Strava, Oura...)', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectionsScreen()))),
+
         ],
       ),
     );
