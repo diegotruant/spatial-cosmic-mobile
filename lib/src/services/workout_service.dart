@@ -1,7 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
-import 'package:flutter/services.dart'; // For HapticFeedback and SystemSound
+import 'package:flutter/services.dart'; // For HapticFeedback
+import 'dart:typed_data'; // For BytesSource
 import 'package:audioplayers/audioplayers.dart';
 import '../logic/zwo_parser.dart';
 import 'bluetooth_service.dart';
@@ -467,11 +468,72 @@ class WorkoutService extends ChangeNotifier {
     notifyListeners();
   }
   
-  void _playBeep() {
-    if (settingsService?.intervalBeepType == 'Silenzioso') return;
+  Future<void> _playBeep() async {
+    final beepType = settingsService?.intervalBeepType ?? 'Volume alto';
+    if (beepType == 'Silenzioso') return;
     
-    // Use SystemSound as a reliable fallback for beeps
-    SystemSound.play(SystemSoundType.click);
+    double volume = 1.0;
+    if (beepType == 'Volume medio') volume = 0.6;
+    if (beepType == 'Volume basso') volume = 0.3;
+    
+    try {
+      if (_audioPlayer.state == PlayerState.playing) {
+          await _audioPlayer.stop();
+      }
+      await _audioPlayer.setVolume(volume);
+      // Generate a 150ms beep at 800Hz (Square Wave)
+      final bytes = _generateBeepWav(milliseconds: 150, freq: 880);
+      await _audioPlayer.play(BytesSource(bytes));
+    } catch (e) {
+       debugPrint("Audio beep failed: $e, falling back to system sound");
+       SystemSound.play(SystemSoundType.click);
+    }
+  }
+
+  Uint8List _generateBeepWav({required int milliseconds, required int freq}) {
+    // 8000 Hz Sample Rate, 8-bit Mono
+    const int sampleRate = 8000;
+    final int numSamples = (sampleRate * milliseconds) ~/ 1000;
+    final int dataSize = numSamples;
+    const int headerSize = 44;
+    final int totalSize = headerSize + dataSize;
+    
+    final buffer = Uint8List(totalSize);
+    final view = ByteData.view(buffer.buffer);
+    
+    // RIFF header
+    _writeString(buffer, 0, "RIFF");
+    view.setUint32(4, 36 + dataSize, Endian.little); // File size - 8
+    _writeString(buffer, 8, "WAVE");
+    
+    // fmt chunk
+    _writeString(buffer, 12, "fmt ");
+    view.setUint32(16, 16, Endian.little); // Chunk size
+    view.setUint16(20, 1, Endian.little); // Audio format (1 = PCM)
+    view.setUint16(22, 1, Endian.little); // Num channels (1)
+    view.setUint32(24, sampleRate, Endian.little); // Sample rate
+    view.setUint32(28, sampleRate, Endian.little); // Byte rate (SampleRate * NumChannels * BitsPerSample/8)
+    view.setUint16(32, 1, Endian.little); // Block align
+    view.setUint16(34, 8, Endian.little); // Bits per sample
+    
+    // data chunk
+    _writeString(buffer, 36, "data");
+    view.setUint32(40, dataSize, Endian.little); // Data size
+    
+    // Generate Square Wave samples
+    final int period = sampleRate ~/ freq;
+    for (int i = 0; i < numSamples; i++) {
+        // High 200, Low 55 (Audible square wave)
+        buffer[44 + i] = (i % period) < (period ~/ 2) ? 200 : 55;
+    }
+    
+    return buffer;
+  }
+  
+  void _writeString(Uint8List buffer, int offset, String s) {
+    for (int i = 0; i < s.length; i++) {
+      buffer[offset + i] = s.codeUnitAt(i);
+    }
   }
   
   // State for command optimization

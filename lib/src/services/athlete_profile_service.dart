@@ -612,7 +612,17 @@ class AthleteProfileService extends ChangeNotifier {
        await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
        debugPrint("Metabolic profile saved successfully (with extra_data fallback)");
      } catch (e) {
-       debugPrint("Error saving metabolic profile: $e");
+       debugPrint("Primary update failed (likely missing column): $e");
+       // Retry without the specific column, relying on extra_data
+       if (updatePayload.containsKey('metabolic_profile')) {
+          updatePayload.remove('metabolic_profile');
+          try {
+             await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
+             debugPrint("Fallback update (extra_data only) saved successfully");
+          } catch (e2) {
+             debugPrint("Critical error saving metabolic profile: $e2");
+          }
+       }
      }
      
      notifyListeners();

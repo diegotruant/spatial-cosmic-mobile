@@ -31,6 +31,7 @@ import '../../widgets/anaerobic_battery_gauge.dart';
 import '../../../models/metabolic_profile.dart';
 import '../../../services/w_prime_service.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class ModernDashboardScreen extends StatefulWidget {
   const ModernDashboardScreen({super.key});
