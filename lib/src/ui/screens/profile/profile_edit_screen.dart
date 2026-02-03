@@ -22,6 +22,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _wPrimeController;
   
   DateTime? _selectedDob;
+  String? _selectedTimeAvailable;
+  String? _selectedDiscipline;
   bool _isLoading = false;
 
   @override
@@ -37,6 +39,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _cpController = TextEditingController(text: p.cp?.toString() ?? '');
     _wPrimeController = TextEditingController(text: p.wPrime?.toString() ?? '');
     _selectedDob = p.dob;
+    _selectedTimeAvailable = profileService.timeAvailable;
+    _selectedDiscipline = profileService.discipline;
   }
 
   @override
@@ -98,6 +102,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         cp: cp,
         wPrime: wPrime,
         dob: _selectedDob,
+        timeAvailable: _selectedTimeAvailable,
+        discipline: _selectedDiscipline,
       );
       
       if (mounted) {
@@ -235,6 +241,84 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 icon: Icons.battery_charging_full,
                 keyboardType: TextInputType.number,
                 helperText: "Tipicamente tra 10000 e 25000.",
+              ),
+              
+              const SizedBox(height: 32),
+              
+              const Text(
+                "Preferenze Allenamento",
+                style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Questi dati influenzano le raccomandazioni di allenamento e l'analisi PDC.",
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+              
+              // Time Available selector
+              GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer, color: Colors.lightGreen),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedTimeAvailable,
+                        dropdownColor: const Color(0xFF1A1A2E),
+                        decoration: const InputDecoration(
+                          labelText: 'Tempo Disponibile',
+                          labelStyle: TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'LIMITED', child: Text('4-6 ore/settimana', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'MODERATE', child: Text('7-10 ore/settimana', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'HIGH', child: Text('11+ ore/settimana', style: TextStyle(color: Colors.white))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedTimeAvailable = val);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              
+              // Discipline selector
+              GlassCard(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    const Icon(Icons.directions_bike, color: Colors.cyan),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        value: _selectedDiscipline,
+                        dropdownColor: const Color(0xFF1A1A2E),
+                        decoration: const InputDecoration(
+                          labelText: 'Disciplina',
+                          labelStyle: TextStyle(color: Colors.white54),
+                          border: InputBorder.none,
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'GENERAL', child: Text('Generale', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'CIRCUIT_RACES', child: Text('Gare a circuito', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'TIME_TRIAL', child: Text('Cronometro', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'CLIMBING', child: Text('Salite', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'ENDURANCE', child: Text('Granfondo / Endurance', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'TRACK', child: Text('Pista', style: TextStyle(color: Colors.white))),
+                          DropdownMenuItem(value: 'CYCLOCROSS', child: Text('Ciclocross', style: TextStyle(color: Colors.white))),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) setState(() => _selectedDiscipline = val);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
               
               const SizedBox(height: 40),

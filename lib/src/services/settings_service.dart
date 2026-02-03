@@ -6,6 +6,7 @@ class SettingsService extends ChangeNotifier {
   // Persistence
   SharedPreferences? _prefs;
   final SupabaseClient _supabase = Supabase.instance.client;
+  String? _currentUserId; // Track current user ID
 
   // Athlete Profile
   String username = ''; // Default empty
@@ -63,6 +64,47 @@ class SettingsService extends ChangeNotifier {
 
   SettingsService() {
     _init();
+    
+    // Listen to auth state changes to clear user-specific settings
+    _supabase.auth.onAuthStateChange.listen((data) async {
+      final currentUser = data.session?.user;
+      final previousUserId = _currentUserId;
+      
+      if (currentUser != null && previousUserId != null && previousUserId != currentUser.id) {
+        debugPrint('[SettingsService] User changed from $previousUserId to ${currentUser.id}, clearing user-specific settings');
+        // Clear user-specific settings
+        username = '';
+        weight = null;
+        bikeWeight = null;
+        ftp = 285; // Reset to default
+        hrMax = 190; // Reset to default
+        hrThreshold = 158; // Reset to default
+        coachName = null;
+        coachEmail = null;
+        
+        // Clear from SharedPreferences
+        await _prefs?.remove('username');
+        await _prefs?.remove('weight');
+        await _prefs?.remove('bikeWeight');
+        await _prefs?.remove('ftp');
+        await _prefs?.remove('hrMax');
+        await _prefs?.remove('hrThreshold');
+        
+        // Reload for new user
+        _currentUserId = currentUser.id;
+        await loadFromSupabase();
+        notifyListeners();
+      } else if (currentUser != null) {
+        _currentUserId = currentUser.id;
+      } else if (currentUser == null) {
+        // User logged out
+        _currentUserId = null;
+        username = '';
+        weight = null;
+        bikeWeight = null;
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> _init() async {
@@ -106,12 +148,12 @@ class SettingsService extends ChangeNotifier {
     });
 
     // Try to load from Supabase if authenticated
-    _loadFromSupabase();
+    loadFromSupabase();
     
     notifyListeners();
   }
 
-  Future<void> _loadFromSupabase() async {
+  Future<void> loadFromSupabase() async {
     final user = _supabase.auth.currentUser;
     if (user == null) return;
 

@@ -33,5 +33,11 @@ class AppColors {
   static const Color success = Color(0xFF00E676);
   static const Color warning = Color(0xFFFFC400);
   static const Color error = Color(0xFFFF3D00);
+  static const Color errorDark = Color(0xFFCC2E00);
   static const Color info = Color(0xFF2979FF);
+  
+  // Additional
+  static const Color border = Color(0x33FFFFFF); // 20% opacity
+  static const Color textTertiary = Color(0x4DFFFFFF); // 30% opacity
+  static const Color surfaceElevated = Color(0xFF1F1F2E);
 }

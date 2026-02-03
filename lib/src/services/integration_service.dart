@@ -28,21 +28,88 @@ class IntegrationService extends ChangeNotifier {
 
   String? _stravaAccessToken;
   String? _wahooAccessToken;
+  User? _currentUser;
 
   IntegrationService() {
-    _loadCredentials();
+    _currentUser = Supabase.instance.client.auth.currentUser;
+    loadCredentials();
+    
+    // Reload credentials when user changes
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final previousUser = _currentUser;
+      _currentUser = data.session?.user;
+      
+      if (_currentUser != null && previousUser?.id != _currentUser!.id) {
+        debugPrint('[IntegrationService] User changed from ${previousUser?.id} to ${_currentUser!.id}, reloading credentials');
+        loadCredentials();
+      } else if (_currentUser == null) {
+        _stravaAccessToken = null;
+        _isStravaConnected = false;
+        notifyListeners();
+      }
+    });
   }
 
-  Future<void> _loadCredentials() async {
+  String _getStravaKey(String key) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final userId = user?.id ?? 'anonymous';
+    return 'strava_${key}_$userId';
+  }
+
+  Future<void> loadCredentials() async {
     final prefs = await SharedPreferences.getInstance();
-    _stravaAccessToken = prefs.getString('strava_access_token');
+    final user = Supabase.instance.client.auth.currentUser;
+    
+    if (user == null) {
+      _stravaAccessToken = null;
+      _isStravaConnected = false;
+      notifyListeners();
+      return;
+    }
+    
+    debugPrint('[IntegrationService] Loading Strava credentials for user ${user.id} (${user.email})');
+    
+    // First try to load from local storage (user-specific keys)
+    _stravaAccessToken = prefs.getString(_getStravaKey('access_token'));
     _isStravaConnected = _stravaAccessToken != null;
+    
+    debugPrint('[IntegrationService] Local Strava token found: $_isStravaConnected');
+    
+    // If not found locally, try to sync from Supabase (in case it was set from webapp or another device)
+    if (!_isStravaConnected) {
+      debugPrint('[IntegrationService] No local token, syncing from Supabase...');
+      await syncFromSupabase();
+      // After sync, check again
+      _stravaAccessToken = prefs.getString(_getStravaKey('access_token'));
+      _isStravaConnected = _stravaAccessToken != null;
+      debugPrint('[IntegrationService] After Supabase sync, Strava connected: $_isStravaConnected');
+    }
     
     _wahooAccessToken = prefs.getString('wahoo_access_token');
     _isWahooConnected = _wahooAccessToken != null;
     
     _isTPConnected = prefs.getBool('tp_connected') ?? false;
     
+    notifyListeners();
+  }
+  
+  Future<void> clearCredentials() async {
+    final prefs = await SharedPreferences.getInstance();
+    final user = Supabase.instance.client.auth.currentUser;
+    
+    if (user != null) {
+      await prefs.remove(_getStravaKey('access_token'));
+      await prefs.remove(_getStravaKey('refresh_token'));
+      await prefs.remove(_getStravaKey('expires_at'));
+    }
+    
+    // Also clear old global keys for backward compatibility
+    await prefs.remove('strava_access_token');
+    await prefs.remove('strava_refresh_token');
+    await prefs.remove('strava_expires_at');
+    
+    _stravaAccessToken = null;
+    _isStravaConnected = false;
     notifyListeners();
   }
 
@@ -76,16 +143,20 @@ class IntegrationService extends ChangeNotifier {
     if (uri.scheme == 'spatialcosmic' && uri.host == 'spatialcosmic.app') {
       final success = uri.queryParameters['success'] == 'true';
       final error = uri.queryParameters['error'];
-      final provider = uri.queryParameters['provider']; // 'strava' or 'wahoo'
+      final provider = uri.queryParameters['provider'] ?? 'strava';
       
       if (error != null) {
         debugPrint('$provider Auth Error from Callback: $error');
+        // Notify listeners so UI can show error message
+        notifyListeners();
         return;
       }
       
       if (success) {
         debugPrint('Received Successful $provider Auth from Edge Function');
         await syncFromSupabase();
+        // Notify listeners so UI can show success message
+        notifyListeners();
       }
     }
   }
@@ -223,9 +294,22 @@ class IntegrationService extends ChangeNotifier {
 
   Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt, {bool syncToSupabase = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('strava_access_token', accessToken);
-    await prefs.setString('strava_refresh_token', refreshToken);
-    await prefs.setInt('strava_expires_at', expiresAt);
+    final user = Supabase.instance.client.auth.currentUser;
+    
+    if (user == null) {
+      debugPrint('[IntegrationService] Cannot save Strava credentials: no user logged in');
+      return;
+    }
+    
+    // Save with user-specific keys
+    await prefs.setString(_getStravaKey('access_token'), accessToken);
+    await prefs.setString(_getStravaKey('refresh_token'), refreshToken);
+    await prefs.setInt(_getStravaKey('expires_at'), expiresAt);
+    
+    // Also clear old global keys if they exist (migration)
+    await prefs.remove('strava_access_token');
+    await prefs.remove('strava_refresh_token');
+    await prefs.remove('strava_expires_at');
     
     _stravaAccessToken = accessToken;
     _isStravaConnected = true;
@@ -277,10 +361,7 @@ class IntegrationService extends ChangeNotifier {
   }
   
   Future<void> disconnectStrava() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('strava_access_token');
-    await prefs.remove('strava_refresh_token');
-    await prefs.remove('strava_expires_at');
+    await clearCredentials();
     
     _stravaAccessToken = null;
     _isStravaConnected = false;
@@ -328,8 +409,12 @@ class IntegrationService extends ChangeNotifier {
 
   Future<bool> _ensureValidStravaToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final expiresAt = prefs.getInt('strava_expires_at') ?? 0;
-    final refreshToken = prefs.getString('strava_refresh_token');
+    final user = Supabase.instance.client.auth.currentUser;
+    
+    if (user == null) return false;
+    
+    final expiresAt = prefs.getInt(_getStravaKey('expires_at')) ?? 0;
+    final refreshToken = prefs.getString(_getStravaKey('refresh_token'));
 
     // If it expires in less than 5 minutes, refresh
     if (DateTime.now().millisecondsSinceEpoch / 1000 > (expiresAt - 300)) {
@@ -497,6 +582,12 @@ class IntegrationService extends ChangeNotifier {
       debugPrint('Wahoo Upload Error: $e');
       return false;
     }
+  }
+
+  // Alias for compatibility
+  Future<String> uploadActivityToWahoo(File fitFile) async {
+    final success = await uploadWorkoutToWahoo(fitFile);
+    return success ? "Success" : "Errore upload Wahoo";
   }
 
   // TrainingPeaks (often also syncs to Bryton/Karoo)

@@ -24,7 +24,6 @@ import '../../../services/integration_service.dart';
 import '../../../logic/fit_generator.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
-import '../../theme/app_animations.dart';
 import '../../widgets/platform_selector.dart';
 import '../events/add_event_screen.dart';
 import '../../widgets/anaerobic_battery_gauge.dart';
@@ -122,6 +121,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           index: _currentIndex,
           children: [
             _buildHomeTab(context),
+            _buildMetabolicLabTab(context),
             const WorkoutLibraryScreen(isTab: true),
             _buildScheduleTab(),
             const WorkoutHistoryScreen(),
@@ -733,10 +733,10 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         const SizedBox(height: 16),
         
         // Menu Items
-        _buildMenuRow('Altre opzioni', () => Navigator.push(context, AppAnimations.pageRoute(const AdvancedOptionsScreen()))),
-        _buildMenuRow('Lingua', () => Navigator.push(context, AppAnimations.pageRoute(const LanguageScreen()))),
-        _buildMenuRow('Informazioni sull\'account utente', () => Navigator.push(context, AppAnimations.pageRoute(const AccountInfoScreen()))),
-        _buildMenuRow('Connessioni', () => Navigator.push(context, AppAnimations.pageRoute(const ConnectionsScreen()))),
+        _buildMenuRow('Altre opzioni', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AdvancedOptionsScreen()))),
+        _buildMenuRow('Lingua', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LanguageScreen()))),
+        _buildMenuRow('Informazioni sull\'account utente', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const AccountInfoScreen()))),
+        _buildMenuRow('Connessioni', () => Navigator.push(context, MaterialPageRoute(builder: (context) => const ConnectionsScreen()))),
 
         
         const SizedBox(height: 24),
@@ -1297,6 +1297,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final settings = context.watch<SettingsService>();
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -1324,7 +1325,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Welcome back, Diego',
+              settings.username.isNotEmpty 
+                ? 'Welcome back, ${settings.username}'
+                : 'Welcome back',
               style: AppTextStyles.body,
             ),
           ],
@@ -1906,6 +1909,11 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
+              icon: const Icon(LucideIcons.beaker, size: 22),
+              activeIcon: const Icon(LucideIcons.beaker, size: 22),
+              label: 'Lab',
+            ),
+            BottomNavigationBarItem(
               icon: const Icon(LucideIcons.library, size: 22),
               activeIcon: const Icon(LucideIcons.library, size: 22),
               label: 'Test',
@@ -1928,6 +1936,39 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildMetabolicLabTab(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      children: [
+        _buildMetabolicProfile(context),
+        const SizedBox(height: 20),
+        // Add button to refresh from server
+        ElevatedButton.icon(
+          onPressed: () async {
+            final profileService = context.read<AthleteProfileService>();
+            final hasData = await profileService.refreshProfile();
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(hasData ? 'Profilo ricaricato da Supabase' : 'NESSUN PROFILO METABOLICO PRESENTE'),
+                  backgroundColor: hasData ? Colors.green : Colors.orange,
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+            }
+          },
+          icon: const Icon(LucideIcons.refreshCw, size: 16),
+          label: const Text('Ricarica da server'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primary.withOpacity(0.15),
+            foregroundColor: AppColors.primary,
+          ),
+        ),
+        const SizedBox(height: 40),
+      ],
     );
   }
 

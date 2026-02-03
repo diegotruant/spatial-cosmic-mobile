@@ -62,6 +62,8 @@ class AthleteProfileService extends ChangeNotifier {
   String _somatotype = 'ectomorph'; // Default: ectomorph, stored as string
   String _athleteLevel = 'amateur'; // Default: amateur
   String _gender = 'male'; // Default: male
+  String _timeAvailable = 'LIMITED'; // Default
+  String _discipline = 'GENERAL'; // Default
 
   // Output profile
   MetabolicProfile? _lastCalculatedProfile;
@@ -77,6 +79,8 @@ class AthleteProfileService extends ChangeNotifier {
   DateTime? get dob => _dob;
   double? get leanMass => _leanMass;
   DateTime? get certExpiryDate => _certExpiryDate;
+  String get timeAvailable => _timeAvailable;
+  String get discipline => _discipline;
   double? get wPrime => _wPrime;
   
   double? get bodyFat => _bodyFat;
@@ -100,8 +104,9 @@ class AthleteProfileService extends ChangeNotifier {
   }
 
   /// Force refresh profile from Supabase
-  Future<void> refreshProfile() async {
+  Future<bool> refreshProfile() async {
     await _loadFromSupabase();
+    return _lastCalculatedProfile != null;
   }
 
   Future<void> _loadFromSupabase() async {
@@ -114,7 +119,7 @@ class AthleteProfileService extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('athletes')
-          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile')
+          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, time_available, discipline, metabolic_profile')
           .eq('id', targetId)
           .maybeSingle();
 
@@ -135,6 +140,8 @@ class AthleteProfileService extends ChangeNotifier {
         if (data['somatotype'] != null) _somatotype = data['somatotype'];
         if (data['athlete_level'] != null) _athleteLevel = data['athlete_level'];
         if (data['gender'] != null) _gender = data['gender'];
+        if (data['time_available'] != null) _timeAvailable = data['time_available'];
+        if (data['discipline'] != null) _discipline = data['discipline'];
         
         if (data['metabolic_profile'] != null) {
           try {
@@ -217,6 +224,8 @@ class AthleteProfileService extends ChangeNotifier {
     String? somatotype,
     String? athleteLevel,
     String? gender,
+    String? timeAvailable,
+    String? discipline,
     double? wPrime,
     double? cp,
     double? ftp,
@@ -242,6 +251,8 @@ class AthleteProfileService extends ChangeNotifier {
     if (somatotype != null) updates['somatotype'] = somatotype;
     if (athleteLevel != null) updates['athlete_level'] = athleteLevel;
     if (gender != null) updates['gender'] = gender;
+    if (timeAvailable != null) updates['time_available'] = timeAvailable;
+    if (discipline != null) updates['discipline'] = discipline;
     
     if (updates.isEmpty) return;
 
