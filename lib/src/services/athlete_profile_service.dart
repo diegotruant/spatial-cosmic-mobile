@@ -96,6 +96,53 @@ class AthleteProfileService extends ChangeNotifier {
 
   AthleteProfileService() {
     _currentUser = _supabase.auth.currentUser;
+    
+    _supabase.auth.onAuthStateChange.listen((data) {
+      final previousUser = _currentUser;
+      _currentUser = data.session?.user;
+      
+      // Detect user change
+      if (_currentUser != null && previousUser?.id != _currentUser!.id) {
+        debugPrint('[AthleteProfileService] User changed: ${previousUser?.id} -> ${_currentUser!.id}');
+        
+        // Clear ALL cached data
+        _lastCalculatedProfile = null;
+        _ftp = null;
+        _cp = null;
+        _vo2max = null;
+        _vlamax = null;
+        _wPrime = null;
+        _weight = null;
+        _height = null;
+        _dob = null;
+        _bodyFat = null;
+        _athleteId = null;
+        _somatotype = 'ectomorph';
+        _athleteLevel = 'amateur';
+        _gender = 'male';
+        _timeAvailable = 'LIMITED';
+        _discipline = 'GENERAL';
+        _leanMass = null;
+        _certExpiryDate = null;
+        powerCurve.clear();
+        
+        debugPrint('[AthleteProfileService] Cleared all cached data');
+        
+        // Reload data for new user
+        if (_currentUser != null) {
+          _loadFromSupabase();
+        }
+        
+        notifyListeners();
+      } else if (_currentUser == null && previousUser != null) {
+        // User logged out
+        debugPrint('[AthleteProfileService] User logged out, clearing all data');
+        _lastCalculatedProfile = null;
+        _athleteId = null;
+        notifyListeners();
+      }
+    });
+  }
 
   void updateAthleteId(String? id) {
     if (id != _athleteId) {
