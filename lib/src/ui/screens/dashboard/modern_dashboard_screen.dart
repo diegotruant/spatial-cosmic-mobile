@@ -1422,12 +1422,26 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   ],
                 ),
               ),
-              if (lastHrv != null)
+              if (lastHrv != null && lastHrv.rmssd > 0)
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text(
                       '${lastHrv.rmssd.toStringAsFixed(0)} ms',
+                      style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      'rMSSD',
+                      style: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 10),
+                    ),
+                  ],
+                ),
+              if (lastHrv == null || lastHrv.rmssd <= 0)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '--',
                       style: const TextStyle(color: Colors.white70, fontSize: 16, fontWeight: FontWeight.bold),
                     ),
                     Text(
@@ -1615,20 +1629,29 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             String timeStr = "--:--";
             
             // 1. Try Parsing ZWO (String) - pass workoutName as title override
-            if (rawData != null && rawData.isNotEmpty) {
+            if (rawData != null && rawData.trim().isNotEmpty) {
                try {
                  workout = ZwoParser.parse(rawData, titleOverride: workoutName);
+                 debugPrint("Successfully parsed ZWO for workout: $workoutName");
                } catch (e) {
                  debugPrint("Error parsing ZWO XML: $e");
+                 // Continue to JSON fallback
                }
+            } else {
+              debugPrint("workout_data is empty or null, trying JSON fallback");
             }
 
             // 2. Fallback: Parse JSON Structure (already uses workout_name)
             if (workout == null || workout.blocks.isEmpty) {
                try {
+                 debugPrint("Trying to parse workout_structure JSON...");
                  workout = ZwoParser.parseJson(workoutData);
+                 if (workout != null && workout.blocks.isNotEmpty) {
+                   debugPrint("Successfully parsed JSON structure with ${workout.blocks.length} blocks");
+                 }
                } catch (e) {
                  debugPrint("Error parsing JSON structure: $e");
+                 debugPrint("Workout data keys: ${workoutData.keys.toList()}");
                }
             }
 
@@ -1703,25 +1726,33 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   ),
 
                   const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: workout != null ? () {
-                         final settings = context.read<SettingsService>();
-                         context.read<WorkoutService>().startWorkout(workout!, ftp: settings.ftp);
-                         Navigator.push(context, MaterialPageRoute(builder: (_) => const ModernWorkoutScreen()));
-                      } : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blueAccent,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: Colors.white10,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
-                        elevation: 8,
-                        shadowColor: Colors.blueAccent.withOpacity(0.5),
-                      ),
-                      child: Text(workout != null ? 'INIZIA ALLENAMENTO' : 'DATI MANCANTI', style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)),
-                    ),
+                  Consumer<PhysiologicalService>(
+                    builder: (context, physiological, _) {
+                      final isBlocked = physiological.isWorkoutBlocked;
+                      return SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (workout != null && !isBlocked) ? () {
+                             final settings = context.read<SettingsService>();
+                             context.read<WorkoutService>().startWorkout(workout!, ftp: settings.ftp, workoutId: workoutId);
+                             Navigator.push(context, MaterialPageRoute(builder: (_) => const ModernWorkoutScreen()));
+                          } : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isBlocked ? Colors.red : Colors.blueAccent,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: Colors.white10,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                            elevation: 8,
+                            shadowColor: (isBlocked ? Colors.red : Colors.blueAccent).withOpacity(0.5),
+                          ),
+                          child: Text(
+                            isBlocked ? 'RECUPERO RICHIESTO' : (workout != null ? 'INIZIA ALLENAMENTO' : 'DATI MANCANTI'), 
+                            style: const TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.0)
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

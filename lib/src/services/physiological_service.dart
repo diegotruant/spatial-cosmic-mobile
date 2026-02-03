@@ -51,6 +51,23 @@ class PhysiologicalService extends ChangeNotifier {
   List<PhysiologicalData> get history => List.unmodifiable(_history);
   bool get isLoading => _isLoading;
 
+  // Blocco workout/test basato su HRV
+  bool get isWorkoutBlocked {
+    if (_history.isEmpty) return false; // No data = no block
+    final lastHrv = _history.first;
+    final analysis = analyzeHRV(lastHrv.rmssd, ouraScore: lastHrv.ouraScore);
+    // Blocca solo se RED
+    return analysis.status == ReadinessStatus.red;
+  }
+
+  bool get isTestBlocked {
+    if (_history.isEmpty) return false; // No data = no block
+    final lastHrv = _history.first;
+    final analysis = analyzeHRV(lastHrv.rmssd, ouraScore: lastHrv.ouraScore);
+    // Blocca se RED o YELLOW (i test richiedono condizioni ottimali)
+    return analysis.status == ReadinessStatus.red || analysis.status == ReadinessStatus.yellow;
+  }
+
   PhysiologicalService();
 
   void updateAthleteId(String? id) {

@@ -15,7 +15,7 @@ class IntegrationService extends ChangeNotifier {
   static const String _stravaClientSecret = '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
   static const String _stravaRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
   // Use 'activity:write' to allow uploads. 'activity:read_all' for reading.
-  static const String _stravaScope = 'read,activity:read_all';
+  static const String _stravaScope = 'read,activity:read_all,activity:write';
 
   bool _isStravaConnected = false;
   bool get isStravaConnected => _isStravaConnected;
@@ -125,6 +125,7 @@ class IntegrationService extends ChangeNotifier {
     final userId = user.id;
     final email = user.email ?? '';
 
+    // Strava OAuth URL - use 'prompt' instead of deprecated 'approval_prompt'
     final Uri url = Uri.https(
       'www.strava.com',
       '/oauth/authorize',
@@ -132,12 +133,13 @@ class IntegrationService extends ChangeNotifier {
         'client_id': _stravaClientId,
         'response_type': 'code',
         'redirect_uri': _stravaRedirectUri,
-        'approval_prompt': 'force',
         'scope': _stravaScope,
         // Pass both ID and email in state for flexible matching
         'state': 'mobile:$userId:$email',
       },
     );
+    
+    debugPrint('[IntegrationService] Opening Strava OAuth URL: $url');
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
