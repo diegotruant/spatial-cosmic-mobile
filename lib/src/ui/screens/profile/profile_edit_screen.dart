@@ -30,9 +30,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController = TextEditingController(text: p.weight?.toString() ?? '');
     _heightController = TextEditingController(text: p.height?.toString() ?? '');
     _leanMassController = TextEditingController(text: p.leanMass?.toString() ?? '');
-    _ftpController = TextEditingController(text: p.ftp?.toString() ?? '');
-    _cpController = TextEditingController(text: p.cp?.toString() ?? '');
-    _wPrimeController = TextEditingController(text: p.wPrime?.toString() ?? '');
     _selectedDob = p.dob;
   }
 
@@ -85,9 +82,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         weight: weight,
         height: height,
         leanMass: leanMass,
-        ftp: ftp,
-        cp: cp,
-        wPrime: wPrime,
         dob: _selectedDob,
       );
       
@@ -190,43 +184,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
               ),
               
-              const SizedBox(height: 32),
-              
-              const Text(
-                "Parametri di Analisi",
-                style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Configura la tua Critical Power (CP) e W' Prime per un calcolo accurato del W' Balance.",
-                style: TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-              const SizedBox(height: 20),
-              
-              _buildTextField(
-                controller: _ftpController,
-                label: "FTP (Watt)",
-                icon: Icons.bolt,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              
-              _buildTextField(
-                controller: _cpController,
-                label: "Critical Power (Watt)",
-                icon: Icons.speed,
-                keyboardType: TextInputType.number,
-                helperText: "Se non noto, usa lo stesso valore dell'FTP.",
-              ),
-              const SizedBox(height: 16),
-              
-              _buildTextField(
-                controller: _wPrimeController,
-                label: "W' Prime (Joules)",
-                icon: Icons.battery_charging_full,
-                keyboardType: TextInputType.number,
-                helperText: "Tipicamente tra 10000 e 25000.",
-              ),
               
               const SizedBox(height: 40),
               
