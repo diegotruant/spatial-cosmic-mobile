@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OuraService extends ChangeNotifier {
   static const String _baseUrl = 'https://api.ouraring.com/v2';
@@ -12,13 +13,37 @@ class OuraService extends ChangeNotifier {
 
   String? _accessToken;
   String _lastLog = "Nessun log.";
+  String? _currentUserId;
+  
   String get lastLog => _lastLog;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   bool get hasToken => _accessToken != null && _accessToken!.isNotEmpty;
 
   OuraService() {
+    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     _loadToken();
+    
+    // Clear Oura token when user changes
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
+      final newUserId = data.session?.user?.id;
+      
+      if (newUserId != null && _currentUserId != null && newUserId != _currentUserId) {
+        debugPrint('[OuraService] User changed, clearing Oura token');
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('oura_token');
+        _accessToken = null;
+        _currentUserId = newUserId;
+        notifyListeners();
+      } else if (newUserId != null) {
+        _currentUserId = newUserId;
+      } else {
+        // User logged out
+        _currentUserId = null;
+        _accessToken = null;
+        notifyListeners();
+      }
+    });
   }
 
   Future<void> _loadToken() async {
