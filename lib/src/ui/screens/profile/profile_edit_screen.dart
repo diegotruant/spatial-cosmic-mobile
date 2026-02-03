@@ -17,9 +17,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _weightController;
   late TextEditingController _heightController;
   late TextEditingController _leanMassController;
-  late TextEditingController _ftpController;
-  late TextEditingController _cpController;
-  late TextEditingController _wPrimeController;
   
   DateTime? _selectedDob;
   String? _selectedTimeAvailable;
@@ -35,9 +32,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController = TextEditingController(text: p.weight?.toString() ?? '');
     _heightController = TextEditingController(text: p.height?.toString() ?? '');
     _leanMassController = TextEditingController(text: p.leanMass?.toString() ?? '');
-    _ftpController = TextEditingController(text: p.ftp?.toString() ?? '');
-    _cpController = TextEditingController(text: p.cp?.toString() ?? '');
-    _wPrimeController = TextEditingController(text: p.wPrime?.toString() ?? '');
     _selectedDob = p.dob;
     _selectedTimeAvailable = profileService.timeAvailable;
     _selectedDiscipline = profileService.discipline;
@@ -48,9 +42,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController.dispose();
     _heightController.dispose();
     _leanMassController.dispose();
-    _ftpController.dispose();
-    _cpController.dispose();
-    _wPrimeController.dispose();
     super.dispose();
   }
 
@@ -90,17 +81,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       final double? weight = double.tryParse(_weightController.text);
       final double? height = double.tryParse(_heightController.text);
       final double? leanMass = double.tryParse(_leanMassController.text);
-      final double? ftp = double.tryParse(_ftpController.text);
-      final double? cp = double.tryParse(_cpController.text);
-      final double? wPrime = double.tryParse(_wPrimeController.text);
 
       await context.read<AthleteProfileService>().updateProfile(
         weight: weight,
         height: height,
         leanMass: leanMass,
-        ftp: ftp,
-        cp: cp,
-        wPrime: wPrime,
         dob: _selectedDob,
         timeAvailable: _selectedTimeAvailable,
         discipline: _selectedDiscipline,
@@ -203,44 +188,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     ],
                   ),
                 ),
-              ),
-              
-              const SizedBox(height: 32),
-              
-              const Text(
-                "Parametri di Analisi",
-                style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              const Text(
-                "Configura la tua Critical Power (CP) e W' Prime per un calcolo accurato del W' Balance.",
-                style: TextStyle(color: Colors.white38, fontSize: 12),
-              ),
-              const SizedBox(height: 20),
-              
-              _buildTextField(
-                controller: _ftpController,
-                label: "FTP (Watt)",
-                icon: Icons.bolt,
-                keyboardType: TextInputType.number,
-              ),
-              const SizedBox(height: 16),
-              
-              _buildTextField(
-                controller: _cpController,
-                label: "Critical Power (Watt)",
-                icon: Icons.speed,
-                keyboardType: TextInputType.number,
-                helperText: "Se non noto, usa lo stesso valore dell'FTP.",
-              ),
-              const SizedBox(height: 16),
-              
-              _buildTextField(
-                controller: _wPrimeController,
-                label: "W' Prime (Joules)",
-                icon: Icons.battery_charging_full,
-                keyboardType: TextInputType.number,
-                helperText: "Tipicamente tra 10000 e 25000.",
               ),
               
               const SizedBox(height: 32),
