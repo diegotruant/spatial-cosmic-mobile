@@ -116,7 +116,14 @@ class IntegrationService extends ChangeNotifier {
   Future<void> initiateStravaAuth() async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
-    final email = user?.email ?? '';
+    if (user == null) {
+      debugPrint('[IntegrationService] Cannot initiate Strava auth: no user logged in');
+      throw 'User not logged in';
+    }
+    
+    // Use user ID instead of email for more reliable matching
+    final userId = user.id;
+    final email = user.email ?? '';
 
     final Uri url = Uri.https(
       'www.strava.com',
@@ -127,7 +134,8 @@ class IntegrationService extends ChangeNotifier {
         'redirect_uri': _stravaRedirectUri,
         'approval_prompt': 'force',
         'scope': _stravaScope,
-        'state': 'mobile:$email',
+        // Pass both ID and email in state for flexible matching
+        'state': 'mobile:$userId:$email',
       },
     );
 

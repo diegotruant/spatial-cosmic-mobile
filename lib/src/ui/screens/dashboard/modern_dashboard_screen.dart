@@ -1213,8 +1213,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         const SizedBox(height: 32),
         _buildMainWorkoutCard(),
         const SizedBox(height: 30),
-        _buildMetabolicProfile(context),
-        const SizedBox(height: 30),
+        // Metabolic Lab removed from home - use dedicated tab instead
         _buildUpcomingEvents(context),
         const SizedBox(height: 30),
         _buildActionButtons(context),
