@@ -17,9 +17,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _weightController;
   late TextEditingController _heightController;
   late TextEditingController _leanMassController;
-  late TextEditingController _ftpController;
-  late TextEditingController _cpController;
-  late TextEditingController _wPrimeController;
   
   DateTime? _selectedDob;
   bool _isLoading = false;
@@ -44,9 +41,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController.dispose();
     _heightController.dispose();
     _leanMassController.dispose();
-    _ftpController.dispose();
-    _cpController.dispose();
-    _wPrimeController.dispose();
     super.dispose();
   }
 
@@ -86,9 +80,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       final double? weight = double.tryParse(_weightController.text);
       final double? height = double.tryParse(_heightController.text);
       final double? leanMass = double.tryParse(_leanMassController.text);
-      final double? ftp = double.tryParse(_ftpController.text);
-      final double? cp = double.tryParse(_cpController.text);
-      final double? wPrime = double.tryParse(_wPrimeController.text);
 
       await context.read<AthleteProfileService>().updateProfile(
         weight: weight,
