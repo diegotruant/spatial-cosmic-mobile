@@ -91,11 +91,35 @@ class AthleteProfileService extends ChangeNotifier {
   MetabolicProfile? get metabolicProfile => _lastCalculatedProfile;
   
   bool get isLoading => _isLoading;
+  
+  User? _currentUser;
 
-  AthleteProfileService();
+  AthleteProfileService() {
+    _currentUser = _supabase.auth.currentUser;
 
   void updateAthleteId(String? id) {
     if (id != _athleteId) {
+      debugPrint('[AthleteProfileService] updateAthleteId: $_athleteId -> $id');
+      // Clear cached data when athlete ID changes
+      _lastCalculatedProfile = null;
+      _ftp = null;
+      _cp = null;
+      _vo2max = null;
+      _vlamax = null;
+      _wPrime = null;
+      _weight = null;
+      _height = null;
+      _dob = null;
+      _bodyFat = null;
+      _somatotype = 'ectomorph';
+      _athleteLevel = 'amateur';
+      _gender = 'male';
+      _timeAvailable = 'LIMITED';
+      _discipline = 'GENERAL';
+      _leanMass = null;
+      _certExpiryDate = null;
+      powerCurve.clear();
+      
       _athleteId = id;
       if (_athleteId != null) {
         _loadFromSupabase();
@@ -105,7 +129,11 @@ class AthleteProfileService extends ChangeNotifier {
 
   /// Force refresh profile from Supabase
   Future<bool> refreshProfile() async {
+    debugPrint('[AthleteProfileService] refreshProfile called for user ${_currentUser?.id}');
+    // Clear cached data before refreshing
+    _lastCalculatedProfile = null;
     await _loadFromSupabase();
+    debugPrint('[AthleteProfileService] After refresh, hasProfile: ${_lastCalculatedProfile != null}');
     return _lastCalculatedProfile != null;
   }
 
