@@ -510,10 +510,6 @@ class ConnectionsScreen extends StatelessWidget {
     
     final connections = [
       {'key': 'strava', 'name': 'STRAVA', 'descKey': 'strava_desc', 'color': Colors.orange},
-      {'key': 'intervalsIcu', 'name': 'Intervals.icu', 'descKey': 'intervals_desc', 'color': Colors.redAccent},
-      {'key': 'dropbox', 'name': 'Dropbox', 'descKey': 'dropbox_desc', 'color': Colors.blueAccent},
-      {'key': 'googleCalendar', 'name': 'Google Calendar', 'descKey': 'google_calendar_desc', 'color': Colors.blue},
-      {'key': 'wahoo', 'name': 'wahoo', 'descKey': 'wahoo_desc', 'color': Colors.white},
     ];
     
     final integration = context.watch<IntegrationService>();
