@@ -17,10 +17,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _weightController;
   late TextEditingController _heightController;
   late TextEditingController _leanMassController;
+  late TextEditingController _ftpController;
+  late TextEditingController _cpController;
+  late TextEditingController _wPrimeController;
   
   DateTime? _selectedDob;
-  String? _selectedTimeAvailable;
-  String? _selectedDiscipline;
   bool _isLoading = false;
 
   @override
@@ -32,9 +33,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController = TextEditingController(text: p.weight?.toString() ?? '');
     _heightController = TextEditingController(text: p.height?.toString() ?? '');
     _leanMassController = TextEditingController(text: p.leanMass?.toString() ?? '');
+    _ftpController = TextEditingController(text: p.ftp?.toString() ?? '');
+    _cpController = TextEditingController(text: p.cp?.toString() ?? '');
+    _wPrimeController = TextEditingController(text: p.wPrime?.toString() ?? '');
     _selectedDob = p.dob;
-    _selectedTimeAvailable = profileService.timeAvailable;
-    _selectedDiscipline = profileService.discipline;
   }
 
   @override
@@ -42,6 +44,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _weightController.dispose();
     _heightController.dispose();
     _leanMassController.dispose();
+    _ftpController.dispose();
+    _cpController.dispose();
+    _wPrimeController.dispose();
     super.dispose();
   }
 
@@ -81,14 +86,18 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       final double? weight = double.tryParse(_weightController.text);
       final double? height = double.tryParse(_heightController.text);
       final double? leanMass = double.tryParse(_leanMassController.text);
+      final double? ftp = double.tryParse(_ftpController.text);
+      final double? cp = double.tryParse(_cpController.text);
+      final double? wPrime = double.tryParse(_wPrimeController.text);
 
       await context.read<AthleteProfileService>().updateProfile(
         weight: weight,
         height: height,
         leanMass: leanMass,
+        ftp: ftp,
+        cp: cp,
+        wPrime: wPrime,
         dob: _selectedDob,
-        timeAvailable: _selectedTimeAvailable,
-        discipline: _selectedDiscipline,
       );
       
       if (mounted) {
@@ -193,79 +202,39 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               const SizedBox(height: 32),
               
               const Text(
-                "Preferenze Allenamento",
+                "Parametri di Analisi",
                 style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               const Text(
-                "Questi dati influenzano le raccomandazioni di allenamento e l'analisi PDC.",
+                "Configura la tua Critical Power (CP) e W' Prime per un calcolo accurato del W' Balance.",
                 style: TextStyle(color: Colors.white38, fontSize: 12),
               ),
               const SizedBox(height: 20),
               
-              // Time Available selector
-              GlassCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.timer, color: Colors.lightGreen),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedTimeAvailable,
-                        dropdownColor: const Color(0xFF1A1A2E),
-                        decoration: const InputDecoration(
-                          labelText: 'Tempo Disponibile',
-                          labelStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'LIMITED', child: Text('4-6 ore/settimana', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'MODERATE', child: Text('7-10 ore/settimana', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'HIGH', child: Text('11+ ore/settimana', style: TextStyle(color: Colors.white))),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedTimeAvailable = val);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+              _buildTextField(
+                controller: _ftpController,
+                label: "FTP (Watt)",
+                icon: Icons.bolt,
+                keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 16),
               
-              // Discipline selector
-              GlassCard(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    const Icon(Icons.directions_bike, color: Colors.cyan),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _selectedDiscipline,
-                        dropdownColor: const Color(0xFF1A1A2E),
-                        decoration: const InputDecoration(
-                          labelText: 'Disciplina',
-                          labelStyle: TextStyle(color: Colors.white54),
-                          border: InputBorder.none,
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'GENERAL', child: Text('Generale', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'CIRCUIT_RACES', child: Text('Gare a circuito', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'TIME_TRIAL', child: Text('Cronometro', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'CLIMBING', child: Text('Salite', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'ENDURANCE', child: Text('Granfondo / Endurance', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'TRACK', child: Text('Pista', style: TextStyle(color: Colors.white))),
-                          DropdownMenuItem(value: 'CYCLOCROSS', child: Text('Ciclocross', style: TextStyle(color: Colors.white))),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) setState(() => _selectedDiscipline = val);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+              _buildTextField(
+                controller: _cpController,
+                label: "Critical Power (Watt)",
+                icon: Icons.speed,
+                keyboardType: TextInputType.number,
+                helperText: "Se non noto, usa lo stesso valore dell'FTP.",
+              ),
+              const SizedBox(height: 16),
+              
+              _buildTextField(
+                controller: _wPrimeController,
+                label: "W' Prime (Joules)",
+                icon: Icons.battery_charging_full,
+                keyboardType: TextInputType.number,
+                helperText: "Tipicamente tra 10000 e 25000.",
               ),
               
               const SizedBox(height: 40),

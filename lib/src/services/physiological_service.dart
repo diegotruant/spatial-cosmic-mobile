@@ -53,19 +53,18 @@ class PhysiologicalService extends ChangeNotifier {
 
   // Blocco workout/test basato su HRV
   bool get isWorkoutBlocked {
-    if (_history.isEmpty) return false; // No data = no block
+    if (_history.isEmpty) return false;
     final lastHrv = _history.first;
-    final analysis = analyzeHRV(lastHrv.rmssd, ouraScore: lastHrv.ouraScore);
-    // Blocca solo se RED
-    return analysis.status == ReadinessStatus.red;
+    // Check traffic light from database (already calculated)
+    return lastHrv.trafficLight?.toUpperCase() == 'RED';
   }
 
   bool get isTestBlocked {
-    if (_history.isEmpty) return false; // No data = no block
+    if (_history.isEmpty) return false;
     final lastHrv = _history.first;
-    final analysis = analyzeHRV(lastHrv.rmssd, ouraScore: lastHrv.ouraScore);
-    // Blocca se RED o YELLOW (i test richiedono condizioni ottimali)
-    return analysis.status == ReadinessStatus.red || analysis.status == ReadinessStatus.yellow;
+    // Block tests if RED or YELLOW (tests need optimal conditions)
+    final light = lastHrv.trafficLight?.toUpperCase();
+    return light == 'RED' || light == 'YELLOW';
   }
 
   PhysiologicalService();
@@ -97,20 +96,16 @@ class PhysiologicalService extends ChangeNotifier {
       _history.clear();
       for (final entry in data) {
          // ... existing parsing ...
-        final hrvValue = (entry['hrv'] as num?)?.toDouble();
-        // Only add if HRV value is valid (> 0)
-        if (hrvValue != null && hrvValue > 0) {
-          _history.add(PhysiologicalData(
-            timestamp: DateTime.parse(entry['date']),
-            rmssd: hrvValue,
-            averageHR: 0,
-            rhr: (entry['rhr'] as num?)?.toInt() ?? 0,
-            ouraScore: (entry['readiness'] as num?)?.toInt(),
-            trafficLight: entry['traffic_light'],
-            deviation: (entry['deviation'] as num?)?.toDouble(),
-            recommendation: entry['recommendation'],
-          ));
-        }
+        _history.add(PhysiologicalData(
+          timestamp: DateTime.parse(entry['date']),
+          rmssd: (entry['hrv'] as num?)?.toDouble() ?? 0.0,
+          averageHR: 0,
+          rhr: (entry['rhr'] as num?)?.toInt() ?? 0,
+          ouraScore: (entry['readiness'] as num?)?.toInt(),
+          trafficLight: entry['traffic_light'],
+          deviation: (entry['deviation'] as num?)?.toDouble(),
+          recommendation: entry['recommendation'],
+        ));
       }
 
       if (_history.isNotEmpty) {
@@ -235,12 +230,6 @@ class PhysiologicalService extends ChangeNotifier {
   }
 
   Future<void> addHRVMeasurement(double rmssd, int avgHR) async {
-    // Validate HRV value - don't save if invalid (<= 0 or NaN)
-    if (rmssd <= 0 || rmssd.isNaN || rmssd.isInfinite) {
-      debugPrint('Invalid HRV value: $rmssd - not saving to database');
-      return;
-    }
-
     final analysis = analyzeHRV(rmssd);
     final now = DateTime.now();
     final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
@@ -255,7 +244,7 @@ class PhysiologicalService extends ChangeNotifier {
           'athlete_id': targetId,
           'date': dateStr,
           'hrv': rmssd,
-          'rhr': avgHR > 0 ? avgHR : null,
+          'rhr': avgHR,
           'traffic_light': analysis.status.name.toUpperCase(),
           'deviation': analysis.deviation,
           'recommendation': analysis.recommendation,
@@ -285,12 +274,6 @@ class PhysiologicalService extends ChangeNotifier {
   }
 
   Future<String> updateFromOura(double rmssd, int score) async {
-    // Validate HRV value - don't save if invalid (<= 0 or NaN)
-    if (rmssd <= 0 || rmssd.isNaN || rmssd.isInfinite) {
-      debugPrint('Invalid HRV value from Oura: $rmssd - not saving to database');
-      return "Error: Invalid HRV value from Oura";
-    }
-
     final analysis = analyzeHRV(rmssd, ouraScore: score);
     final now = DateTime.now();
     final dateStr = "${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";

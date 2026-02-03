@@ -544,6 +544,22 @@ class ConnectionsScreen extends StatelessWidget {
                   integration.initiateStravaAuth();
                 }
               }),
+              const SizedBox(height: 16),
+              _buildConnectionCard(context, l10n, 'Wahoo Cloud', 'Sincronizza allenamenti con i dispositivi ELEMNT.', Colors.blue, integration.isWahooConnected, () {
+                if (integration.isWahooConnected) {
+                  integration.disconnectWahoo();
+                } else {
+                  integration.initiateWahooAuth();
+                }
+              }),
+              const SizedBox(height: 16),
+              _buildConnectionCard(context, l10n, 'TrainingPeaks', 'Invia allenamenti e sincronizza il calendario TP.', Colors.cyanAccent, integration.isTPConnected, () {
+                if (integration.isTPConnected) {
+                  integration.disconnectTP();
+                } else {
+                  integration.initiateTrainingPeaksAuth();
+                }
+              }),
               const SizedBox(height: 24),
               const Divider(color: Colors.white10),
               const SizedBox(height: 16),

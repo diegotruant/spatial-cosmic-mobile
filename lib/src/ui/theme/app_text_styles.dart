@@ -24,12 +24,6 @@ class AppTextStyles {
     color: AppColors.textPrimary,
   );
 
-  static TextStyle get h4 => _baseStyle.copyWith(
-    fontSize: 18,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-  );
-
   static TextStyle get body => _baseStyle.copyWith(
     fontSize: 16,
     fontWeight: FontWeight.normal,
@@ -48,13 +42,6 @@ class AppTextStyles {
     fontWeight: FontWeight.bold,
     color: AppColors.textDim,
     letterSpacing: 1.2,
-  );
-
-  static TextStyle get labelSmall => _baseStyle.copyWith(
-    fontSize: 11,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textTertiary,
-    letterSpacing: 0.5,
   );
 
   // For big numbers in standard metrics

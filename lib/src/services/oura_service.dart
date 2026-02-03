@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class OuraService extends ChangeNotifier {
   static const String _baseUrl = 'https://api.ouraring.com/v2';
@@ -13,56 +12,25 @@ class OuraService extends ChangeNotifier {
 
   String? _accessToken;
   String _lastLog = "Nessun log.";
-  String? _currentUserId;
-  
   String get lastLog => _lastLog;
   bool _isLoading = false;
   bool get isLoading => _isLoading;
   bool get hasToken => _accessToken != null && _accessToken!.isNotEmpty;
 
   OuraService() {
-    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     _loadToken();
-    
-    // Listen to auth changes to clear token when user changes
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-      final previousUserId = _currentUserId;
-      _currentUserId = data.session?.user?.id;
-      
-      if (_currentUserId != null && previousUserId != null && previousUserId != _currentUserId) {
-        debugPrint('[OuraService] User changed from $previousUserId to $_currentUserId, clearing Oura token');
-        // Clear token for previous user
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove(_getOuraKey());
-        _accessToken = null;
-        // Try to load token for new user
-        await _loadToken();
-        notifyListeners();
-      } else if (_currentUserId == null) {
-        // User logged out
-        _accessToken = null;
-        notifyListeners();
-      }
-    });
-  }
-
-  String _getOuraKey() {
-    final userId = Supabase.instance.client.auth.currentUser?.id ?? 'anonymous';
-    return 'oura_token_$userId';
   }
 
   Future<void> _loadToken() async {
     final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString(_getOuraKey());
-    debugPrint('[OuraService] Loaded token for ${_currentUserId ?? "anonymous"}: ${_accessToken != null}');
+    _accessToken = prefs.getString('oura_token');
     notifyListeners();
   }
 
   Future<void> setAccessToken(String token) async {
     _accessToken = token;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_getOuraKey(), token);
-    debugPrint('[OuraService] Saved token for ${_currentUserId ?? "anonymous"}');
+    await prefs.setString('oura_token', token);
     notifyListeners();
   }
 

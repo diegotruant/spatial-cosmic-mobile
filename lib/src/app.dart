@@ -46,29 +46,15 @@ class _SpatialCosmicAppState extends State<SpatialCosmicApp> {
     });
   }
 
-  void _handleDeepLink(Uri uri) async {
+  void _handleDeepLink(Uri uri) {
     debugPrint('!!! DEEP LINK RECEIVED: $uri');
     debugPrint('!!! SCHEME: ${uri.scheme}');
     debugPrint('!!! HOST: ${uri.host}');
     debugPrint('!!! PATH: ${uri.path}');
     
     if (mounted) {
-       final integrationService = Provider.of<IntegrationService>(context, listen: false);
-       final wasConnected = integrationService.isStravaConnected;
-       
-       await integrationService.handleAuthCallback(uri);
-       await Provider.of<OuraService>(context, listen: false).handleCallback(uri);
-       
-       // Show success message if Strava was just connected
-       if (!wasConnected && integrationService.isStravaConnected && mounted) {
-         ScaffoldMessenger.of(context).showSnackBar(
-           const SnackBar(
-             content: Text('✅ Strava connesso con successo!'),
-             backgroundColor: Colors.green,
-             duration: Duration(seconds: 2),
-           ),
-         );
-       }
+       Provider.of<IntegrationService>(context, listen: false).handleAuthCallback(uri);
+       Provider.of<OuraService>(context, listen: false).handleCallback(uri);
     }
   }
 

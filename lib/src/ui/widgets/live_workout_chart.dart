@@ -211,7 +211,7 @@ class _LiveGraphPainter extends CustomPainter {
     // Heart Rate (Red)
     _drawPath(canvas, hrHistory.map((e) => e.toDouble()).toList(), secToX, hrToY, size, scrollOffset, Colors.redAccent, 2.0, false, null);
 
-    // Temperature (Purple - Scaled 36-41 -> 0-Height)
+    // Temperature (Green - Scaled 36-41 -> 0-Height)
     if (tempHistory.isNotEmpty) {
       final tempPath = Path();
       bool first = true;

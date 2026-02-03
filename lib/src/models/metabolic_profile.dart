@@ -66,20 +66,7 @@ class MetabolicProfile {
 
   factory MetabolicProfile.fromJson(Map<String, dynamic> json) {
     try {
-      debugPrint('[MetabolicProfile.fromJson] Parsing JSON. Keys: ${json.keys.toList()}');
-      
-      // Log dei valori chiave per debug
-      debugPrint('[MetabolicProfile.fromJson] Key values:');
-      debugPrint('  - vlamax: ${json['vlamax']} (type: ${json['vlamax'].runtimeType})');
-      debugPrint('  - vo2max: ${json['vo2max']} (type: ${json['vo2max'].runtimeType})');
-      debugPrint('  - mlss: ${json['mlss']} (type: ${json['mlss']?.runtimeType})');
-      debugPrint('  - fatMax: ${json['fatMax']} (type: ${json['fatMax']?.runtimeType})');
-      debugPrint('  - wPrime: ${json['wPrime']} (type: ${json['wPrime']?.runtimeType})');
-      debugPrint('  - metabolic: ${json['metabolic'] != null ? 'present' : 'null'}');
-      debugPrint('  - zones: ${json['zones'] != null ? 'present (${(json['zones'] as List?)?.length ?? 0} items)' : 'null'}');
-      debugPrint('  - combustionCurve: ${json['combustionCurve'] != null ? 'present (${(json['combustionCurve'] as List?)?.length ?? 0} items)' : 'null'}');
-      
-      final profile = MetabolicProfile(
+      return MetabolicProfile(
         vlamax: _safeDouble(json['vlamax']) ?? 0.0,
         map: _safeDouble(json['map'] ?? json['ftp']) ?? 0.0,
         vo2max: _safeDouble(json['vo2max']) ?? 0.0,
@@ -96,18 +83,8 @@ class MetabolicProfile {
         zones: (json['zones'] as List?)?.map((z) => MetabolicZone.fromJson(Map<String, dynamic>.from(z))).toList() ?? [],
         combustionCurve: (json['combustionCurve'] as List?)?.map((c) => CombustionData.fromJson(Map<String, dynamic>.from(c))).toList() ?? [],
       );
-      
-      debugPrint('[MetabolicProfile.fromJson] Successfully parsed profile:');
-      debugPrint('  - VLamax: ${profile.vlamax}');
-      debugPrint('  - VO2max: ${profile.vo2max}');
-      debugPrint('  - MLSS: ${profile.mlss}');
-      debugPrint('  - FatMax: ${profile.fatMax}');
-      
-      return profile;
-    } catch (e, stackTrace) {
+    } catch (e) {
       debugPrint("Severe error parsing MetabolicProfile: $e");
-      debugPrint("Stack trace: $stackTrace");
-      debugPrint("JSON keys: ${json.keys.toList()}");
       // Return a skeleton profile instead of crashing
       return MetabolicProfile(
         vlamax: 0, map: 0, vo2max: 0,

@@ -375,16 +375,6 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         unit: 'km/h / km', 
         accentColor: Colors.purpleAccent
       ),
-      
-      // 8. Core Temperature (if available)
-      if (bluetooth.coreTemp > 0)
-        MetricTile(
-          label: 'CORE TEMP', 
-          value: bluetooth.coreTemp.toStringAsFixed(1), 
-          unit: '°C', 
-          accentColor: Colors.orangeAccent,
-          icon: LucideIcons.thermometer,
-        ),
     ];
   }
 
