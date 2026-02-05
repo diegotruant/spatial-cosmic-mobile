@@ -133,6 +133,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
     );
   }
 
+
   Widget _buildLandscapeLayout(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
     return Row(
       children: [
@@ -158,45 +159,22 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
   }
 
   Widget _buildPortraitLayout(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
+    // Layout richiesto: grafico in alto + griglia metriche sotto (foto 2)
     return Column(
       children: [
-        // Graph at top (Fixed height, no scroll)
+        // Grafico con controlli in alto
         SizedBox(
-          height: 220, 
-          child: Stack(
-            children: [
-              _buildChartWithControls(),
-              Positioned(
-                top: 8,
-                left: 8,
-                child: Consumer<WPrimeService>(
-                  builder: (context, wPrime, child) => Transform.scale(
-                    scale: 0.5,
-                    alignment: Alignment.topLeft,
-                    child: AnaerobicBatteryGauge(
-                      currentWPrime: wPrime.currentWPrime,
-                      maxWPrime: wPrime.maxWPrime,
-                      isDepleting: wPrime.isDepleting,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          height: 260,
+          child: _buildChartWithControls(),
         ),
         const SizedBox(height: 12),
-        // Metrics Grid (Expanded to fill remaining space)
+        // Griglia metriche “pro” sotto il grafico
         Expanded(
           child: GridView.count(
             crossAxisCount: 2,
-            childAspectRatio: 1.5, // More rectangular boxes
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            // Organize into rows:
-            // 1: Interval Timer | Total Timer
-            // 2: Target Power | Power Current
-            // 3: HR | Cadence
-            // 4: Speed/Dist | Avg Power (Optional)
+            childAspectRatio: 1.1,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
             children: _buildMetricTiles(bluetooth, workoutService, formatTime),
           ),
         ),
@@ -204,9 +182,74 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
     );
   }
 
+  List<Widget> _buildSimpleMetricTiles(
+    BluetoothService bluetooth,
+    WorkoutService workoutService,
+    String Function(int) formatTime,
+  ) {
+    final int currentWatts = (workoutService.powerHistory.isNotEmpty ? workoutService.powerHistory.last : 0).toInt();
+    final String balanceValue = (bluetooth.leftPowerBalance != null && bluetooth.rightPowerBalance != null)
+        ? '${bluetooth.leftPowerBalance}/${bluetooth.rightPowerBalance}'
+        : '-';
+
+    return [
+      MetricTile(
+        label: 'DURATION',
+        value: formatTime(workoutService.totalElapsed),
+        unit: 'mm:ss',
+        isLarge: true,
+        accentColor: Colors.white,
+      ),
+      MetricTile(
+        label: 'POWER',
+        value: currentWatts.toString(),
+        unit: 'W',
+        isLarge: true,
+        accentColor: _getZoneColor(currentWatts, workoutService.userFtp),
+      ),
+      MetricTile(
+        label: 'HEART RATE',
+        value: bluetooth.heartRate > 0 ? bluetooth.heartRate.toString() : '-',
+        unit: 'BPM',
+        accentColor: Colors.pinkAccent,
+      ),
+      MetricTile(
+        label: 'CADENCE',
+        value: bluetooth.cadence > 0 ? bluetooth.cadence.toString() : '-',
+        unit: 'RPM',
+        accentColor: Colors.greenAccent,
+      ),
+      MetricTile(
+        label: 'SPEED',
+        value: workoutService.currentSpeed.toStringAsFixed(1),
+        unit: 'km/h',
+        accentColor: Colors.blueAccent,
+      ),
+      MetricTile(
+        label: 'DISTANCE',
+        value: workoutService.totalDistance.toStringAsFixed(1),
+        unit: 'km',
+        accentColor: Colors.purpleAccent,
+      ),
+      MetricTile(
+        label: 'CALORIES',
+        value: workoutService.totalCalories.toStringAsFixed(0),
+        unit: 'kcal',
+        accentColor: Colors.orangeAccent,
+      ),
+      MetricTile(
+        label: 'BALANCE L/R',
+        value: balanceValue,
+        unit: '%',
+        accentColor: Colors.cyanAccent,
+      ),
+    ];
+  }
+
   Widget _buildChartWithControls() {
     final profileService = context.watch<src_profile.AthleteProfileService>();
     final settings = context.watch<SettingsService>();
+    final workoutService = context.watch<WorkoutService>();
     return Stack(
       children: [
         LiveWorkoutChart(
@@ -214,6 +257,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
           showPowerZones: settings.showPowerZones,
           wPrime: profileService.wPrime,
           cp: profileService.ftp?.toInt() ?? 250,
+          userFtp: workoutService.userFtp,
         ),
         Positioned(
           top: 8,
@@ -255,6 +299,10 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
     final int currentWatts = (workoutService.powerHistory.isNotEmpty ? workoutService.powerHistory.last : 0).toInt();
     final int userFtp = workoutService.userFtp;
     final int targetWatts = workoutService.currentTargetWatts;
+    final String balanceValue = (bluetooth.leftPowerBalance != null && bluetooth.rightPowerBalance != null)
+        ? '${bluetooth.leftPowerBalance}/${bluetooth.rightPowerBalance}'
+        : '-';
+
 
     // Calculate Total Duration
     int totalWorkoutDuration = 0;
@@ -374,6 +422,14 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         value: '${workoutService.currentSpeed.toStringAsFixed(1)} / ${workoutService.totalDistance.toStringAsFixed(1)}', 
         unit: 'km/h / km', 
         accentColor: Colors.purpleAccent
+      ),
+
+      // 8. Pedal Balance L/R
+      MetricTile(
+        label: 'BALANCE L/R',
+        value: balanceValue,
+        unit: '%',
+        accentColor: Colors.cyanAccent,
       ),
     ];
   }

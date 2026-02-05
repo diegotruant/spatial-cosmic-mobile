@@ -186,7 +186,7 @@ class ZwoParser {
     final builder = XmlBuilder();
     builder.processing('xml', 'version="1.0" encoding="UTF-8"');
     builder.element('workout_file', nest: () {
-      builder.element('author', nest: () { builder.text('Spatial Cosmic'); });
+      builder.element('author', nest: () { builder.text('Velo Lab'); });
       builder.element('name', nest: () { builder.text(workout.title); });
       builder.element('sportType', nest: () { builder.text('bike'); });
       builder.element('workout', nest: () {

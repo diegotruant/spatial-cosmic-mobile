@@ -129,28 +129,47 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
   }
 
   Widget _buildActionMenu(BuildContext context, String path, String title) {
+    final intervalsService = context.read<IntervalsService>();
+    
     return PopupMenuButton<String>(
       icon: const Icon(LucideIcons.moreVertical, color: Colors.white54),
       color: const Color(0xFF1A1A2E),
       onSelected: (value) => _handleAction(context, value, path),
-      itemBuilder: (context) => [
-        PopupMenuItem(
-          value: 'sync',
-          child: Row(children: [Icon(LucideIcons.upload, color: Colors.blueAccent, size: 20), SizedBox(width: 12), Text('Sincronizza Cloud', style: TextStyle(color: Colors.white))]),
-        ),
-        PopupMenuItem(
-          value: 'strava',
-          child: Row(children: [Icon(LucideIcons.activity, color: Colors.orange, size: 20), SizedBox(width: 12), Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
-        ),
-        PopupMenuItem(
-          value: 'intervals',
-          child: Row(children: [Icon(LucideIcons.barChart, color: Colors.purpleAccent, size: 20), SizedBox(width: 12), Text('Invia a Intervals.icu', style: TextStyle(color: Colors.white))]),
-        ),
-        PopupMenuItem(
-          value: 'delete',
-          child: Row(children: [Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20), SizedBox(width: 12), Text('Elimina', style: TextStyle(color: Colors.white))]),
-        ),
-      ],
+      itemBuilder: (context) {
+        final items = <PopupMenuItem<String>>[
+          PopupMenuItem(
+            value: 'sync',
+            child: Row(children: [
+              const Icon(LucideIcons.upload, color: Colors.blueAccent, size: 20), 
+              const SizedBox(width: 12), 
+              const Text('Sincronizza Cloud', style: TextStyle(color: Colors.white)),
+            ]),
+          ),
+          PopupMenuItem(
+            value: 'strava',
+            child: Row(children: [const Icon(LucideIcons.activity, color: Colors.orange, size: 20), const SizedBox(width: 12), const Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
+          ),
+        ];
+        
+        // Mostra Intervals.icu solo se connesso
+        if (intervalsService.isConnected) {
+          items.add(
+            PopupMenuItem(
+              value: 'intervals',
+              child: Row(children: [const Icon(LucideIcons.barChart, color: Colors.purpleAccent, size: 20), const SizedBox(width: 12), const Text('Invia a Intervals.icu', style: TextStyle(color: Colors.white))]),
+            ),
+          );
+        }
+        
+        items.add(
+          PopupMenuItem(
+            value: 'delete',
+            child: Row(children: [const Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20), const SizedBox(width: 12), const Text('Elimina', style: TextStyle(color: Colors.white))]),
+          ),
+        );
+        
+        return items;
+      },
     );
   }
 
@@ -167,8 +186,22 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sincronizzazione completata!'), backgroundColor: Colors.green));
       } else if (action == 'strava') {
          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invio a Strava in corso...')));
-         await context.read<IntegrationService>().uploadActivityToStrava(file);
-         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Inviato a Strava!'), backgroundColor: Colors.orange));
+         final result = await context.read<IntegrationService>().uploadActivityToStrava(file);
+         if (mounted) {
+           if (result == 'Success' || result.startsWith('Success')) {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+               content: Text('Inviato a Strava!'),
+               backgroundColor: Colors.orange,
+             ));
+           } else {
+             // Show detailed error returned by IntegrationService (es. non connesso, token scaduto, errore Strava)
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+               content: Text('Errore invio Strava: $result'),
+               backgroundColor: Colors.red,
+               duration: const Duration(seconds: 5),
+             ));
+           }
+         }
       } else if (action == 'intervals') {
          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invio a Intervals.icu in corso...')));
          final result = await context.read<IntervalsService>().uploadActivity(file);

@@ -2,23 +2,23 @@ import 'package:flutter/material.dart';
 
 class AppColors {
   // Backgrounds
-  static const Color background = Color(0xFF050510); // Deep Space Blue/Black
-  static const Color surface = Color(0xFF151525); // Slightly lighter for cards
+  static const Color background = Color(0xFF0B0F1A); // Deep slate blue
+  static const Color surface = Color(0xFF161B2C); // Professional card surface
   static const Color surfaceGlass = Colors.white; // Used with opacity
 
   // Primary Action
-  static const Color primary = Color(0xFF00E5FF); // Cyan Fluorescence
-  static const Color primaryDim = Color(0xFF00B8CC);
+  static const Color primary = Color(0xFF37C3D8); // Refined teal
+  static const Color primaryDim = Color(0xFF2A94A7);
   
   // Secondary / Accents
-  static const Color secondary = Color(0xFFE0E0E0);
-  static const Color accentPurple = Color(0xFFD500F9);
-  static const Color accentPink = Color(0xFFFF4081);
+  static const Color secondary = Color(0xFFD1D5DB);
+  static const Color accentPurple = Color(0xFF7B61FF);
+  static const Color accentPink = Color(0xFFE85D9B);
 
   // Text
-  static const Color textPrimary = Color(0xFFFFFFFF);
-  static const Color textSecondary = Color(0xB3FFFFFF); // 70%
-  static const Color textDim = Color(0x66FFFFFF); // 40%
+  static const Color textPrimary = Color(0xFFF8FAFC);
+  static const Color textSecondary = Color(0xB3F8FAFC); // 70%
+  static const Color textDim = Color(0x80F8FAFC); // 50%
 
   // Power Zones
   static const Color zone1 = Color(0xFF808080); // Active Recovery - Grey

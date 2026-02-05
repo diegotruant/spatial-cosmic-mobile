@@ -10,11 +10,13 @@ class SyncService extends ChangeNotifier {
   bool get isUploading => _isUploading;
 
   /// Uploads a generated FIT file to Supabase Storage
+  /// Also tries to link it to an existing assignment if found
   Future<void> uploadWorkoutFile(String filePath, String workoutId) async {
      final file = File(filePath);
      if (!file.existsSync()) return;
      
      DateTime date = DateTime.now();
+     String? assignmentId;
      try {
        final fileName = filePath.split(Platform.pathSeparator).last;
        final nameParts = fileName.split('_');
@@ -24,9 +26,29 @@ class SyncService extends ChangeNotifier {
             date = DateTime.fromMillisecondsSinceEpoch(ts);
           }
        }
-     } catch (_) {}
+       
+       // Try to find matching assignment by date
+       final user = _supabase.auth.currentUser;
+       if (user != null) {
+         final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+         final assignments = await _supabase
+             .from('assignments')
+             .select('id')
+             .eq('athlete_id', user.id)
+             .eq('date', dateStr)
+             .eq('status', 'COMPLETED')
+             .limit(1);
+         
+         if (assignments.isNotEmpty) {
+           assignmentId = assignments.first['id'] as String?;
+           debugPrint('[SyncService] Found matching assignment: $assignmentId for date $dateStr');
+         }
+       }
+     } catch (e) {
+       debugPrint('[SyncService] Error parsing date or finding assignment: $e');
+     }
 
-     await saveWorkoutToStorage(file, date);
+     await saveWorkoutToStorage(file, date, assignmentId: assignmentId);
   }
 
   /// 1. Moves file from Temp to AppDocuments (Permanent)

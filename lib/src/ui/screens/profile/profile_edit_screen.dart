@@ -19,7 +19,33 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   late TextEditingController _leanMassController;
   
   DateTime? _selectedDob;
+  String? _selectedSomatotype;
+  String? _selectedTimeAvailable;
+  String? _selectedDiscipline;
   bool _isLoading = false;
+
+  final List<String> _somatotypeOptions = const [
+    'ectomorph',
+    'mesomorph',
+    'endomorph',
+  ];
+
+  final List<String> _timeAvailableOptions = const [
+    '2-4 ore/settimana',
+    '4-6 ore/settimana',
+    '6-8 ore/settimana',
+    '8-10 ore/settimana',
+    '10+ ore/settimana',
+  ];
+
+  final List<String> _disciplineOptions = const [
+    'Generale',
+    'Granfondo / Endurance',
+    'Crono',
+    'Criterium',
+    'MTB',
+    'Pista',
+  ];
 
   @override
   void initState() {
@@ -31,6 +57,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     _heightController = TextEditingController(text: p.height?.toString() ?? '');
     _leanMassController = TextEditingController(text: p.leanMass?.toString() ?? '');
     _selectedDob = p.dob;
+    _selectedSomatotype = profileService.somatotype;
+    _selectedTimeAvailable = profileService.timeAvailable;
+    _selectedDiscipline = profileService.discipline;
   }
 
   @override
@@ -83,6 +112,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         height: height,
         leanMass: leanMass,
         dob: _selectedDob,
+        somatotype: _selectedSomatotype,
+        timeAvailable: _selectedTimeAvailable,
+        discipline: _selectedDiscipline,
       );
       
       if (mounted) {
@@ -183,9 +215,47 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                   ),
                 ),
               ),
+
+              const SizedBox(height: 16),
+              _buildDropdownField(
+                label: "Somatotipo",
+                icon: Icons.person_outline,
+                value: _selectedSomatotype,
+                options: _somatotypeOptions,
+                onChanged: (val) => setState(() => _selectedSomatotype = val),
+              ),
               
               
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
+
+              const Text(
+                "Preferenze Allenamento",
+                style: TextStyle(color: Colors.white70, fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                "Questi dati influenzano le raccomandazioni di allenamento e l'analisi PDC.",
+                style: TextStyle(color: Colors.white38, fontSize: 12),
+              ),
+              const SizedBox(height: 20),
+
+              _buildDropdownField(
+                label: "Tempo Disponibile",
+                icon: Icons.timer_outlined,
+                value: _selectedTimeAvailable,
+                options: _timeAvailableOptions,
+                onChanged: (val) => setState(() => _selectedTimeAvailable = val),
+              ),
+              const SizedBox(height: 16),
+              _buildDropdownField(
+                label: "Disciplina",
+                icon: Icons.directions_bike,
+                value: _selectedDiscipline,
+                options: _disciplineOptions,
+                onChanged: (val) => setState(() => _selectedDiscipline = val),
+              ),
+
+              const SizedBox(height: 32),
               
               SizedBox(
                 width: double.infinity,
@@ -236,6 +306,37 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
            }
            return null;
         },
+      ),
+    );
+  }
+
+  Widget _buildDropdownField({
+    required String label,
+    required IconData icon,
+    required String? value,
+    required List<String> options,
+    required ValueChanged<String?> onChanged,
+  }) {
+    return GlassCard(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      child: DropdownButtonFormField<String>(
+        value: value,
+        dropdownColor: const Color(0xFF101018),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Colors.white54),
+          icon: Icon(icon, color: Colors.blueAccent),
+          border: InputBorder.none,
+        ),
+        iconEnabledColor: Colors.white54,
+        style: const TextStyle(color: Colors.white, fontSize: 16),
+        items: options
+            .map((opt) => DropdownMenuItem<String>(
+                  value: opt,
+                  child: Text(opt, style: const TextStyle(color: Colors.white)),
+                ))
+            .toList(),
+        onChanged: onChanged,
       ),
     );
   }

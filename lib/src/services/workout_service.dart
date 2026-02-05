@@ -204,37 +204,10 @@ class WorkoutService extends ChangeNotifier {
     if (currentWorkout == null) return;
     
     if (currentBlockIndex < currentWorkout!.blocks.length - 1) {
-      // 1. Calculate cumulative duration of finished blocks (including the one being skipped)
-      int cumulativeDuration = 0;
-      for (int i = 0; i <= currentBlockIndex; i++) {
-        cumulativeDuration += currentWorkout!.blocks[i].duration;
-      }
-      
-      // Calculate Gap
-      int gap = cumulativeDuration - totalElapsed;
-
-      // 2. Advance state
+      // Avanza semplicemente allo step successivo senza falsare il tempo totale.
+      // Così il "TOTAL TIME" e la durata finale NON includono gli step saltati.
       currentBlockIndex++;
       elapsedInBlock = 0;
-      totalElapsed = cumulativeDuration; // Jump time forward to start of next block
-      
-      // 3. Fill History Gaps (Fix for Chart Alignment)
-      // When skipping, we must pad the history so the "cursor" moves forward on the chart
-      // and timestamps remain aligned with planned blocks.
-      if (gap > 0) {
-        // Limit gap filler to avoid memory spikes if skipping huge chunks (e.g. > 1 hour?)
-        // But we need consistency. 3600 limit handles memory.
-        for (int k = 0; k < gap; k++) {
-             powerHistory.add(0.0);
-             hrHistory.add(0); // Maintain last HR? No, assume 0/gap.
-             cadenceHistory.add(0);
-             tempHistory.add(0.0);
-             speedHistory.add(0.0);
-        }
-        
-        // Handle max size limit here too if needed, but _tick does it.
-        // We'll let next _tick clean it up if it exceeds.
-      }
 
       // Vibration / Sound Feedback
       if (settingsService?.vibration == true) {

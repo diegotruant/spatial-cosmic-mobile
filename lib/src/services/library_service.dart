@@ -1,15 +1,21 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spatial_cosmic_mobile/src/models/workout_template.dart';
+import 'package:spatial_cosmic_mobile/src/logic/zwo_parser.dart';
 
 class LibraryService {
   // Simulating a database fetch
   Future<List<WorkoutTemplate>> getStandardWorkouts() async {
     await Future.delayed(const Duration(milliseconds: 500)); // Fake network play
+    const refPower = ' Riferimenti: Allen & Coggan.';
+    const refCp = ' Riferimenti: Monod & Scherrer; Morton.';
+    const refVo2 = ' Riferimenti: ACSM; Kenney/Wilmore/Costill.';
+    const refSweetSpot = ' Riferimenti: Allen & Coggan; Seiler.';
+    const refMetabolic = ' Riferimenti: Mader; Heck.';
     return [
       WorkoutTemplate(
         id: 'ramp_test_01',
         title: 'Ramp Test',
-        description: 'Standard incremental ramp test to estimate FTP. Start easy and hold on as long as you can!',
+        description: 'Standard incremental ramp test to estimate FTP. Start easy and hold on as long as you can!$refPower',
         durationSeconds: 1200, // 20 min approx
         tss: 45,
         category: 'Test',
@@ -43,7 +49,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'ftp_test_20',
         title: 'FTP Test (20 min)',
-        description: 'Classic 20-minute time trial protocol. Pacing is key.',
+        description: 'Classic 20-minute time trial protocol. Pacing is key.$refPower',
         durationSeconds: 3600,
         tss: 80,
         category: 'Test',
@@ -62,7 +68,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'sweet_spot_base',
         title: 'Sweet Spot Base',
-        description: 'Efficient aerobic training. 3x10min at 90% FTP.',
+        description: 'Efficient aerobic training. 3x10min at 90% FTP.$refSweetSpot',
         durationSeconds: 3600,
         tss: 65,
         category: 'Intervals',
@@ -80,7 +86,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'flow_protocol_1',
         title: 'FLOW Test 1 (Sprint & MMP15)',
-        description: 'Protocollo 1: Warmup, 20" Sprint Max, MMP15. Eseguire in modalità Slope/Resistance.',
+        description: 'Protocollo 1: Warmup, 20" Sprint Max, MMP15. Eseguire in modalità Slope/Resistance.$refMetabolic',
         durationSeconds: 2700, // Approx 45 min
         tss: 60,
         category: 'Test',
@@ -101,7 +107,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'flow_protocol_2',
         title: 'FLOW Test 2 (MMP3 & MMP6)',
-        description: 'Protocollo 2: MMP3 e MMP6 con ampio recupero. Eseguire in modalità Slope/Resistance.',
+        description: 'Protocollo 2: MMP3 e MMP6 con ampio recupero. Eseguire in modalità Slope/Resistance.$refMetabolic',
         durationSeconds: 3300, // Approx 55 min
         tss: 80,
         category: 'Test',
@@ -121,7 +127,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'cp3_test',
         title: 'CP3 Test',
-        description: '3 Minute Max Effort. All-out pacing.',
+        description: '3 Minute Max Effort. All-out pacing.$refCp',
         durationSeconds: 1800,
         tss: 40,
         category: 'Test',
@@ -138,7 +144,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'cp5_test',
         title: 'CP5 Test',
-        description: '5 Minute VO2max test.',
+        description: '5 Minute VO2max test.$refVo2',
         durationSeconds: 2100,
         tss: 50,
         category: 'Test',
@@ -155,7 +161,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'cp12_test',
         title: 'CP12 Test',
-        description: '12 Minute Threshold/VO2 mix.',
+        description: '12 Minute Threshold/VO2 mix.$refCp',
         durationSeconds: 2700,
         tss: 60,
         category: 'Test',
@@ -172,7 +178,7 @@ class LibraryService {
       WorkoutTemplate(
         id: '2x8_test',
         title: '2x8 Minute Test',
-        description: 'Two 8-minute threshold efforts with recovery.',
+        description: 'Two 8-minute threshold efforts with recovery.$refPower',
         durationSeconds: 3600,
         tss: 75,
         category: 'Test',
@@ -191,7 +197,7 @@ class LibraryService {
       WorkoutTemplate(
         id: 'pmax_slope_test',
         title: 'Pmax Test (Slope)',
-        description: 'Max Sprint Test using Slope Mode. Manual resistance control.',
+        description: 'Max Sprint Test using Slope Mode. Manual resistance control.$refPower',
         durationSeconds: 900,
         tss: 20,
         category: 'Test',
@@ -227,12 +233,25 @@ class LibraryService {
         final map = json as Map<String, dynamic>;
         // Use workout_data (ZWO) if available, otherwise fallback or empty
         String zwoContent = map['workout_data'] as String? ?? '';
+        int durationSeconds = 0;
+
+        try {
+          if (zwoContent.isNotEmpty) {
+            final parsed = ZwoParser.parse(zwoContent, titleOverride: map['workout_name'] as String?);
+            durationSeconds = parsed.blocks.fold(0, (sum, b) => sum + b.duration);
+          } else {
+            final parsed = ZwoParser.parseJson(map);
+            durationSeconds = parsed.blocks.fold(0, (sum, b) => sum + b.duration);
+          }
+        } catch (e) {
+          // Keep duration 0 if parsing fails; workout can still be shown
+        }
         
         return WorkoutTemplate(
           id: map['id'] as String,
           title: map['workout_name'] as String? ?? 'Assigned Workout',
           description: map['notes'] as String? ?? 'No notes provided.',
-          durationSeconds: 0, 
+          durationSeconds: durationSeconds,
           tss: 0,
           category: 'Assigned',
           zwoContent: zwoContent,

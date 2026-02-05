@@ -74,7 +74,7 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
     super.dispose();
   }
 
-  void _runCalculation() {
+  Future<void> _runCalculation() async {
     if (!_formKey.currentState!.validate()) return;
     
     try {
@@ -89,7 +89,7 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
       final double mmp6 = parse(_mmp6Controller.text);
       final double mmp12 = parse(_mmp12Controller.text);
 
-      context.read<AthleteProfileService>().calculateMetabolicProfile(
+      await context.read<AthleteProfileService>().calculateWithAnalysisService(
         pMax: pMax,
         mmp3: mmp3,
         mmp6: mmp6,
@@ -115,7 +115,7 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
     } catch (e) {
        ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Errore nei dati inseriti: ${e.toString()}'),
+          content: Text('Errore nel calcolo del profilo: ${e.toString()}'),
           backgroundColor: Colors.red,
         ),
       );

@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../logic/metabolic_calculator.dart';
 import '../models/metabolic_profile.dart';
+import 'package:http/http.dart' as http;
 
 enum AthleteType { sprinter, allRounder, timeTrialist, climber, unknown }
 
@@ -62,11 +64,16 @@ class AthleteProfileService extends ChangeNotifier {
   String _somatotype = 'ectomorph'; // Default: ectomorph, stored as string
   String _athleteLevel = 'amateur'; // Default: amateur
   String _gender = 'male'; // Default: male
+  String? _timeAvailable;
+  String? _discipline;
 
   // Output profile
   MetabolicProfile? _lastCalculatedProfile;
 
   bool _isLoading = false;
+  StreamSubscription<List<Map<String, dynamic>>>? _profileSubscription;
+  String? _listeningAthleteId;
+  String? _metabolicUpdatedAt;
 
   double? get ftp => _ftp;
   double? get cp => _cp;
@@ -83,6 +90,8 @@ class AthleteProfileService extends ChangeNotifier {
   String get somatotype => _somatotype;
   String get athleteLevel => _athleteLevel;
   String get gender => _gender;
+  String? get timeAvailable => _timeAvailable;
+  String? get discipline => _discipline;
   
   MetabolicProfile? get metabolicProfile => _lastCalculatedProfile;
   
@@ -94,14 +103,42 @@ class AthleteProfileService extends ChangeNotifier {
     if (id != _athleteId) {
       _athleteId = id;
       if (_athleteId != null) {
+        _startMetabolicProfileListener(_athleteId!);
         _loadFromSupabase();
       }
     }
   }
 
+  void _startMetabolicProfileListener(String athleteId) {
+    if (_listeningAthleteId == athleteId) return;
+    _profileSubscription?.cancel();
+    _listeningAthleteId = athleteId;
+
+    _profileSubscription = _supabase
+        .from('athletes')
+        .stream(primaryKey: ['id'])
+        .eq('id', athleteId)
+        .listen((rows) {
+      if (rows.isEmpty) return;
+      final row = rows.first;
+      final mpRaw = row['metabolic_profile'];
+      String? updatedAt;
+      if (mpRaw is Map && mpRaw['updatedAt'] is String) {
+        updatedAt = mpRaw['updatedAt'] as String;
+      }
+
+      if (updatedAt != null && updatedAt != _metabolicUpdatedAt) {
+        debugPrint('[AthleteProfile] metabolic_profile updatedAt changed: $updatedAt');
+        _metabolicUpdatedAt = updatedAt;
+        _loadFromSupabase();
+      }
+    });
+  }
+
   Future<void> _loadFromSupabase() async {
     final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
     if (targetId == null) return;
+    _startMetabolicProfileListener(targetId);
 
     _isLoading = true;
     notifyListeners();
@@ -109,11 +146,13 @@ class AthleteProfileService extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('athletes')
-          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile')
+          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile, extra_data, time_available, discipline')
           .eq('id', targetId)
           .maybeSingle();
 
       if (data != null) {
+        // Valori "legacy" dalle colonne top-level
+        // NB: se esiste un metabolic_profile valido usiamo SEMPRE quello come sorgente principale
         _ftp = _toDouble(data['ftp']);
         _cp = _toDouble(data['cp']);
         _vo2max = _toDouble(data['vo2max']);
@@ -130,33 +169,99 @@ class AthleteProfileService extends ChangeNotifier {
         if (data['somatotype'] != null) _somatotype = data['somatotype'];
         if (data['athlete_level'] != null) _athleteLevel = data['athlete_level'];
         if (data['gender'] != null) _gender = data['gender'];
+        if (data['time_available'] != null) _timeAvailable = data['time_available'];
+        if (data['discipline'] != null) _discipline = data['discipline'];
         
-        if (data['metabolic_profile'] != null) {
+        // Sorgente principale per il profilo metabolico:
+        // 1) colonna metabolic_profile (usata dal MetabolicEngine web)
+        // 2) extra_data.metabolic_profile solo come fallback
+        dynamic metabolicSource = data['metabolic_profile'];
+        debugPrint('[AthleteProfile] Checking metabolic_profile. Column value is null: ${metabolicSource == null}');
+        
+        if (metabolicSource == null) {
+          debugPrint('[AthleteProfile] metabolic_profile column is null, checking extra_data...');
           try {
-            var mpRaw = data['metabolic_profile'];
+            if (data['extra_data'] != null) {
+              final extra = Map<String, dynamic>.from(data['extra_data']);
+              if (extra['metabolic_profile'] != null) {
+                metabolicSource = extra['metabolic_profile'];
+                debugPrint('[AthleteProfile] Found metabolic_profile in extra_data');
+              } else {
+                debugPrint('[AthleteProfile] No metabolic_profile in extra_data either');
+              }
+            }
+          } catch (e) {
+            debugPrint('[AthleteProfile] Error checking extra_data: $e');
+          }
+        } else {
+          debugPrint('[AthleteProfile] Found metabolic_profile in main column');
+        }
+
+        if (metabolicSource != null) {
+          try {
+            var mpRaw = metabolicSource;
             Map<String, dynamic>? mpMap;
             
             if (mpRaw is Map) {
               mpMap = Map<String, dynamic>.from(mpRaw);
+              debugPrint('[AthleteProfile] metabolic_profile is already a Map');
             } else if (mpRaw is String) {
               mpMap = jsonDecode(mpRaw) as Map<String, dynamic>?;
+              debugPrint('[AthleteProfile] metabolic_profile was a String, decoded to Map');
+            } else {
+              debugPrint('[AthleteProfile] metabolic_profile has unexpected type: ${mpRaw.runtimeType}');
             }
 
             if (mpMap != null) {
+              debugPrint('[AthleteProfile] Parsing metabolic_profile JSON. Keys: ${mpMap.keys.toList()}');
+              
+              if (mpMap['updatedAt'] is String) {
+                _metabolicUpdatedAt = mpMap['updatedAt'] as String;
+                debugPrint('[AthleteProfile] updatedAt: $_metabolicUpdatedAt');
+              }
+              if (mpMap['schemaVersion'] == null) {
+                debugPrint('[AthleteProfile] ⚠️ metabolic_profile senza schemaVersion - PROFILO VECCHIO!');
+                debugPrint('[AthleteProfile] Questo profilo è stato salvato prima dell\'aggiornamento. Ricalcola dalla webapp.');
+              }
+              if (mpMap['updatedAt'] == null) {
+                debugPrint('[AthleteProfile] ⚠️ metabolic_profile senza updatedAt - PROFILO VECCHIO!');
+              }
+              
+              // Log raw values before parsing
+              debugPrint('[AthleteProfile] Raw values - vlamax: ${mpMap['vlamax']}, vo2max: ${mpMap['vo2max']}');
+              if (mpMap['metabolic'] != null) {
+                final metabolicRaw = mpMap['metabolic'] as Map<String, dynamic>;
+                debugPrint('[AthleteProfile] Raw metabolic.estimatedFtp: ${metabolicRaw['estimatedFtp']}');
+              }
+              
               final mp = MetabolicProfile.fromJson(mpMap);
               _lastCalculatedProfile = mp;
               
-              // Sync individual metrics if columns were null or 0
-              if (_ftp == null || _ftp == 0) _ftp = mp.metabolic.estimatedFtp;
-              if (_vo2max == null || _vo2max == 0) _vo2max = mp.vo2max;
-              if (_vlamax == null || _vlamax == 0) _vlamax = mp.vlamax;
-              if (_wPrime == null || _wPrime == 0) _wPrime = mp.wPrime ?? _wPrime;
+              // Allinea SEMPRE i valori chiave al profilo metabolico (stessa sorgente della webapp)
+              final oldFtp = _ftp;
+              final oldVlamax = _vlamax;
               
-              debugPrint('[AthleteProfile] Successfully loaded metabolic profile. FTP: $_ftp');
+              _ftp = mp.metabolic.estimatedFtp;
+              _vo2max = mp.vo2max;
+              _vlamax = mp.vlamax;
+              _wPrime = mp.wPrime ?? _wPrime;
+              
+              debugPrint('[AthleteProfile] ✅ Successfully loaded metabolic profile.');
+              debugPrint('[AthleteProfile] FTP: $oldFtp → $_ftp (from metabolic.estimatedFtp: ${mp.metabolic.estimatedFtp})');
+              debugPrint('[AthleteProfile] VLamax: $oldVlamax → $_vlamax');
+              debugPrint('[AthleteProfile] VO2max: $_vo2max');
+              debugPrint('[AthleteProfile] W\': $_wPrime');
+              debugPrint('[AthleteProfile] Athlete type will be: ${_categorizeAthlete()}');
+            } else {
+              debugPrint('[AthleteProfile] ⚠️ mpMap is null after parsing');
             }
           } catch (e, stack) {
-            debugPrint('[AthleteProfile] Error parsing metabolic_profile JSON: $e');
+            debugPrint('[AthleteProfile] ❌ Error parsing metabolic_profile JSON: $e');
+            debugPrint('[AthleteProfile] Stack trace: $stack');
           }
+        } else {
+          debugPrint('[AthleteProfile] ⚠️ No metabolic_profile found. Using legacy values: FTP=$_ftp, VLamax=$_vlamax');
+          debugPrint('[AthleteProfile] Athlete type from legacy values: ${_categorizeAthlete()}');
         }
         
         notifyListeners();
@@ -167,6 +272,12 @@ class AthleteProfileService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  @override
+  void dispose() {
+    _profileSubscription?.cancel();
+    super.dispose();
   }
 
 
@@ -185,6 +296,8 @@ class AthleteProfileService extends ChangeNotifier {
     double? ftp,
     double? vo2max,
     double? vlamax,
+    String? timeAvailable,
+    String? discipline,
   }) async {
     final targetId = _athleteId ?? _supabase.auth.currentUser?.id;
     if (targetId == null) return;
@@ -205,6 +318,8 @@ class AthleteProfileService extends ChangeNotifier {
     if (somatotype != null) updates['somatotype'] = somatotype;
     if (athleteLevel != null) updates['athlete_level'] = athleteLevel;
     if (gender != null) updates['gender'] = gender;
+    if (timeAvailable != null) updates['time_available'] = timeAvailable;
+    if (discipline != null) updates['discipline'] = discipline;
     
     if (updates.isEmpty) return;
 
@@ -222,6 +337,8 @@ class AthleteProfileService extends ChangeNotifier {
       if (somatotype != null) _somatotype = somatotype;
       if (athleteLevel != null) _athleteLevel = athleteLevel;
       if (gender != null) _gender = gender;
+      if (timeAvailable != null) _timeAvailable = timeAvailable;
+      if (discipline != null) _discipline = discipline;
       if (wPrime != null) _wPrime = wPrime;
       if (cp != null) _cp = cp;
       if (ftp != null) _ftp = ftp;
@@ -517,33 +634,129 @@ class AthleteProfileService extends ChangeNotifier {
     }
   }
 
+  Future<void> calculateWithAnalysisService({
+    required double pMax,
+    required double mmp3,
+    required double mmp6,
+    required double mmp15,
+    double? customWeight,
+    double? customBodyFat,
+    String? customSomatotype,
+    String? customAthleteLevel,
+    String? customGender,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final w = customWeight ?? _weight ?? 70.0;
+      final h = height ?? _height ?? 175.0;
+      final bf = customBodyFat ?? _bodyFat ?? 12.0;
+      
+      int age = 30;
+      if (_dob != null) {
+        age = DateTime.now().year - _dob!.year;
+        if (DateTime.now().month < _dob!.month || (DateTime.now().month == _dob!.month && DateTime.now().day < _dob!.day)) {
+          age--;
+        }
+      }
+      if (age <= 0) age = 30;
+
+      final gStr = customGender ?? _gender ?? 'male';
+      final somato = (customSomatotype ?? _somatotype).toUpperCase();
+
+      final response = await http.post(
+        Uri.parse('https://spatial-analysis-service.onrender.com/metabolic/profile'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'weight': w,
+          'height': h,
+          'age': age,
+          'gender': gStr.toUpperCase(),
+          'body_fat': bf,
+          'somatotype': somato,
+          'p_max': pMax,
+          'mmp3': mmp3,
+          'mmp6': mmp6,
+          'mmp15': mmp15,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final rawData = jsonDecode(response.body);
+        
+        // Map snake_case from Python to camelCase expected by our MetabolicProfile model
+        final profileMap = {
+          'schemaVersion': 1,
+          'updatedAt': DateTime.now().toIso8601String(),
+          'vlamax': rawData['vlamax'],
+          'map': rawData['map'],
+          'vo2max': rawData['vo2max'],
+          'mlss': rawData['mlss'],
+          'wPrime': rawData['w_prime'],
+          'fatMax': rawData['fat_max'],
+          'confidenceScore': rawData['confidence_score'],
+          'bmr': rawData['bmr'],
+          'tdee': rawData['tdee'],
+          'metabolic': {
+            'estimatedFtp': rawData['mlss'],
+            'fatMaxWatt': rawData['fat_max'],
+            'carbRateAtFtp': rawData['carb_rate_at_ftp'],
+          },
+          'zones': (rawData['zones'] as List).map((z) => {
+            'name': z['name'],
+            'minWatt': z['min_watt'],
+            'maxWatt': z['max_watt'],
+            'description': z['description'],
+            'color': z['color'],
+          }).toList(),
+          'combustionCurve': (rawData['combustion_curve'] as List).map((c) => {
+            'watt': c['watt'],
+            'fatOxidation': c['fat_oxidation'],
+            'carbOxidation': c['carb_oxidation'],
+          }).toList(),
+        };
+
+        _lastCalculatedProfile = MetabolicProfile.fromJson(profileMap);
+        debugPrint('[AthleteProfile] Remote calculation successful');
+      } else {
+        debugPrint('[AthleteProfile] Remote calculation failed: ${response.body}');
+        // Fallback to local if remote fails? Maybe not, better to show error.
+        throw Exception('Analysis Service Error: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('[AthleteProfile] Exception in remote calculation: $e');
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
   void calculateMetabolicProfile({
     required double pMax,
     required double mmp3,
     required double mmp6,
-    required double mmp15, // FROM FLOW TEST
-    // Optional overrides
+    required double mmp15,
     double? customWeight,
     double? customBodyFat,
     String? customSomatotype,
     String? customAthleteLevel,
     String? customGender,
   }) {
+    // We now prefer the remote service. 
+    // This local method is kept for legacy but should be replaced in UI calls.
+    debugPrint('[AthleteProfile] Warning: calculateMetabolicProfile (local) called. Use calculateWithAnalysisService.');
+    
     final w = customWeight ?? _weight ?? 70.0;
     final h = height ?? _height ?? 175.0;
     final bf = customBodyFat ?? _bodyFat ?? 12.0; 
     
-    // Calculate Age
     int age = 30;
     if (_dob != null) {
       age = DateTime.now().year - _dob!.year;
-      if (DateTime.now().month < _dob!.month || (DateTime.now().month == _dob!.month && DateTime.now().day < _dob!.day)) {
-        age--;
-      }
     }
-    if (age <= 0) age = 30;
 
-    // Parse enums safely
     Somatotype sType = Somatotype.ectomorph;
     try {
       final sStr = customSomatotype ?? _somatotype;
@@ -564,7 +777,6 @@ class AthleteProfileService extends ChangeNotifier {
       mmp6: mmp6,
       mmp15: mmp15,
     );
-
     
     notifyListeners();
   }

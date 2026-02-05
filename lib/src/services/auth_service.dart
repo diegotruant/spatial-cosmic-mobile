@@ -8,12 +8,14 @@ class AuthService extends ChangeNotifier {
   String? _athleteId;
   bool _isLoading = false;
   String? _error;
+  bool _isPasswordRecovery = false;
 
   User? get currentUser => _currentUser;
   String? get athleteId => _athleteId;
   bool get isAuthenticated => _currentUser != null;
   bool get isLoading => _isLoading;
   String? get error => _error;
+  bool get isPasswordRecovery => _isPasswordRecovery;
 
   AuthService() {
     _currentUser = _supabase.auth.currentUser;
@@ -25,12 +27,18 @@ class AuthService extends ChangeNotifier {
       final previousUser = _currentUser;
       _currentUser = data.session?.user;
       
+      if (data.event == AuthChangeEvent.passwordRecovery) {
+        _isPasswordRecovery = true;
+      }
+
       if (_currentUser != null && previousUser?.id != _currentUser!.id) {
         _fetchAthleteId();
       } else if (_currentUser == null) {
         _athleteId = null;
         notifyListeners();
       }
+
+      notifyListeners();
     });
   }
 
@@ -91,6 +99,42 @@ class AuthService extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  Future<void> sendPasswordReset(String email, {String? redirectTo}) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+      await _supabase.auth.resetPasswordForEmail(email, redirectTo: redirectTo);
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<void> updatePassword(String newPassword) async {
+    try {
+      _isLoading = true;
+      _error = null;
+      notifyListeners();
+      await _supabase.auth.updateUser(UserAttributes(password: newPassword));
+      _isPasswordRecovery = false;
+    } catch (e) {
+      _error = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  void startPasswordRecovery() {
+    _isPasswordRecovery = true;
+    notifyListeners();
   }
 
   Future<void> signOut() async {

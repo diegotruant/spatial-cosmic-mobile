@@ -6,6 +6,7 @@ class MetricTile extends StatelessWidget {
   final String value;
   final String? unit;
   final IconData? icon;
+  final Widget? trailing;
   final Color accentColor;
   final Color? valueColor; // NEW: Optional custom color for value text
   final bool isLarge;
@@ -16,6 +17,7 @@ class MetricTile extends StatelessWidget {
     required this.value,
     this.unit,
     this.icon,
+    this.trailing,
     this.accentColor = Colors.cyanAccent,
     this.valueColor, // NEW
     this.isLarge = false,
@@ -43,7 +45,9 @@ class MetricTile extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              if (icon != null)
+              if (trailing != null)
+                trailing!
+              else if (icon != null)
                 Icon(icon, color: accentColor.withOpacity(0.8), size: 14),
             ],
           ),

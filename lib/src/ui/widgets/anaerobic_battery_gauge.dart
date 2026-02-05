@@ -32,6 +32,7 @@ class AnaerobicBatteryGauge extends StatelessWidget {
                 painter: BatteryPainter(
                   percentage: percentage,
                   color: isDepleting ? Colors.orangeAccent : Colors.greenAccent,
+                  strokeWidth: 12,
                 ),
               ),
             ),
@@ -64,21 +65,26 @@ class AnaerobicBatteryGauge extends StatelessWidget {
 class BatteryPainter extends CustomPainter {
   final double percentage;
   final Color color;
+  final double strokeWidth;
 
-  BatteryPainter({required this.percentage, required this.color});
+  BatteryPainter({
+    required this.percentage,
+    required this.color,
+    this.strokeWidth = 12,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     Paint backgroundPaint = Paint()
       ..color = Colors.grey.withOpacity(0.2)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
+      ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     Paint progressPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 12
+      ..strokeWidth = strokeWidth
       ..strokeCap = StrokeCap.round;
 
     Offset center = Offset(size.width / 2, size.height / 2);
@@ -105,4 +111,53 @@ class BatteryPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class CompactWPrimeGauge extends StatelessWidget {
+  final double currentWPrime;
+  final double maxWPrime;
+  final bool isDepleting;
+  final double size;
+
+  const CompactWPrimeGauge({
+    super.key,
+    required this.currentWPrime,
+    required this.maxWPrime,
+    required this.isDepleting,
+    this.size = 42,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final percentage = (maxWPrime > 0)
+        ? (currentWPrime / maxWPrime).clamp(0.0, 1.0)
+        : 0.0;
+    final color = isDepleting ? Colors.orangeAccent : Colors.greenAccent;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          CustomPaint(
+            size: Size(size, size),
+            painter: BatteryPainter(
+              percentage: percentage,
+              color: color,
+              strokeWidth: 6,
+            ),
+          ),
+          Text(
+            '${(percentage * 100).toInt()}%',
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

@@ -76,3 +76,4 @@ Il blocco funziona SOLO se:
 - Il `traffic_light` è calcolato e salvato correttamente
 - Il `PhysiologicalService` ha caricato i dati con `fetchHistory()`
 
+

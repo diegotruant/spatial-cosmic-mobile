@@ -1,6 +1,6 @@
 name: spatial_cosmic_mobile
-description: A high-performance cycling coach athlete application.
-version: 1.0.0+1
+description: Velo Lab - Advanced Indoor Cycling Training & Performance Analytics
+version: 1.0.1+2
 
 environment:
   sdk: '>=3.0.0 <4.0.0'

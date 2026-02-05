@@ -15,11 +15,13 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLogin = true;
+  final _resetEmailController = TextEditingController();
 
   @override
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _resetEmailController.dispose();
     super.dispose();
   }
 
@@ -53,6 +55,103 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _sendResetEmail() async {
+    final authService = Provider.of<AuthService>(context, listen: false);
+    final email = _resetEmailController.text.trim();
+    if (email.isEmpty || !email.contains('@')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inserisci una email valida.')),
+      );
+      return;
+    }
+
+    try {
+      await authService.sendPasswordReset(
+        email,
+        redirectTo: 'spatialcosmic://spatialcosmic.app/reset',
+      );
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Email di reset inviata. Controlla la posta.')),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Errore: $e')),
+        );
+      }
+    }
+  }
+
+  void _showResetPasswordDialog() {
+    _resetEmailController.text = _emailController.text.trim();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.black,
+        title: const Text('Password dimenticata', style: TextStyle(color: Colors.white)),
+        content: TextField(
+          controller: _resetEmailController,
+          keyboardType: TextInputType.emailAddress,
+          style: const TextStyle(color: Colors.white),
+          decoration: const InputDecoration(
+            labelText: 'Email',
+            labelStyle: TextStyle(color: Colors.grey),
+            enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.grey)),
+            focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white)),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => _sendResetEmail(),
+            child: const Text('Invia'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAppInstructions() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.black,
+        title: const Text("Come usare l'app", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "Guida rapida per l'atleta:\n"
+          "1) Login: usa email e password ricevute dal coach.\n"
+          "2) Profilo: vai in Settings > Informazioni account > Modifica profilo completo e inserisci peso, altezza, massa magra, somatotipo, data di nascita, tempo disponibile e disciplina.\n"
+          "3) Connessioni: collega Oura (se hai l'anello) per HRV. Collega Strava solo se il coach ti ha chiesto di sincronizzare attività.\n"
+          "4) Home: controlla lo stato del giorno, HRV e prossimi eventi.\n"
+          "5) Lab: consulta il profilo metabolico e le curve (dati dal server).\n"
+          "6) Schedule: qui trovi i workout assegnati dal coach.\n"
+          "7) Test: esegui solo se richiesto dal coach.\n"
+          "8) Workout: apri un workout e premi Start. Se HRV è rosso, recupero consigliato.\n"
+          "9) Fine workout: salva e analizza. Se vuoi caricarlo sul tuo device, usa Esporta .fit.\n"
+          "10) Export .fit: scarica il file e importalo sul dispositivo:\n"
+          "   • Garmin: collega via USB → GARMIN/Workouts.\n"
+          "   • Wahoo: app ELEMNT → aggiungi allenamento da file.\n"
+          "   • Karoo: Hammerhead Dashboard → Upload workout (.fit).\n"
+          "   • Bryton: app Bryton Active → Importa allenamento (.fit).\n"
+          "11) Problemi: verifica connessioni e dati profilo, poi avvisa il coach.",
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -78,14 +177,25 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: theme.primaryColor,
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    'CyclingCoach',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'CyclingCoach',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.outfit(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        onPressed: _showAppInstructions,
+                        icon: const Icon(Icons.info_outline, color: Colors.white54, size: 20),
+                        tooltip: 'Guida',
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -152,7 +262,17 @@ class _LoginScreenState extends State<LoginScreen> {
                       return null;
                     },
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 8),
+
+                  if (_isLogin)
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: _showResetPasswordDialog,
+                        child: const Text('Password dimenticata?', style: TextStyle(color: Colors.white70)),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
 
                   // Action Button
                   SizedBox(

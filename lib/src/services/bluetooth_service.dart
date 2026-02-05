@@ -18,6 +18,8 @@ class BluetoothService extends ChangeNotifier {
   int cadence = 0;
   double coreTemp = 0.0;
   List<int> rrIntervals = [];
+  int? leftPowerBalance;
+  int? rightPowerBalance;
   
   // Cadence source tracking
   CadenceSource cadenceSource = CadenceSource.none;
@@ -150,14 +152,30 @@ class BluetoothService extends ChangeNotifier {
         rawPower = -(0x10000 - rawPower);
       }
       power = rawPower.toDouble();
-      notifyListeners();
       offset += 2;
     }
 
     // Optional fields (e.g., Pedal Power Balance, Accumulated Torque, Wheel/Crank Revolutions)
     // For simplicity, we'll just parse instantaneous power for now.
     // If Pedal Power Balance Present (Bit 0)
-    if ((flags & 0x01) != 0) offset += 1; // 1 byte for balance, or 2 bytes for balance + reference
+    if ((flags & 0x01) != 0 && offset + 1 <= value.length) {
+      final rawBalance = value[offset];
+      final isRightReference = (rawBalance & 0x80) != 0;
+      final balance = rawBalance & 0x7F; // 0-100%
+      if (balance > 0 && balance <= 100) {
+        if (isRightReference) {
+          rightPowerBalance = balance;
+          leftPowerBalance = 100 - balance;
+        } else {
+          leftPowerBalance = balance;
+          rightPowerBalance = 100 - balance;
+        }
+      } else {
+        leftPowerBalance = null;
+        rightPowerBalance = null;
+      }
+      offset += 1;
+    }
 
     // If Accumulated Torque Present (Bit 1)
     if ((flags & 0x02) != 0) offset += 2;
@@ -189,6 +207,8 @@ class BluetoothService extends ChangeNotifier {
       }
       offset += 4;
     }
+
+    notifyListeners();
   }
 
   // --- FTMS (Trainer) Setup ---

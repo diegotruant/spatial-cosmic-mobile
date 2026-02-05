@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math';
 import '../../services/workout_service.dart';
 import '../../logic/zwo_parser.dart';
 import 'package:provider/provider.dart';
@@ -8,6 +9,7 @@ class LiveWorkoutChart extends StatelessWidget {
   final bool showPowerZones; // Added parameter
   final double? wPrime;
   final int? cp;
+  final int userFtp;
 
   const LiveWorkoutChart({
     super.key, 
@@ -15,6 +17,7 @@ class LiveWorkoutChart extends StatelessWidget {
     this.showPowerZones = false,
     this.wPrime,
     this.cp,
+    required this.userFtp,
   });
 
   @override
@@ -42,6 +45,7 @@ class LiveWorkoutChart extends StatelessWidget {
             showPowerZones: showPowerZones,
             wPrime: wPrime,
             cp: cp,
+            userFtp: userFtp,
           ),
           child: Container(),
         ),
@@ -61,6 +65,7 @@ class _LiveGraphPainter extends CustomPainter {
   final bool showPowerZones;
   final double? wPrime;
   final int? cp;
+  final int userFtp;
 
   _LiveGraphPainter({
     required this.powerHistory,
@@ -73,6 +78,7 @@ class _LiveGraphPainter extends CustomPainter {
     required this.showPowerZones,
     this.wPrime,
     this.cp,
+    required this.userFtp,
   });
   
   // Helper for Zone Colors
@@ -98,7 +104,11 @@ class _LiveGraphPainter extends CustomPainter {
     // View Window Logic
     final visibleDuration = isZoomed ? 600 : totalWorkoutDuration;
     final secToX = size.width / visibleDuration;
-    final wattToY = size.height / 500; // 500W max scale
+
+    // Power scaling based on athlete FTP so che blocchi e linea coincidono a 100%
+    final double ftp = userFtp > 0 ? userFtp.toDouble() : 250.0;
+    final double maxPower = max(ftp * 1.5, 400.0); // un po' sopra FTP per margine
+    final wattToY = size.height / maxPower;
     final hrToY = size.height / 220; // 220 BPM max
     
     // Scrolling Logic
@@ -138,37 +148,26 @@ class _LiveGraphPainter extends CustomPainter {
         continue;
       }
 
-      double basePower = 0.0;
-      if (block is SteadyState) basePower = block.power;
-      else if (block is IntervalsT) basePower = block.onPower; 
+      double baseFactor = 0.0;
+      if (block is SteadyState) baseFactor = block.power;
+      else if (block is IntervalsT) baseFactor = block.onPower; 
 
-      // Height for 100% (Ghost)
-      final h100 = basePower * 300 * wattToY; // Assuming target usually ~300 max relative? No basePower is factor 0.0-2.0 usually. 
-      // Wait, standard zwo parser: power is factor of FTP (e.g. 0.5, 1.0).
-      // If basePower is factor, we need to map to Y pixels.
-      // If we assumed 500W max scale, and userFtp is e.g. 200W. 
-      // Then target Watts = factor * FTP.
-      // We don't have FTP here efficiently.
-      // But typically we graph relative to FTP? Or absolute watts?
-      // The original code used `basePower * 300 * wattToY`.
-      // If `wattToY = H / 500`. And basePower = 1.0. Height = 300 * (H/500) = 0.6 H.
-      // That assumes FTP is roughly 300W for visual scaling? 
-      // Let's stick to original scaling logic to avoid breaking it, just change colors.
-      
-      final y100 = size.height - h100;
+      // Target watts a 100% e con intensità applicata
+      final double targetW100 = baseFactor * ftp;
+      final double h100 = targetW100 * wattToY;
+      final double y100 = size.height - h100;
 
-      // Height for Adjusted
-      final hAdj = h100 * intensityFactor;
-      final yAdj = size.height - hAdj;
+      final double targetWAdj = targetW100 * intensityFactor;
+      final double hAdj = targetWAdj * wattToY;
+      final double yAdj = size.height - hAdj;
       
       // Determine Color
       Color blockColor = const Color(0xFF00B0FF);
       Color borderColor = Colors.cyanAccent;
       
       if (showPowerZones) {
-         // Use adjusted power factor to determine color
-         // basePower is standard factor. Adjusted is basePower * intensityFactor.
-         double effectiveFactor = basePower * intensityFactor;
+         // Usa il fattore di potenza relativo (ZWO) scalato per l'intensità
+         double effectiveFactor = baseFactor * intensityFactor;
          Color zoneColor = _getZoneColor(effectiveFactor);
          blockColor = zoneColor;
          borderColor = zoneColor;
@@ -192,8 +191,9 @@ class _LiveGraphPainter extends CustomPainter {
         canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = blockColor.withOpacity(0.4));
         canvas.drawLine(Offset(currentX, yAdj), Offset(currentX + w, yAdj), Paint()..color = borderColor.withOpacity(0.8)..strokeWidth = 2);
       } else if (block is IntervalsT) {
-         final onH = (block.onPower * 300 * wattToY) * intensityFactor;
-         final yOn = size.height - onH;
+         final double onTargetW = block.onPower * ftp * intensityFactor;
+         final double onH = onTargetW * wattToY;
+         final double yOn = size.height - onH;
          
          double effectiveOnFactor = block.onPower * intensityFactor;
          Color onColor = showPowerZones ? _getZoneColor(effectiveOnFactor) : const Color(0xFF40C4FF);
@@ -296,6 +296,7 @@ class _LiveGraphPainter extends CustomPainter {
     canvas.restore();
     
     // 4. Fixed Overlays (Right Axis) - Painted AFTER restore() so they don't scroll
+    _drawLeftTempAxis(canvas, size);
     _drawRightAxis(canvas, size);
   }
 
@@ -325,7 +326,7 @@ class _LiveGraphPainter extends CustomPainter {
         // Draw Label
         final minutes = currentSec ~/ 60;
         textPainter.text = TextSpan(
-           text: '${minutes}m',
+           text: '$minutes',
            style: const TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.bold)
         );
         textPainter.layout();
@@ -366,6 +367,24 @@ class _LiveGraphPainter extends CustomPainter {
     }
   }
 
+  void _drawLeftTempAxis(Canvas canvas, Size size) {
+    final textPainter = TextPainter(textDirection: TextDirection.ltr);
+    final tempSteps = [36, 37, 38, 39, 40];
+
+    for (var val in tempSteps) {
+      final y = size.height - ((val - 36) / 4 * size.height);
+      textPainter.text = TextSpan(
+        text: val.toString(),
+        style: const TextStyle(color: Colors.purpleAccent, fontSize: 10, fontWeight: FontWeight.bold),
+      );
+      textPainter.layout();
+      textPainter.paint(canvas, Offset(12, y - 6));
+
+      // Tick mark
+      canvas.drawCircle(Offset(2, y), 1.5, Paint()..color = Colors.purpleAccent);
+    }
+  }
+
   void _drawRightAxis(Canvas canvas, Size size) {
     // Background for labels?
     
@@ -380,9 +399,11 @@ class _LiveGraphPainter extends CustomPainter {
         style: const TextStyle(color: Colors.redAccent, fontSize: 10, fontWeight: FontWeight.bold)
       );
       textPainter.layout();
-      textPainter.paint(canvas, Offset(size.width - 25, y - 6));
+      // Disegniamo il valore sul lato destro, vicino al tick HR
+      final labelX = size.width - 32;
+      textPainter.paint(canvas, Offset(labelX, y - 6));
       
-      // Tick mark
+      // Tick mark a destra
       canvas.drawCircle(Offset(size.width - 4, y), 2, Paint()..color = Colors.redAccent);
     }
   }
@@ -393,3 +414,12 @@ class _LiveGraphPainter extends CustomPainter {
       oldDelegate.isZoomed != isZoomed ||
       oldDelegate.intensityPercentage != intensityPercentage;
 }
+
+
+
+
+
+
+
+
+

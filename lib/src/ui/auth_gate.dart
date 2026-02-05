@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/dashboard/modern_dashboard_screen.dart';
+import 'screens/auth/reset_password_screen.dart';
 
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
@@ -11,6 +12,9 @@ class AuthGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthService>(
       builder: (context, authService, _) {
+        if (authService.isPasswordRecovery) {
+          return const ResetPasswordScreen();
+        }
         if (!authService.isAuthenticated) {
           return const LoginScreen();
         }

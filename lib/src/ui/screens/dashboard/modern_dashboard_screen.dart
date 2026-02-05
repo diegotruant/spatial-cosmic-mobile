@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../widgets/glass_card.dart';
@@ -21,7 +22,6 @@ import '../../../l10n/app_localizations.dart';
 import '../../../services/sync_service.dart';
 import '../../../services/oura_service.dart';
 import '../../../services/auth_service.dart';
-import '../../../services/integration_service.dart';
 import '../../../logic/fit_generator.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
@@ -42,10 +42,12 @@ class ModernDashboardScreen extends StatefulWidget {
 
 class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   int _currentIndex = 0;
+  late final PageController _pageController;
 
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
     // Fetch Oura Data on startup
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _fetchOuraData();
@@ -127,13 +129,18 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ),
           
           SafeArea(
-            child: IndexedStack(
-              index: _currentIndex,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                if (index != _currentIndex) {
+                  setState(() => _currentIndex = index);
+                }
+              },
               children: [
                 _buildHomeTab(context),
+                _buildProgressTab(), // Lab Tab
                 const WorkoutLibraryScreen(isTab: true),
                 _buildScheduleTab(),
-                _buildProgressTab(), // Lab Tab
                 const WorkoutHistoryScreen(),
                 _buildSettingsTab(context),
               ],
@@ -294,7 +301,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   }
 
   Future<void> _sendAssignmentToDevice(Map<String, dynamic> assignment) async {
-    final integrationService = context.read<IntegrationService>();
     final settingsService = context.read<SettingsService>();
     
     // 1. Selection Dialog (Premium Style)
@@ -326,7 +332,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                 const CircularProgressIndicator(color: Colors.blueAccent),
                 const SizedBox(height: 20),
                 Text(
-                  "Sincronizzazione in corso...", 
+                  "Esportazione file .fit...", 
                   style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.bold)
                 ),
               ],
@@ -340,42 +346,20 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       final ftp = settingsService.ftp;
       final file = await FitGenerator.generateFromAssignment(assignment, ftp);
       
-      bool success = false;
-      if (platform == 'wahoo') {
-        if (!integrationService.isWahooConnected) {
-          if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
-          await integrationService.initiateWahooAuth();
-          return;
-        }
-        success = await integrationService.uploadWorkoutToWahoo(file);
-      } else if (platform == 'tp') {
-        if (!integrationService.isTPConnected) {
-          if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
-          await integrationService.initiateTrainingPeaksAuth();
-          return;
-        }
-        success = await integrationService.uploadWorkoutToTrainingPeaks(file);
-      } else if (platform == 'export') {
-        if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
-        await Share.shareXFiles([XFile(file.path)], text: 'Allenamento Spatial Cosmic: ${assignment['workout_name']}');
-        return; // Success handled by share sheet
-      }
-
-      if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading safely
-
-      if (success) {
+      if (platform == 'export') {
+        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Allenamento Velo Lab: ${assignment['workout_name']}',
+        );
         if (mounted) {
-           ScaffoldMessenger.of(context).showSnackBar(
-             const SnackBar(
-               content: Text("🚀 Allenamento inviato correttamente!"),
-               backgroundColor: Colors.green,
-               behavior: SnackBarBehavior.floating,
-             ),
-           );
+          _showFitImportHelp(context);
         }
-      } else {
-         throw "Errore durante l'upload: Verifica la connessione o l'account.";
+        return;
       }
+
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+      throw "Piattaforma non supportata.";
     } catch (e) {
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop(); // Ensure loading is closed
@@ -388,6 +372,33 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         );
       }
     }
+  }
+
+  void _showFitImportHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text("Importa il file .fit", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "Garmin: collega via USB → GARMIN/Workouts → copia il .fit.\n"
+          "Guida: https://support.garmin.com/en-US/?search=import%20workout%20fit\n\n"
+          "Wahoo: apri ELEMNT app → aggiungi allenamento da File.\n"
+          "Guida: https://support.wahoofitness.com/hc/en-us/search?query=workout%20fit\n\n"
+          "Karoo: Hammerhead Dashboard → Upload workout (.fit).\n"
+          "Guida: https://support.hammerhead.io/hc/en-us/search?query=workout%20fit\n\n"
+          "Bryton: app Bryton Active → Importa allenamento (.fit).\n"
+          "Guida: https://support.brytonsport.com/hc/en-us/search?query=workout%20fit",
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   String _getDayName(int weekday) {
@@ -618,28 +629,42 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         ),
         const SizedBox(height: 20),
         
-        // Training Recommendation
-        const Text('RACCOMANDAZIONE', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.5)),
-        const SizedBox(height: 12),
-        GlassCard(
-          padding: const EdgeInsets.all(16),
-          borderRadius: 12,
-          borderColor: Colors.amberAccent.withOpacity(0.2),
-          child: Row(
-            children: [
-              const Icon(LucideIcons.lightbulb, color: Colors.amberAccent, size: 20),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  profileService.getTrainingRecommendation(),
-                  style: TextStyle(color: Colors.white.withOpacity(0.8), fontSize: 13),
-                ),
-              ),
-            ],
+        // Debug Info (only in debug mode)
+        if (kDebugMode) ...[
+          const SizedBox(height: 20),
+          const Text('DEBUG INFO', style: TextStyle(color: Colors.redAccent, fontSize: 12, letterSpacing: 1.5)),
+          const SizedBox(height: 12),
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            borderRadius: 12,
+            borderColor: Colors.redAccent.withOpacity(0.3),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('FTP: ${profile.ftp ?? "null"}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                Text('VLamax: ${profile.vlamax ?? "null"}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                Text('VO2max: ${profile.vo2max ?? "null"}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                Text('W\': ${profile.wPrime ?? "null"}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                Text('Tipo: ${profileService.getTypeLabel(profile.type)}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                const SizedBox(height: 8),
+                Text('Metabolic Profile: ${metabolicProfile != null ? "Presente" : "Assente"}', style: const TextStyle(color: Colors.white70, fontSize: 11)),
+                if (metabolicProfile != null) ...[
+                  Text('  - Schema: ${metabolicProfile!.schemaVersion ?? "null ⚠️ VECCHIO"}', 
+                    style: TextStyle(color: metabolicProfile!.schemaVersion == null ? Colors.orangeAccent : Colors.white54, fontSize: 10)),
+                  Text('  - Updated: ${metabolicProfile!.updatedAt ?? "null ⚠️ VECCHIO"}', 
+                    style: TextStyle(color: metabolicProfile!.updatedAt == null ? Colors.orangeAccent : Colors.white54, fontSize: 10)),
+                  Text('  - FTP (metabolic): ${metabolicProfile!.metabolic.estimatedFtp}', style: const TextStyle(color: Colors.white54, fontSize: 10)),
+                  if (metabolicProfile!.schemaVersion == null || metabolicProfile!.updatedAt == null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8.0),
+                      child: Text('⚠️ Profilo vecchio! Ricalcola dalla webapp', 
+                        style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.bold)),
+                    ),
+                ],
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-        const SizedBox(height: 24),
+        ],
       ],
     );
   }
@@ -1222,8 +1247,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       children: [
-        _buildMedicalCertificateAlert(context),
-        const SizedBox(height: 20),
         _buildHeader(context),
         const SizedBox(height: 24),
         _buildReadinessCard(context),
@@ -1325,7 +1348,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                 ),
                 const SizedBox(width: 8),
                 const Text(
-                  'CYCLING COACH',
+                  'VELO LAB',
                   style: TextStyle(
                     color: AppColors.textPrimary,
                     fontSize: 18,
@@ -1336,25 +1359,74 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
               ],
             ),
             const SizedBox(height: 8),
-            Text(
-              'Welcome back, Diego',
-              style: AppTextStyles.body,
+            Consumer<SettingsService>(
+              builder: (context, settings, _) => Text(
+                'Welcome back, ${settings.username?.trim().isNotEmpty == true ? settings.username : 'Athlete'}',
+                style: AppTextStyles.body,
+              ),
             ),
           ],
         ),
-        GestureDetector(
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const HrvMeasurementScreen()),
-            );
-          },
-          child: const CircleAvatar(
-            backgroundColor: Colors.white10,
-            child: Icon(LucideIcons.activity, color: AppColors.primary),
-          ),
+        Row(
+          children: [
+            GestureDetector(
+              onTap: () => _showAppInstructions(context),
+              child: const CircleAvatar(
+                backgroundColor: Colors.white10,
+                child: Icon(LucideIcons.info, color: Colors.white70),
+              ),
+            ),
+            const SizedBox(width: 10),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const HrvMeasurementScreen()),
+                );
+              },
+              child: const CircleAvatar(
+                backgroundColor: Colors.white10,
+                child: Icon(LucideIcons.activity, color: AppColors.primary),
+              ),
+            ),
+          ],
         ),
       ],
+    );
+  }
+
+  void _showAppInstructions(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text("Come usare l'app", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "Guida rapida per l'atleta:\n"
+          "1) Login: usa email e password ricevute dal coach.\n"
+          "2) Profilo: vai in Settings > Informazioni account > Modifica profilo completo e inserisci peso, altezza, massa magra, somatotipo, data di nascita, tempo disponibile e disciplina.\n"
+          "3) Connessioni: collega Oura (se hai l'anello) per HRV. Collega Strava solo se il coach ti ha chiesto di sincronizzare attività.\n"
+          "4) Home: controlla lo stato del giorno, HRV e prossimi eventi.\n"
+          "5) Lab: consulta il profilo metabolico e le curve (dati dal server).\n"
+          "6) Schedule: qui trovi i workout assegnati dal coach.\n"
+          "7) Test: esegui solo se richiesto dal coach.\n"
+          "8) Workout: apri un workout e premi Start. Se HRV è rosso, recupero consigliato.\n"
+          "9) Fine workout: salva e analizza. Se vuoi caricarlo sul tuo device, usa Esporta .fit.\n"
+          "10) Export .fit: scarica il file e importalo sul dispositivo:\n"
+          "   • Garmin: collega via USB → GARMIN/Workouts.\n"
+          "   • Wahoo: app ELEMNT → aggiungi allenamento da file.\n"
+          "   • Karoo: Hammerhead Dashboard → Upload workout (.fit).\n"
+          "   • Bryton: app Bryton Active → Importa allenamento (.fit).\n"
+          "11) Problemi: verifica connessioni e dati profilo, poi avvisa il coach.",
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1798,7 +1870,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             builder: (context, physiological, _) {
               final isBlocked = physiological.isTestBlocked;
               return ElevatedButton(
-                onPressed: !isBlocked ? () => setState(() => _currentIndex = 1) : null,
+                onPressed: !isBlocked ? () => setState(() => _currentIndex = 2) : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: isBlocked ? Colors.red.withOpacity(0.2) : Colors.purpleAccent.withOpacity(0.2),
                   foregroundColor: Colors.white,
@@ -1859,30 +1931,6 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             ),
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: ElevatedButton(
-            onPressed: () {
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen()));
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.cyanAccent.withOpacity(0.2),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.cyanAccent.withOpacity(0.5)),
-              ),
-            ),
-            child: Column(
-              children: const [
-                 const Icon(LucideIcons.flaskConical, color: Colors.cyanAccent),
-                 const SizedBox(height: 4),
-                 const Text('METABOLIC LAB', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
-              ],
-            ),
-          ),
-        ),
       ],
     );
   }
@@ -1930,9 +1978,13 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       child: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
+          if (index == _currentIndex) return;
+          setState(() => _currentIndex = index);
+          _pageController.animateToPage(
+            index,
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOut,
+          );
         },
         backgroundColor: Colors.black,
         selectedItemColor: Colors.blueAccent,
@@ -1942,22 +1994,30 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
         unselectedFontSize: 10,
         items: [
           BottomNavigationBarItem(icon: const Icon(LucideIcons.layoutDashboard), label: 'Home'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.library), label: 'Test'),
+          BottomNavigationBarItem(icon: const Icon(LucideIcons.flaskConical), label: 'Lab'),
+          BottomNavigationBarItem(icon: const Icon(LucideIcons.testTube), label: 'Test'),
           BottomNavigationBarItem(icon: const Icon(LucideIcons.calendar), label: 'Schedule'),
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.flaskConical), label: 'Metabolic Lab'), 
-          BottomNavigationBarItem(icon: const Icon(LucideIcons.history), label: 'History'),
+          BottomNavigationBarItem(icon: const Icon(LucideIcons.history), label: 'Storico'),
           BottomNavigationBarItem(icon: const Icon(LucideIcons.settings), label: 'Settings'),
         ],
       ),
     );
   }
 
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
   Widget _buildMetabolicProfile(BuildContext context) {
     final profileService = context.watch<AthleteProfileService>();
     final profile = profileService.currentProfile;
-    final vlamax = profile.vlamax;
-    final vo2max = profile.vo2max;
     final metabolicProfile = profileService.metabolicProfile;
+    final vlamax = metabolicProfile?.vlamax ?? profile.vlamax;
+    final vo2max = metabolicProfile?.vo2max ?? profile.vo2max;
+    final mlss = metabolicProfile?.mlss;
+    final fatMax = metabolicProfile?.fatMax;
     
     // Map profile type to Italian labels
     String typeLabel = profileService.getTypeLabel(profile.type);
@@ -2013,6 +2073,28 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                   vo2max?.toStringAsFixed(1) ?? '-',
                   'mL/min/kg',
                   Colors.blueAccent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _buildMetabolicMetric(
+                  'MLSS',
+                  mlss != null ? mlss.toStringAsFixed(0) : '-',
+                  'W',
+                  Colors.redAccent,
+                ),
+              ),
+              Container(width: 1, height: 40, color: Colors.white10),
+              Expanded(
+                child: _buildMetabolicMetric(
+                  'FatMax',
+                  fatMax != null ? fatMax.toStringAsFixed(0) : '-',
+                  'W',
+                  Colors.greenAccent,
                 ),
               ),
             ],

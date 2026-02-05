@@ -10,6 +10,8 @@ import 'ui/theme/app_theme.dart';
 import 'package:app_links/app_links.dart';
 import 'services/integration_service.dart';
 import 'services/oura_service.dart';
+import 'services/auth_service.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SpatialCosmicApp extends StatefulWidget {
   const SpatialCosmicApp({super.key});
@@ -51,10 +53,22 @@ class _SpatialCosmicAppState extends State<SpatialCosmicApp> {
     debugPrint('!!! SCHEME: ${uri.scheme}');
     debugPrint('!!! HOST: ${uri.host}');
     debugPrint('!!! PATH: ${uri.path}');
-    
+
     if (mounted) {
+       _handlePasswordRecovery(uri);
        Provider.of<IntegrationService>(context, listen: false).handleAuthCallback(uri);
        Provider.of<OuraService>(context, listen: false).handleCallback(uri);
+    }
+  }
+
+  Future<void> _handlePasswordRecovery(Uri uri) async {
+    try {
+      final response = await Supabase.instance.client.auth.getSessionFromUrl(uri);
+      if (response.redirectType == 'recovery' && mounted) {
+        Provider.of<AuthService>(context, listen: false).startPasswordRecovery();
+      }
+    } catch (e) {
+      debugPrint('Password recovery session error: $e');
     }
   }
 

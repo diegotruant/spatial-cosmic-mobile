@@ -15,7 +15,7 @@ class IntegrationService extends ChangeNotifier {
   static const String _stravaClientSecret = '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
   static const String _stravaRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
   // Use 'activity:write' to allow uploads. 'activity:read_all' for reading.
-  static const String _stravaScope = 'read,activity:read_all';
+  static const String _stravaScope = 'read,activity:read_all,activity:write';
 
   bool _isStravaConnected = false;
   bool get isStravaConnected => _isStravaConnected;
@@ -29,13 +29,61 @@ class IntegrationService extends ChangeNotifier {
   String? _stravaAccessToken;
   String? _wahooAccessToken;
 
+  String? _currentUserId;
+
   IntegrationService() {
+    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
     _loadCredentials();
+    _listenAuthChanges();
+  }
+
+  void _listenAuthChanges() {
+    Supabase.instance.client.auth.onAuthStateChange.listen((data) {
+      final newUserId = data.session?.user.id;
+      if (_currentUserId != newUserId) {
+        _currentUserId = newUserId;
+        _stravaAccessToken = null;
+        _isStravaConnected = false;
+        notifyListeners();
+        Future.microtask(() async {
+          await _loadCredentials();
+          await syncFromSupabase();
+        });
+      }
+    });
+  }
+
+  String _userKey(String key, String? userId) {
+    if (userId == null || userId.isEmpty) return key;
+    return '${key}_$userId';
   }
 
   Future<void> _loadCredentials() async {
     final prefs = await SharedPreferences.getInstance();
-    _stravaAccessToken = prefs.getString('strava_access_token');
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final accessKey = _userKey('strava_access_token', userId);
+    final refreshKey = _userKey('strava_refresh_token', userId);
+    final expiresKey = _userKey('strava_expires_at', userId);
+
+    _stravaAccessToken = prefs.getString(accessKey);
+    if (_stravaAccessToken == null && userId != null) {
+      final legacyAccess = prefs.getString('strava_access_token');
+      if (legacyAccess != null) {
+        await prefs.setString(accessKey, legacyAccess);
+        await prefs.remove('strava_access_token');
+        final legacyRefresh = prefs.getString('strava_refresh_token');
+        if (legacyRefresh != null) {
+          await prefs.setString(refreshKey, legacyRefresh);
+          await prefs.remove('strava_refresh_token');
+        }
+        final legacyExpires = prefs.getInt('strava_expires_at');
+        if (legacyExpires != null) {
+          await prefs.setInt(expiresKey, legacyExpires);
+          await prefs.remove('strava_expires_at');
+        }
+        _stravaAccessToken = legacyAccess;
+      }
+    }
     _isStravaConnected = _stravaAccessToken != null;
     
     _wahooAccessToken = prefs.getString('wahoo_access_token');
@@ -49,7 +97,10 @@ class IntegrationService extends ChangeNotifier {
   Future<void> initiateStravaAuth() async {
     final supabase = Supabase.instance.client;
     final user = supabase.auth.currentUser;
-    final email = user?.email ?? '';
+    if (user == null) return;
+    final email = user.email ?? '';
+    final userId = user.id;
+    final state = email.isNotEmpty ? 'mobile:$userId:$email' : 'mobile:$userId';
 
     final Uri url = Uri.https(
       'www.strava.com',
@@ -60,7 +111,7 @@ class IntegrationService extends ChangeNotifier {
         'redirect_uri': _stravaRedirectUri,
         'approval_prompt': 'force',
         'scope': _stravaScope,
-        'state': 'mobile:$email',
+        'state': state,
       },
     );
 
@@ -98,12 +149,21 @@ class IntegrationService extends ChangeNotifier {
 
       final response = await supabase
           .from('athletes')
-          .select('extra_data')
-          .ilike('email', user.email!)
+          .select('id, email, extra_data')
+          .eq('id', user.id)
           .maybeSingle();
 
-      if (response != null && response['extra_data'] != null) {
-        final extraData = Map<String, dynamic>.from(response['extra_data']);
+      Map<String, dynamic>? row = response;
+      if (row == null && user.email != null) {
+        row = await supabase
+            .from('athletes')
+            .select('id, email, extra_data')
+            .ilike('email', user.email!)
+            .maybeSingle();
+      }
+
+      if (row != null && row['extra_data'] != null) {
+        final extraData = Map<String, dynamic>.from(row['extra_data']);
         
         // Sync Strava
         Map<String, dynamic>? strava;
@@ -223,9 +283,10 @@ class IntegrationService extends ChangeNotifier {
 
   Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt, {bool syncToSupabase = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('strava_access_token', accessToken);
-    await prefs.setString('strava_refresh_token', refreshToken);
-    await prefs.setInt('strava_expires_at', expiresAt);
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    await prefs.setString(_userKey('strava_access_token', userId), accessToken);
+    await prefs.setString(_userKey('strava_refresh_token', userId), refreshToken);
+    await prefs.setInt(_userKey('strava_expires_at', userId), expiresAt);
     
     _stravaAccessToken = accessToken;
     _isStravaConnected = true;
@@ -240,13 +301,22 @@ class IntegrationService extends ChangeNotifier {
         // Fetch current extra_data to merge
         final response = await supabase
             .from('athletes')
-            .select('extra_data')
-            .ilike('email', user.email!)
+            .select('id, email, extra_data')
+            .eq('id', user.id)
             .maybeSingle();
+
+        Map<String, dynamic>? row = response;
+        if (row == null && user.email != null) {
+          row = await supabase
+              .from('athletes')
+              .select('id, email, extra_data')
+              .ilike('email', user.email!)
+              .maybeSingle();
+        }
             
         Map<String, dynamic> extraData = {};
-        if (response != null && response['extra_data'] != null) {
-          extraData = Map<String, dynamic>.from(response['extra_data']);
+        if (row != null && row['extra_data'] != null) {
+          extraData = Map<String, dynamic>.from(row['extra_data']);
         }
         
         final stravaData = {
@@ -268,7 +338,7 @@ class IntegrationService extends ChangeNotifier {
         await supabase
             .from('athletes')
             .update({'extra_data': extraData})
-            .ilike('email', user.email!);
+            .eq('id', user.id);
         debugPrint('Strava tokens synced to Supabase (nested)');
       }
     } catch (e) {
@@ -278,32 +348,58 @@ class IntegrationService extends ChangeNotifier {
   
   Future<void> disconnectStrava() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('strava_access_token');
-    await prefs.remove('strava_refresh_token');
-    await prefs.remove('strava_expires_at');
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final accessToken = prefs.getString(_userKey('strava_access_token', userId));
+    await prefs.remove(_userKey('strava_access_token', userId));
+    await prefs.remove(_userKey('strava_refresh_token', userId));
+    await prefs.remove(_userKey('strava_expires_at', userId));
     
     _stravaAccessToken = null;
     _isStravaConnected = false;
     notifyListeners();
+
+    // Deauthorize from Strava (removes the athlete from the app on Strava side)
+    try {
+      if (accessToken != null && accessToken.isNotEmpty) {
+        await http.post(
+          Uri.parse('https://www.strava.com/oauth/deauthorize'),
+          body: {'access_token': accessToken},
+        );
+      }
+    } catch (e) {
+      debugPrint('Strava deauthorize error: $e');
+    }
 
     // Remove from Supabase
     try {
       final supabase = Supabase.instance.client;
       final user = supabase.auth.currentUser;
       if (user != null) {
-        final response = await supabase
+        Map<String, dynamic>? row = await supabase
             .from('athletes')
-            .select('extra_data')
-            .ilike('email', user.email!)
+            .select('id, email, extra_data')
+            .eq('id', user.id)
             .maybeSingle();
+        if (row == null && user.email != null) {
+          row = await supabase
+              .from('athletes')
+              .select('id, email, extra_data')
+              .ilike('email', user.email!)
+              .maybeSingle();
+        }
             
-        if (response != null && response['extra_data'] != null) {
-          Map<String, dynamic> extraData = Map<String, dynamic>.from(response['extra_data']);
+        if (row != null && row['extra_data'] != null) {
+          Map<String, dynamic> extraData = Map<String, dynamic>.from(row['extra_data']);
           extraData.remove('strava');
+          if (extraData.containsKey('integrations')) {
+            final integrations = Map<String, dynamic>.from(extraData['integrations']);
+            integrations.remove('strava');
+            extraData['integrations'] = integrations;
+          }
           await supabase
               .from('athletes')
               .update({'extra_data': extraData})
-              .ilike('email', user.email!);
+              .eq('id', user.id);
           debugPrint('Strava tokens removed from Supabase');
         }
       }
@@ -328,8 +424,9 @@ class IntegrationService extends ChangeNotifier {
 
   Future<bool> _ensureValidStravaToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final expiresAt = prefs.getInt('strava_expires_at') ?? 0;
-    final refreshToken = prefs.getString('strava_refresh_token');
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final expiresAt = prefs.getInt(_userKey('strava_expires_at', userId)) ?? 0;
+    final refreshToken = prefs.getString(_userKey('strava_refresh_token', userId));
 
     // If it expires in less than 5 minutes, refresh
     if (DateTime.now().millisecondsSinceEpoch / 1000 > (expiresAt - 300)) {
@@ -379,8 +476,8 @@ class IntegrationService extends ChangeNotifier {
       final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $_stravaAccessToken'
         ..fields['data_type'] = 'fit'
-        ..fields['name'] = 'Spatial Cosmic: ${fitFile.path.split('/').last.split('_').last.replaceAll('.fit', '')}'
-        ..fields['description'] = 'Allenamento indoor completato con Spatial Cosmic App'
+        ..fields['name'] = 'Velo Lab: ${fitFile.path.split('/').last.split('_').last.replaceAll('.fit', '')}'
+        ..fields['description'] = 'Allenamento indoor completato con Velo Lab App'
         ..fields['sport_type'] = 'VirtualRide'
         ..fields['activity_type'] = 'VirtualRide'
         ..fields['external_id'] = 'sc_${fitFile.path.split('/').last}'

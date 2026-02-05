@@ -24,30 +24,15 @@ class SyncPlatformSelector extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           const Text(
-            "SINCRO DISPOSITIVO",
+            "ESPORTA FILE FIT",
             style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold, letterSpacing: 2.0),
           ),
           const SizedBox(height: 32),
           
           _buildPlatformItem(
-            icon: LucideIcons.send, 
-            label: "Wahoo Cloud", 
-            onTap: () => onSelect('wahoo'),
-            color: Colors.orangeAccent
-          ),
-          const SizedBox(height: 12),
-          _buildPlatformItem(
-            icon: LucideIcons.send, 
-            label: "TrainingPeaks", 
-            subtitle: "Bryton / Karoo Hub",
-            onTap: () => onSelect('tp'),
-            color: Colors.cyanAccent
-          ),
-          const SizedBox(height: 12),
-          _buildPlatformItem(
             icon: LucideIcons.download, 
-            label: "Esporta per Garmin / Altri", 
-            subtitle: "Scarica file .fit per caricamento USB",
+            label: "Scarica file .fit", 
+            subtitle: "Importa su Garmin, Wahoo, Karoo, Bryton",
             onTap: () => onSelect('export'),
             color: Colors.white70
           ),

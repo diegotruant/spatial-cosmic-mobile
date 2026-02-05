@@ -500,8 +500,22 @@ class AccountInfoScreen extends StatelessWidget {
   }
 }
 
-class ConnectionsScreen extends StatelessWidget {
+class ConnectionsScreen extends StatefulWidget {
   const ConnectionsScreen({super.key});
+
+  @override
+  State<ConnectionsScreen> createState() => _ConnectionsScreenState();
+}
+
+class _ConnectionsScreenState extends State<ConnectionsScreen> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (!mounted) return;
+      context.read<IntegrationService>().syncFromSupabase();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

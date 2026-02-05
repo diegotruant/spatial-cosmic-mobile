@@ -18,6 +18,8 @@ enum Gender {
 }
 
 class MetabolicProfile {
+  final int? schemaVersion;
+  final String? updatedAt;
   final double vlamax;
   final double map; // Maximum Aerobic Power in Watts
   final double vo2max; // Relative VO2max (ml/min/kg)
@@ -33,6 +35,8 @@ class MetabolicProfile {
   final List<CombustionData> combustionCurve;
 
   MetabolicProfile({
+    this.schemaVersion,
+    this.updatedAt,
     required this.vlamax,
     required this.map,
     required this.vo2max,
@@ -49,6 +53,8 @@ class MetabolicProfile {
   });
 
   Map<String, dynamic> toJson() => {
+    'schemaVersion': schemaVersion,
+    'updatedAt': updatedAt,
     'vlamax': vlamax,
     'map': map,
     'vo2max': vo2max,
@@ -66,7 +72,11 @@ class MetabolicProfile {
 
   factory MetabolicProfile.fromJson(Map<String, dynamic> json) {
     try {
+      final version = json['schemaVersion'] is num ? (json['schemaVersion'] as num).toInt() : null;
+      final updatedAt = json['updatedAt'] as String?;
       return MetabolicProfile(
+        schemaVersion: version,
+        updatedAt: updatedAt,
         vlamax: _safeDouble(json['vlamax']) ?? 0.0,
         map: _safeDouble(json['map'] ?? json['ftp']) ?? 0.0,
         vo2max: _safeDouble(json['vo2max']) ?? 0.0,
@@ -87,6 +97,8 @@ class MetabolicProfile {
       debugPrint("Severe error parsing MetabolicProfile: $e");
       // Return a skeleton profile instead of crashing
       return MetabolicProfile(
+        schemaVersion: null,
+        updatedAt: null,
         vlamax: 0, map: 0, vo2max: 0,
         metabolic: MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
         zones: [], combustionCurve: []

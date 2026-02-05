@@ -8,12 +8,14 @@ import 'package:spatial_cosmic_mobile/src/models/workout_template.dart';
 import 'package:spatial_cosmic_mobile/src/logic/zwo_parser.dart';
 import '../../widgets/glass_card.dart';
 import 'modern_workout_screen.dart';
-import 'package:spatial_cosmic_mobile/src/services/integration_service.dart';
 import 'package:spatial_cosmic_mobile/src/logic/fit_generator.dart';
 import 'package:spatial_cosmic_mobile/src/services/settings_service.dart';
 import '../../widgets/platform_selector.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_text_styles.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 
 class WorkoutLibraryScreen extends StatefulWidget {
   final bool isTab;
@@ -59,7 +61,14 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
 
   void _startWorkout(WorkoutTemplate template) {
     try {
-      final parsedWorkout = ZwoParser.parse(template.zwoContent, titleOverride: template.title);
+      WorkoutWorkout parsedWorkout;
+      if (template.zwoContent.isNotEmpty) {
+        parsedWorkout = ZwoParser.parse(template.zwoContent, titleOverride: template.title);
+      } else if (template.structure != null) {
+        parsedWorkout = ZwoParser.parseJson(template.structure!);
+      } else {
+        throw Exception('Workout data missing');
+      }
       final ftp = context.read<SettingsService>().ftp;
       context.read<WorkoutService>().startWorkout(parsedWorkout, workoutId: template.id, ftp: ftp);
       
@@ -104,7 +113,7 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
                 const CircularProgressIndicator(color: AppColors.primary),
                 const SizedBox(height: 20),
                 Text(
-                  "Sincronizzazione in corso...", 
+                  "Esportazione file .fit...", 
                   style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.bold)
                 ),
               ],
@@ -139,14 +148,24 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
          throw 'Impossibile caricare il workout: dati mancanti o non validi.';
       }
 
+      if (platform != 'export') {
+        throw 'Piattaforma non supportata.';
+      }
+
       final ftp = context.read<SettingsService>().ftp; // Get user FTP for scaling
-      await context.read<IntegrationService>().uploadWorkoutDirectly(parsedWorkout!, platform, ftp);
+      final dir = await getApplicationDocumentsDirectory();
+      final filename = "${parsedWorkout!.title.replaceAll(' ', '_')}.fit";
+      final file = File('${dir.path}/$filename');
+      final bytes = FitGenerator.toBytes(parsedWorkout, ftp);
+      await file.writeAsBytes(bytes);
       
       if (mounted) {
         Navigator.pop(context); // Close loading
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Sincronizzazione completata!'), backgroundColor: AppColors.success),
+        await Share.shareXFiles(
+          [XFile(file.path)],
+          text: 'Allenamento Velo Lab: ${parsedWorkout.title}',
         );
+        _showFitImportHelp(context);
       }
     } catch (e) {
       if (mounted) {
@@ -156,6 +175,33 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
         );
       }
     }
+  }
+
+  void _showFitImportHelp(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text("Importa il file .fit", style: TextStyle(color: Colors.white)),
+        content: const Text(
+          "Garmin: collega via USB → GARMIN/Workouts → copia il .fit.\n"
+          "Guida: https://support.garmin.com/en-US/?search=import%20workout%20fit\n\n"
+          "Wahoo: apri ELEMNT app → aggiungi allenamento da File.\n"
+          "Guida: https://support.wahoofitness.com/hc/en-us/search?query=workout%20fit\n\n"
+          "Karoo: Hammerhead Dashboard → Upload workout (.fit).\n"
+          "Guida: https://support.hammerhead.io/hc/en-us/search?query=workout%20fit\n\n"
+          "Bryton: app Bryton Active → Importa allenamento (.fit).\n"
+          "Guida: https://support.brytonsport.com/hc/en-us/search?query=workout%20fit",
+          style: TextStyle(color: Colors.white70, fontSize: 12),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("OK"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -184,6 +230,26 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
           Column(
             children: [
               _buildTopBar(),
+              if (widget.isTab)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: GlassCard(
+                    padding: const EdgeInsets.all(14),
+                    borderColor: Colors.orangeAccent.withOpacity(0.4),
+                    child: Row(
+                      children: const [
+                        Icon(LucideIcons.alertTriangle, color: Colors.orangeAccent, size: 18),
+                        SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'I test sono sconsigliati se non richiesti dal coach.',
+                            style: TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               Expanded(
                 child: _isLoading
                     ? const Center(child: CircularProgressIndicator())
