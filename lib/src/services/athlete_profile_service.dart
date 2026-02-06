@@ -579,10 +579,10 @@ class AthleteProfileService extends ChangeNotifier {
   AthleteType _categorizeAthlete() {
     if (_vlamax == null) return AthleteType.unknown;
 
-    if (_vlamax! >= 0.60) { // Updated based on user ranges
+    if (_vlamax! >= 0.70) { 
        return AthleteType.sprinter;
-    } else if (_vlamax! <= 0.35) {
-       return AthleteType.timeTrialist; // or climber depending on weight
+    } else if (_vlamax! <= 0.40) {
+       return AthleteType.timeTrialist;
     } else {
        return AthleteType.allRounder;
     }

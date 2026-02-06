@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -184,6 +185,10 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
                 _buildKeyMetrics(results),
                 const SizedBox(height: 24),
                 _buildChartSection(results),
+                const SizedBox(height: 24),
+                const Text("CURVA DI POTENZA [MODELLATA]", style: TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 10, letterSpacing: 1.5)),
+                const SizedBox(height: 12),
+                _buildPDCChartSection(results),
                 const SizedBox(height: 24),
                 _buildZonesTable(results),
                 const SizedBox(height: 32),
@@ -445,90 +450,135 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
   Widget _buildKeyMetrics(MetabolicProfile p) {
      return Column(
        children: [
+         // Row 0: MLSS and FatMax
          Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.indigoAccent, borderRadius: BorderRadius.circular(24)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("VLamax", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                        const Icon(LucideIcons.database, color: Colors.white24, size: 12),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(p.vlamax.toStringAsFixed(3), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                    const Text("mmol/L/s [STIMA]", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text("VO2max", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                        const Icon(LucideIcons.database, color: Colors.white24, size: 12),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(p.vo2max.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                    const Text("ml/min/kg [STIMA]", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.indigoAccent.withOpacity(0.3), width: 1)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text("BMR / TDEE", style: TextStyle(color: Colors.indigoAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                    const SizedBox(height: 4),
-                    Text("${p.tdee?.round() ?? '---'} kcal", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                    Text("BMR: ${p.bmr?.round() ?? '---'} kcal", style: const TextStyle(color: Colors.white30, fontSize: 10)),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            // W' (APR) Box
-            Expanded(
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.orangeAccent.withOpacity(0.3), width: 1)),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                   const Text("APR (W')", style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                    const SizedBox(height: 4),
-                    Text("${((p.wPrime ?? 0) / 1000).toStringAsFixed(1)} kJ", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-                    Text("${(p.wPrime ?? 0).toInt()} J", style: const TextStyle(color: Colors.white30, fontSize: 10)),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+           children: [
+             Expanded(
+               child: Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(
+                   color: const Color(0xFF1E293B), 
+                   borderRadius: BorderRadius.circular(24),
+                   border: Border.all(color: Colors.emeraldAccent.withOpacity(0.5), width: 2),
+                 ),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     const Text("MLSS (SOGLIA)", style: TextStyle(color: Colors.emeraldAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                     const SizedBox(height: 4),
+                     Text("${p.mlss?.round() ?? p.metabolic.estimatedFtp.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                     const Text("FISIOLOGICA [FTP]", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                   ],
+                 ),
+               ),
+             ),
+             const SizedBox(width: 12),
+             Expanded(
+               child: Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(
+                   color: const Color(0xFF1E293B), 
+                   borderRadius: BorderRadius.circular(24),
+                   border: Border.all(color: Colors.orangeAccent.withOpacity(0.3), width: 1),
+                 ),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     const Text("FAT MAX", style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                     const SizedBox(height: 4),
+                     Text("${p.fatMax?.round() ?? p.metabolic.fatMaxWatt.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                     const Text("PICCO LIPIDICO", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                   ],
+                 ),
+               ),
+             ),
+           ],
+         ),
+         const SizedBox(height: 12),
+         Row(
+           children: [
+             Expanded(
+               child: Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(color: Colors.indigoAccent, borderRadius: BorderRadius.circular(24)),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+                         const Text("VLamax", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                         const Icon(LucideIcons.database, color: Colors.white24, size: 12),
+                       ],
+                     ),
+                     const SizedBox(height: 4),
+                     Text(p.vlamax.toStringAsFixed(3), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                     const Text("mmol/L/s [STIMA]", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                   ],
+                 ),
+               ),
+             ),
+             const SizedBox(width: 12),
+             Expanded(
+               child: Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     Row(
+                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                       children: [
+                         const Text("VO2max", style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                         const Icon(LucideIcons.database, color: Colors.white24, size: 12),
+                       ],
+                     ),
+                     const SizedBox(height: 4),
+                     Text(p.vo2max.toStringAsFixed(1), style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                     const Text("ml/min/kg [STIMA]", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                   ],
+                 ),
+               ),
+             ),
+           ],
+         ),
+         const SizedBox(height: 12),
+         Row(
+           children: [
+             Expanded(
+               child: Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.indigoAccent.withOpacity(0.3), width: 1)),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                     const Text("BMR / TDEE", style: TextStyle(color: Colors.indigoAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                     const SizedBox(height: 4),
+                     Text("${p.tdee?.round() ?? '---'} kcal", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                     Text("BMR: ${p.bmr?.round() ?? '---'} kcal", style: const TextStyle(color: Colors.white30, fontSize: 10)),
+                   ],
+                 ),
+               ),
+             ),
+             const SizedBox(width: 12),
+             // W' (APR) Box
+             Expanded(
+               child: Container(
+                 padding: const EdgeInsets.all(16),
+                 decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.pinkAccent.withOpacity(0.3), width: 1)),
+                 child: Column(
+                   crossAxisAlignment: CrossAxisAlignment.start,
+                   children: [
+                    const Text("APR (W')", style: TextStyle(color: Colors.pinkAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                     const SizedBox(height: 4),
+                     Text("${((p.wPrime ?? 0) / 1000).toStringAsFixed(1)} kJ", style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                     Text("${(p.wPrime ?? 0).toInt()} J", style: const TextStyle(color: Colors.white30, fontSize: 10)),
+                   ],
+                 ),
+               ),
+             ),
+           ],
+         ),
        ],
      );
   }
@@ -616,6 +666,77 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
             ),
           );
         }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildPDCChartSection(MetabolicProfile p) {
+    if (p.pdcCurve.isEmpty) return const SizedBox();
+
+    // Use logarithmic scale for x-axis (seconds)
+    final spots = p.pdcCurve.map((c) => FlSpot(math.log(c.durationSeconds.toDouble()) / math.ln10, c.watt)).toList();
+
+    return Container(
+      height: 220,
+      padding: const EdgeInsets.fromLTRB(16, 24, 24, 12),
+      decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(24), border: Border.all(color: Colors.white10)),
+      child: LineChart(
+        LineChartData(
+          gridData: FlGridData(
+            show: true, 
+            drawVerticalLine: true, 
+            getDrawingHorizontalLine: (v) => FlLine(color: Colors.white.withOpacity(0.05), strokeWidth: 1),
+            getDrawingVerticalLine: (v) => FlLine(color: Colors.white.withOpacity(0.05), strokeWidth: 1),
+          ),
+          titlesData: FlTitlesData(
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true, 
+                reservedSize: 40,
+                getTitlesWidget: (v, m) => Text("${v.toInt()}W", style: const TextStyle(color: Colors.white24, fontSize: 9)),
+              ),
+            ),
+            topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true, 
+                reservedSize: 22, 
+                getTitlesWidget: (v, m) {
+                  // Approximated positions for log scale labels
+                  if ((v - (math.log(5) / math.ln10)).abs() < 0.1) return const Text("5s", style: TextStyle(color: Colors.white24, fontSize: 9));
+                  if ((v - (math.log(60) / math.ln10)).abs() < 0.1) return const Text("1m", style: TextStyle(color: Colors.white24, fontSize: 9));
+                  if ((v - (math.log(300) / math.ln10)).abs() < 0.1) return const Text("5m", style: TextStyle(color: Colors.white24, fontSize: 9));
+                  if ((v - (math.log(1200) / math.ln10)).abs() < 0.1) return const Text("20m", style: TextStyle(color: Colors.white24, fontSize: 9));
+                  if ((v - (math.log(3600) / math.ln10)).abs() < 0.1) return const Text("1h", style: TextStyle(color: Colors.white24, fontSize: 9));
+                  return const SizedBox();
+                }
+              ),
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          lineBarsData: [
+            LineChartBarData(
+              spots: spots,
+              isCurved: true,
+              color: Colors.redAccent,
+              barWidth: 3,
+              dotData: FlDotData(
+                show: true,
+                getDotPainter: (spot, percent, bar, index) => FlDotCirclePainter(
+                  radius: 3,
+                  color: Colors.redAccent,
+                  strokeWidth: 1,
+                  strokeColor: Colors.white,
+                ),
+              ),
+              belowBarData: BarAreaData(
+                show: true,
+                color: Colors.redAccent.withOpacity(0.1),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

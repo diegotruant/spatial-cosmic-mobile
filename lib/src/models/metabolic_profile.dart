@@ -33,6 +33,7 @@ class MetabolicProfile {
   final MetabolicStats metabolic;
   final List<MetabolicZone> zones;
   final List<CombustionData> combustionCurve;
+  final List<PDCPoint> pdcCurve;
 
   MetabolicProfile({
     this.schemaVersion,
@@ -50,6 +51,7 @@ class MetabolicProfile {
     required this.metabolic,
     required this.zones,
     required this.combustionCurve,
+    this.pdcCurve = const [],
   });
 
   Map<String, dynamic> toJson() => {
@@ -68,6 +70,7 @@ class MetabolicProfile {
     'metabolic': metabolic.toJson(),
     'zones': zones.map((z) => z.toJson()).toList(),
     'combustionCurve': combustionCurve.map((c) => c.toJson()).toList(),
+    'pdcCurve': pdcCurve.map((p) => p.toJson()).toList(),
   };
 
   factory MetabolicProfile.fromJson(Map<String, dynamic> json) {
@@ -92,6 +95,7 @@ class MetabolicProfile {
             : MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
         zones: (json['zones'] as List?)?.map((z) => MetabolicZone.fromJson(Map<String, dynamic>.from(z))).toList() ?? [],
         combustionCurve: (json['combustionCurve'] as List?)?.map((c) => CombustionData.fromJson(Map<String, dynamic>.from(c))).toList() ?? [],
+        pdcCurve: (json['pdc_curve'] as List?)?.map((p) => PDCPoint.fromJson(Map<String, dynamic>.from(p))).toList() ?? [],
       );
     } catch (e) {
       debugPrint("Severe error parsing MetabolicProfile: $e");
@@ -101,7 +105,7 @@ class MetabolicProfile {
         updatedAt: null,
         vlamax: 0, map: 0, vo2max: 0,
         metabolic: MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
-        zones: [], combustionCurve: []
+        zones: [], combustionCurve: [], pdcCurve: []
       );
     }
   }
@@ -195,6 +199,23 @@ class CombustionData {
     watt: _safeDouble(json['watt']) ?? 0.0,
     fatOxidation: _safeDouble(json['fatOxidation']) ?? 0.0,
     carbOxidation: _safeDouble(json['carbOxidation']) ?? 0.0,
+  );
+}
+
+class PDCPoint {
+  final int durationSeconds;
+  final double watt;
+
+  PDCPoint({required this.durationSeconds, required this.watt});
+
+  Map<String, dynamic> toJson() => {
+    'duration_seconds': durationSeconds,
+    'watt': watt,
+  };
+
+  factory PDCPoint.fromJson(Map<String, dynamic> json) => PDCPoint(
+    durationSeconds: json['duration_seconds'] ?? 0,
+    watt: _safeDouble(json['watt']) ?? 0.0,
   );
 }
 
