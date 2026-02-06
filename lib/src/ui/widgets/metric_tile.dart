@@ -26,7 +26,7 @@ class MetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced padding
       borderRadius: 12,
       borderColor: accentColor.withOpacity(0.2),
       child: Column(
@@ -39,19 +39,19 @@ class MetricTile extends StatelessWidget {
               Text(
                 label.toUpperCase(),
                 style: const TextStyle(
-                  color: Colors.white, // Solid white for maximum contrast
-                  fontSize: 11, // Slightly larger
-                  letterSpacing: 1.2,
+                  color: Colors.white70, // Slightly dimmer for better hierarchy
+                  fontSize: 10, // Slightly smaller
+                  letterSpacing: 1.0,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               if (trailing != null)
                 trailing!
               else if (icon != null)
-                Icon(icon, color: accentColor.withOpacity(0.8), size: 14),
+                Icon(icon, color: accentColor.withOpacity(0.8), size: 12),
             ],
           ),
-          const Spacer(),
+          const SizedBox(height: 4), // Replaced Spacer with small gap
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -59,25 +59,25 @@ class MetricTile extends StatelessWidget {
               Text(
                 value,
                 style: TextStyle(
-                  color: valueColor ?? Colors.white, // Use custom valueColor if provided
-                  fontSize: isLarge ? 32 : 24,
+                  color: valueColor ?? Colors.white,
+                  fontSize: isLarge ? 28 : 22, // Slightly smaller fonts
                   fontWeight: FontWeight.bold,
                   fontFeatures: const [FontFeature.tabularFigures()],
                   shadows: [
                     Shadow(
-                      color: (valueColor ?? accentColor).withOpacity(0.8), // Glow matches value color
-                      blurRadius: 15,
+                      color: (valueColor ?? accentColor).withOpacity(0.5),
+                      blurRadius: 10,
                     ),
                   ],
                 ),
               ),
-              if (unit != null) ...[
+              if (unit != null && unit!.isNotEmpty) ...[
                 const SizedBox(width: 4),
                 Text(
                   unit!,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.7), // More visible unit
-                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.5),
+                    fontSize: 11,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

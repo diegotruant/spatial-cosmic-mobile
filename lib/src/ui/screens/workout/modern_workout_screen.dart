@@ -141,10 +141,10 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         Expanded(
           flex: 2,
           child: GridView.count(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.4,
+            crossAxisCount: 3, // Increased density
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
+            childAspectRatio: 1.5,
             children: _buildMetricTiles(bluetooth, workoutService, formatTime),
           ),
         ),
@@ -171,10 +171,10 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         // Griglia metriche “pro” sotto il grafico
         Expanded(
           child: GridView.count(
-            crossAxisCount: 2,
-            childAspectRatio: 1.1,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
+            crossAxisCount: 3, // Increased to 3 for more density
+            childAspectRatio: 1.3, // Adjusted for shorter tiles
+            crossAxisSpacing: 8,
+            mainAxisSpacing: 8,
             children: _buildMetricTiles(bluetooth, workoutService, formatTime),
           ),
         ),
@@ -220,7 +220,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         accentColor: Colors.greenAccent,
       ),
       MetricTile(
-        label: 'SPEED',
+        label: 'SPD / DIST',
         value: workoutService.currentSpeed.toStringAsFixed(1),
         unit: 'km/h',
         accentColor: Colors.blueAccent,
@@ -418,7 +418,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
       
       // 7. Speed / Dist (Compact)
       MetricTile(
-        label: 'SPEED / DIST', 
+        label: 'SPD / DIST', 
         value: '${workoutService.currentSpeed.toStringAsFixed(1)} / ${workoutService.totalDistance.toStringAsFixed(1)}', 
         unit: 'km/h / km', 
         accentColor: Colors.purpleAccent
@@ -426,11 +426,32 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
 
       // 8. Pedal Balance L/R
       MetricTile(
-        label: 'BALANCE L/R',
+        label: 'L/R BAL',
         value: balanceValue,
         unit: '%',
         accentColor: Colors.cyanAccent,
       ),
+
+      // 9. CORE BODY TEMP
+      Builder(builder: (context) {
+        final temp = bluetooth.coreTemp;
+        Color tempColor = Colors.greenAccent;
+        if (temp > 38.0) {
+          tempColor = Colors.redAccent;
+        } else if (temp > 37.0) {
+          tempColor = Colors.yellowAccent;
+        } else if (temp <= 0) {
+          tempColor = Colors.grey;
+        }
+
+        return MetricTile(
+          label: 'CORE TEMP',
+          value: temp > 0 ? temp.toStringAsFixed(1) : '-',
+          unit: '°C',
+          accentColor: tempColor,
+          valueColor: tempColor,
+        );
+      }),
     ];
   }
 
