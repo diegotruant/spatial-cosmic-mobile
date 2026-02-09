@@ -24,6 +24,11 @@ class BluetoothService extends ChangeNotifier {
   // Cadence source tracking
   CadenceSource cadenceSource = CadenceSource.none;
 
+  // Trainer Sensor Preferences
+  bool useTrainerPower = true;
+  bool useTrainerCadence = true;
+  bool useTrainerSpeed = true;
+
   bool isScanning = false;
   List<blue.ScanResult> scanResults = [];
 
@@ -244,12 +249,15 @@ class BluetoothService extends ChangeNotifier {
 
     // FTMS 0x2AD2 structure:
     // Flags (2 bytes)
-    // Instantaneous Speed (2 bytes, UINT16, unit 0.01 km/h) - Usually mandatory/first
+    // Instantaneous Speed (if Bit 1 set not explicitly but implied by offset? No, Speed is Mandatory in 2AD2)
+    // Actually Speed IS Mandatory FIRST field.
     
-    // Check if we have enough data for speed
+    // Check if we have enough data for speed and if user wants it
     if (offset + 2 <= value.length) {
-      int rawSpeed = value[offset] | (value[offset + 1] << 8);
-      speed = rawSpeed * 0.01; // km/h
+      if (useTrainerSpeed) {
+         int rawSpeed = value[offset] | (value[offset + 1] << 8);
+         speed = rawSpeed * 0.01; // km/h
+      }
       offset += 2;
     }
 
@@ -269,9 +277,11 @@ class BluetoothService extends ChangeNotifier {
     // Instantaneous Cadence (if Bit 2 set)
     if (instCadencePresent) {
       if (offset + 2 <= value.length) {
-        int rawCadence = value[offset] | (value[offset + 1] << 8); 
-        // Resolution is 0.5 RPM
-        updateCadence((rawCadence * 0.5).round(), CadenceSource.trainer);
+        if (useTrainerCadence) {
+           int rawCadence = value[offset] | (value[offset + 1] << 8); 
+           // Resolution is 0.5 RPM
+           updateCadence((rawCadence * 0.5).round(), CadenceSource.trainer);
+        }
         offset += 2;
       }
     }
@@ -288,9 +298,11 @@ class BluetoothService extends ChangeNotifier {
     // Instantaneous Power (if Bit 6 set) - 2 bytes (INT16)
     if (instPowerPresent) {
       if (offset + 2 <= value.length) {
-         int rawPower = value[offset] | (value[offset + 1] << 8);
-         power = rawPower.toDouble();
-         notifyListeners();
+         if (useTrainerPower) {
+            int rawPower = value[offset] | (value[offset + 1] << 8);
+            power = rawPower.toDouble();
+            notifyListeners();
+         }
          // No need to increment offset further unless we parse more
       }
     }
@@ -590,5 +602,98 @@ class BluetoothService extends ChangeNotifier {
     if (name.contains("STAGES")) return 'POWER';
     
     return null; // Unknown, ask user
+  
+  // ========================================
+  // DISCONNECT METHODS
+  // ========================================
+  
+  /// Disconnects a specific device by type and clears its reference
+  Future<void> disconnectDevice(String deviceType) async {
+    try {
+      blue.BluetoothDevice? deviceToDisconnect;
+      
+      switch (deviceType) {
+        case 'TRAINER':
+          deviceToDisconnect = trainer;
+          trainer = null;
+          power = 0.0;
+          speed = 0.0;
+          // Reset cadence if it was from trainer
+          if (cadenceSource == CadenceSource.trainer) {
+            cadence = 0;
+            cadenceSource = CadenceSource.none;
+          }
+          break;
+          
+        case 'HR':
+          deviceToDisconnect = heartRateSensor;
+          heartRateSensor = null;
+          heartRate = 0;
+          rrIntervals.clear();
+          break;
+          
+        case 'POWER':
+          deviceToDisconnect = powerMeter;
+          powerMeter = null;
+          power = 0.0;
+          leftPowerBalance = null;
+          rightPowerBalance = null;
+          // Reset cadence if it was from power meter
+          if (cadenceSource == CadenceSource.dedicated) {
+            cadence = 0;
+            cadenceSource = CadenceSource.none;
+          }
+          _lastCrankRevolutions = -1;
+          _lastCrankEventTime = -1;
+          break;
+          
+        case 'CORE':
+          deviceToDisconnect = coreSensor;
+          coreSensor = null;
+          coreTemp = 0.0;
+          break;
+          
+        case 'CADENCE':
+          deviceToDisconnect = cadenceSensor;
+          cadenceSensor = null;
+          cadence = 0;
+          cadenceSource = CadenceSource.none;
+          break;
+      }
+      
+      // Actually disconnect the BLE device
+      if (deviceToDisconnect != null) {
+        await deviceToDisconnect.disconnect();
+        debugPrint('✅ Disconnected $deviceType: ${deviceToDisconnect.platformName}');
+      }
+      
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Error disconnecting $deviceType: $e');
+      // Still clear the reference even if disconnect fails
+      notifyListeners();
+    }
   }
+  
+  /// Disconnects all devices
+  Future<void> disconnectAll() async {
+    await Future.wait([
+      if (trainer != null) disconnectDevice('TRAINER'),
+      if (heartRateSensor != null) disconnectDevice('HR'),
+      if (powerMeter != null) disconnectDevice('POWER'),
+      if (coreSensor != null) disconnectDevice('CORE'),
+      if (cadenceSensor != null) disconnectDevice('CADENCE'),
+    ]);
+  }
+  
+  /// Gets the device type from a BluetoothDevice reference
+  String? getDeviceType(blue.BluetoothDevice device) {
+    if (trainer?.remoteId == device.remoteId) return 'TRAINER';
+    if (heartRateSensor?.remoteId == device.remoteId) return 'HR';
+    if (powerMeter?.remoteId == device.remoteId) return 'POWER';
+    if (coreSensor?.remoteId == device.remoteId) return 'CORE';
+    if (cadenceSensor?.remoteId == device.remoteId) return 'CADENCE';
+    return null;
+  }
+}
 }

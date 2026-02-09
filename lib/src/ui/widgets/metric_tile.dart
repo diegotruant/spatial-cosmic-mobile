@@ -26,23 +26,30 @@ class MetricTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GlassCard(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), // Reduced padding
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8), // Reduced padding to 8
       borderRadius: 12,
       borderColor: accentColor.withOpacity(0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          // Label in alto
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                label.toUpperCase(),
-                style: const TextStyle(
-                  color: Colors.white70, // Slightly dimmer for better hierarchy
-                  fontSize: 10, // Slightly smaller
-                  letterSpacing: 1.0,
-                  fontWeight: FontWeight.w600,
+              Expanded(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    label.toUpperCase(),
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
+                      letterSpacing: 0.8,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
               if (trailing != null)
@@ -51,39 +58,45 @@ class MetricTile extends StatelessWidget {
                 Icon(icon, color: accentColor.withOpacity(0.8), size: 12),
             ],
           ),
-          const SizedBox(height: 4), // Replaced Spacer with small gap
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: valueColor ?? Colors.white,
-                  fontSize: isLarge ? 28 : 22, // Slightly smaller fonts
-                  fontWeight: FontWeight.bold,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                  shadows: [
-                    Shadow(
-                      color: (valueColor ?? accentColor).withOpacity(0.5),
-                      blurRadius: 10,
-                    ),
-                  ],
-                ),
-              ),
-              if (unit != null && unit!.isNotEmpty) ...[
-                const SizedBox(width: 4),
-                Text(
-                  unit!,
+          const SizedBox(height: 4),
+          // Valore al centro
+          Expanded( // Added Expanded to fill vertical space if needed, or just let FittedBox handle it
+             child: Align(
+               alignment: Alignment.centerLeft,
+               child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
                   style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
-                    fontSize: 11,
-                    fontWeight: FontWeight.w500,
+                    color: valueColor ?? Colors.white,
+                    fontSize: isLarge ? 26 : 20,
+                    fontWeight: FontWeight.bold,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                    shadows: [
+                      Shadow(
+                        color: (valueColor ?? accentColor).withOpacity(0.5),
+                        blurRadius: 10,
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ],
+              ),
+             ),
           ),
+          // Unità sotto il valore (invece che a fianco)
+          // Unità sotto il valore (invece che a fianco)
+          if (unit != null && unit!.isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              unit!,
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 9,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
         ],
       ),
     );

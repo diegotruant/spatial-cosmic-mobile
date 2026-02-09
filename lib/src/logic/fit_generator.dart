@@ -77,6 +77,36 @@ class FitGenerator {
     return builder.build().toBytes();
   }
 
+  /// Calculate Normalized Power (NP) from power data
+  /// Algorithm: NP = (average of (30s rolling avg)^4)^(1/4)
+  static int _calculateNormalizedPower(List<double> powerHistory) {
+    if (powerHistory.length < 30) {
+      // Not enough data for NP calculation, return average
+      if (powerHistory.isEmpty) return 0;
+      return (powerHistory.fold<double>(0, (a, b) => a + b) / powerHistory.length).round();
+    }
+
+    // Calculate 30-second rolling averages
+    List<double> rollingAvgs = [];
+    for (int i = 29; i < powerHistory.length; i++) {
+      double sum = 0;
+      for (int j = i - 29; j <= i; j++) {
+        sum += powerHistory[j];
+      }
+      rollingAvgs.add(sum / 30);
+    }
+
+    // Raise each rolling average to the 4th power
+    double sumOfFourthPower = 0;
+    for (var avg in rollingAvgs) {
+      sumOfFourthPower += pow(avg, 4);
+    }
+
+    // Take the 4th root of the average
+    double np = pow(sumOfFourthPower / rollingAvgs.length, 1/4).toDouble();
+    return np.round();
+  }
+
   /// Generates a .fit file from a Supabase assignment (JSON structure)
   static Future<File> generateFromAssignment(Map<String, dynamic> assignment, int ftp) async {
     // robust parsing via ZwoParser
@@ -97,6 +127,7 @@ class FitGenerator {
     required int totalCalories,
     required DateTime startTime,
     String? workoutTitle,
+    List<Map<String, dynamic>>? rrHistory,  // Optional RR intervals for HRV
   }) async {
     final builder = FitFileBuilder();
 
@@ -111,16 +142,30 @@ class FitGenerator {
 
 
 
-    final startFitTime = toFitTime(startTime);
-    final endFitTime = toFitTime(startTime.add(Duration(seconds: durationSeconds)));
+    // Normalize startTime to exact second (remove milliseconds for timestamp precision)
+    final normalizedStart = DateTime.fromMillisecondsSinceEpoch(
+      (startTime.millisecondsSinceEpoch ~/ 1000) * 1000
+    );
+    final startFitTime = toFitTime(normalizedStart);
+    final endFitTime = toFitTime(normalizedStart.add(Duration(seconds: durationSeconds)));
 
     // 1. File ID
     builder.add(FileIdMessage()
       ..type = FileType.activity
-      ..manufacturer = 32 // Wahoo - more widely accepted than dev
+      ..manufacturer = 1 // Garmin - highest compatibility
       ..product = 1
       ..timeCreated = startFitTime
       ..serialNumber = 12345678
+    );
+
+    // 1b. Device Info
+    builder.add(DeviceInfoMessage()
+      ..timestamp = startFitTime
+      ..serialNumber = 12345678
+      ..manufacturer = 1
+      ..product = 1
+      ..softwareVersion = 100
+      ..deviceIndex = 0
     );
 
     // 2. Event: Timer Start
@@ -133,17 +178,42 @@ class FitGenerator {
 
     // 3. Records
     int maxLength = [powerHistory.length, hrHistory.length, cadenceHistory.length, speedHistory.length].fold<int>(0, (a, b) => a > b ? a : b);
+    double cumulativeDistance = 0.0;
 
     for (int i = 0; i < maxLength; i++) {
-        final recTime = startTime.add(Duration(seconds: i));
+        final recTime = normalizedStart.add(Duration(seconds: i));
         
+        // Accumulate distance for each record (Speed is km/h, time is 1s)
+        double currentSpeedKmh = i < speedHistory.length ? speedHistory[i] : 0.0;
+        double distInThisSecond = (currentSpeedKmh / 3.6); // m/s
+        cumulativeDistance += distInThisSecond;
+
+        // Validate and clamp all values to FIT protocol ranges
         final record = RecordMessage()
           ..timestamp = toFitTime(recTime)
-          ..power = i < powerHistory.length ? powerHistory[i].toInt() : 0
-          ..heartRate = i < hrHistory.length ? hrHistory[i] : 0
-          ..cadence = i < cadenceHistory.length ? cadenceHistory[i] : 0
-          ..speed = i < speedHistory.length ? speedHistory[i] : 0.0;
+          ..distance = cumulativeDistance // meters (fit_tool handles encoding)
+          ..power = (i < powerHistory.length ? powerHistory[i].toInt() : 0).clamp(0, 65535)
+          ..heartRate = (i < hrHistory.length ? hrHistory[i] : 0).clamp(0, 255)
+          ..cadence = (i < cadenceHistory.length ? cadenceHistory[i] : 0).clamp(0, 255)
+          ..speed = (currentSpeedKmh / 3.6).clamp(0.0, 100.0); // m/s (fit_tool handles encoding)
         builder.add(record);
+        
+        // Add HRV Message if RR intervals available for this second
+        // RR intervals are stored in standard HRV messages for compatibility
+        // Strava ignores these optional messages, but they're parsed by our backend
+        if (rrHistory != null && i < rrHistory.length) {
+          final rrData = rrHistory[i];
+          final rrList = rrData['rr'] as List?;
+          
+          if (rrList != null && rrList.isNotEmpty) {
+            // Convert RR intervals to proper format (milliseconds as integers)
+            final rrIntegers = rrList.map((rr) => rr is int ? rr : (rr as num).toInt()).toList();
+            
+            builder.add(HrvMessage()
+              ..time = rrIntegers.map((rr) => rr.toDouble()).toList()
+            );
+          }
+        }
     }
 
     // 4. Event: Timer Stop
@@ -163,37 +233,72 @@ class FitGenerator {
 
     // 5. Session Message
     // IMPORTANT: startTime must match Timer Start. timestamp must match Timer Stop.
-    final sessionMsg = SessionMessage()
+    // 5. Lap Message (Strava prefers at least one lap)
+    // IMPORTANT: fit_tool does NOT auto-apply scale factors. We multiply manually:
+    // - time fields: x1000 (seconds → milliseconds for binary encoding)
+    // - distance: x100 (meters → centimeters for binary encoding)
+    // - speed: x1000 (m/s → mm/s for binary encoding)
+    final normalizedPower = _calculateNormalizedPower(powerHistory);
+    
+    final lapMsg = LapMessage()
       ..messageIndex = 0
-      ..timestamp = endFitTime 
+      ..timestamp = endFitTime
       ..startTime = startFitTime
-      ..totalElapsedTime = durationSeconds.toDouble()
-      ..totalTimerTime = durationSeconds.toDouble()
-      ..totalDistance = totalDistance
+      ..totalElapsedTime = durationSeconds.toDouble() * 1000.0   // Scale factor: x1000 (seconds → milliseconds)
+      ..totalTimerTime = durationSeconds.toDouble() * 1000.0     // Scale factor: x1000 (seconds → milliseconds)
+      ..totalDistance = cumulativeDistance * 100.0               // Scale factor: x100 (meters → centimeters)
       ..totalCalories = totalCalories
-      ..avgSpeed = speedHistory.isNotEmpty ? (speedHistory.fold<double>(0, (a, b) => a + b) / speedHistory.length) : 0.0
-      ..maxSpeed = speedHistory.isNotEmpty ? speedHistory.fold<double>(0, (a, b) => a > b ? a : b) : 0.0
+      ..avgSpeed = ((speedHistory.isNotEmpty ? (speedHistory.fold<double>(0, (a, b) => a + b) / speedHistory.length) : 0.0) / 3.6) * 1000.0  // Scale factor: x1000 (m/s → mm/s)
+      ..maxSpeed = ((speedHistory.isNotEmpty ? speedHistory.fold<double>(0, (a, b) => a > b ? a : b) : 0.0) / 3.6) * 1000.0  // Scale factor: x1000 (m/s → mm/s)
       ..avgHeartRate = avgHr
       ..maxHeartRate = maxHr
       ..avgCadence = cadenceHistory.isNotEmpty ? (cadenceHistory.fold<int>(0, (a, b) => a + b) / cadenceHistory.length).toInt() : 0
       ..maxCadence = cadenceHistory.isNotEmpty ? cadenceHistory.fold<int>(0, (a, b) => a > b ? a : b) : 0
       ..avgPower = avgPower.toInt()
       ..maxPower = maxPower
-      ..sport = Sport.cycling
-      ..subSport = SubSport.generic;
-      // ..event and ..eventType not valid for SessionMessage
-      // The presence of a SessionMessage implies the session summary.
+      ..normalizedPower = normalizedPower  // Add NP for training analysis
+      ..intensity = Intensity.active
+      ..lapTrigger = LapTrigger.manual;
+    builder.add(lapMsg);
 
-    // Note: fit_tool SessionMessage might not have event/eventType if it follows the structure strictly.
-    // checking known fields: session usually implies summary.
+    // 6. Session Message (OBBLIGATORIO per compatibilità Strava)
+    // IMPORTANT: fit_tool does NOT auto-apply scale factors. We multiply manually:
+    // - time fields: x1000 (seconds → milliseconds for binary encoding)
+    // - distance: x100 (meters → centimeters for binary encoding)
+    // - speed: x1000 (m/s → mm/s for binary encoding)
+    final sessionMsg = SessionMessage()
+      ..messageIndex = 0
+      ..timestamp = endFitTime 
+      ..startTime = startFitTime
+      ..totalElapsedTime = durationSeconds.toDouble() * 1000.0   // Scale factor: x1000 (seconds → milliseconds)
+      ..totalTimerTime = durationSeconds.toDouble() * 1000.0     // Scale factor: x1000 (seconds → milliseconds)
+      ..totalDistance = cumulativeDistance * 100.0               // Scale factor: x100 (meters → centimeters)
+      ..totalCalories = totalCalories
+      ..avgSpeed = ((speedHistory.isNotEmpty ? (speedHistory.fold<double>(0, (a, b) => a + b) / speedHistory.length) : 0.0) / 3.6) * 1000.0  // Scale factor: x1000 (m/s → mm/s)
+      ..maxSpeed = ((speedHistory.isNotEmpty ? speedHistory.fold<double>(0, (a, b) => a > b ? a : b) : 0.0) / 3.6) * 1000.0  // Scale factor: x1000 (m/s → mm/s)
+      ..avgHeartRate = avgHr
+      ..maxHeartRate = maxHr
+      ..avgCadence = cadenceHistory.isNotEmpty ? (cadenceHistory.fold<int>(0, (a, b) => a + b) / cadenceHistory.length).toInt() : 0
+      ..maxCadence = cadenceHistory.isNotEmpty ? cadenceHistory.fold<int>(0, (a, b) => a > b ? a : b) : 0
+      ..avgPower = avgPower.toInt()
+      ..maxPower = maxPower
+      ..normalizedPower = normalizedPower  // Add NP for training analysis
+      ..sport = Sport.cycling
+      ..subSport = SubSport.indoorCycling
+      ..firstLapIndex = 0
+      ..numLaps = 1;
     builder.add(sessionMsg);
 
-    // 6. Activity Message
+    // 7. Activity Message (OBBLIGATORIO per Strava)
+    // IMPORTANT: fit_tool does NOT auto-apply scale factors
+    // time fields: x1000 (seconds → milliseconds for binary encoding)
     final activityMsg = ActivityMessage()
       ..timestamp = endFitTime
-      ..totalTimerTime = durationSeconds.toDouble()
+      ..totalTimerTime = durationSeconds.toDouble() * 1000.0   // Scale factor: x1000 (seconds → milliseconds)
       ..numSessions = 1
-      ..type = Activity.manual;
+      ..type = Activity.manual
+      ..event = Event.activity
+      ..eventType = EventType.stop;
       
     builder.add(activityMsg);
 

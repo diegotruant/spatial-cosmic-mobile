@@ -1,13 +1,117 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 
 class SyncService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
 
+  // ========================================
+  // RETRY & OFFLINE QUEUE CONFIGURATION
+  // ========================================
+  static const int MAX_RETRIES = 3;
+  static const Duration INITIAL_RETRY_DELAY = Duration(seconds: 2);
+  
+  List<Map<String, dynamic>> _offlineQueue = [];
+  List<Map<String, dynamic>> get offlineQueue => _offlineQueue;
+
   bool _isUploading = false;
   bool get isUploading => _isUploading;
+  
+  SyncService() {
+    _loadOfflineQueue();
+  }
+  
+  /// Load offline queue from persistent storage
+  Future<void> _loadOfflineQueue() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final queueFile = File('${dir.path}/offline_queue.json');
+      
+      if (await queueFile.exists()) {
+        final contents = await queueFile.readAsString();
+        final List<dynamic> json = jsonDecode(contents);
+        _offlineQueue = json.map((e) => Map<String, dynamic>.from(e)).toList();
+        debugPrint('📥 Loaded ${_offlineQueue.length} items from offline queue');
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading offline queue: $e');
+    }
+  }
+  
+  /// Save offline queue to persistent storage
+  Future<void> _saveOfflineQueue() async {
+    try {
+      final dir = await getApplicationDocumentsDirectory();
+      final queueFile = File('${dir.path}/offline_queue.json');
+      await queueFile.writeAsString(jsonEncode(_offlineQueue));
+      debugPrint('💾 Saved ${_offlineQueue.length} items to offline queue');
+    } catch (e) {
+      debugPrint('❌ Error saving offline queue: $e');
+    }
+  }
+  
+  /// Add workout to offline queue
+  Future<void> _addToOfflineQueue(File fitFile, DateTime date, String? assignmentId) async {
+    final queueItem = {
+      'file_path': fitFile.path,
+      'date': date.toIso8601String(),
+      'assignment_id': assignmentId,
+      'added_at': DateTime.now().toIso8601String(),
+      'retry_count': 0,
+    };
+    
+    _offlineQueue.add(queueItem);
+    await _saveOfflineQueue();
+    notifyListeners();
+    
+    debugPrint('📴 Added workout to offline queue (${_offlineQueue.length} pending)');
+  }
+  
+  /// Process offline queue
+  Future<void> processOfflineQueue() async {
+    if (_offlineQueue.isEmpty) return;
+    if (_isUploading) return; // Don't overlap
+    
+    debugPrint('🔄 Processing ${_offlineQueue.length} offline workouts...');
+    
+    final itemsToProcess = List<Map<String, dynamic>>.from(_offlineQueue);
+    
+    for (var item in itemsToProcess) {
+      try {
+        final file = File(item['file_path'] as String);
+        if (!await file.exists()) {
+          // File deleted, remove from queue
+          _offlineQueue.remove(item);
+          continue;
+        }
+        
+        final date = DateTime.parse(item['date'] as String);
+        final assignmentId = item['assignment_id'] as String?;
+        
+        // Try to upload with retry
+        // TODO: Implement _uploadWithRetry method
+        // await _uploadWithRetry(file, date, assignmentId: assignmentId);
+        await saveWorkoutToStorage(file, date, assignmentId: assignmentId);
+        
+        // Success! Remove from queue
+        _offlineQueue.remove(item);
+        await _saveOfflineQueue();
+        notifyListeners();
+        
+        debugPrint('✅ Uploaded offline workout: ${file.path}');
+      } catch (e) {
+        debugPrint('❌ Failed to upload offline workout: $e');
+        // Keep in queue for next attempt
+      }
+    }
+    
+    if (_offlineQueue.isEmpty) {
+      debugPrint('✅ All offline workouts synced!');
+    }
+  }
 
   /// Uploads a generated FIT file to Supabase Storage
   /// Also tries to link it to an existing assignment if found

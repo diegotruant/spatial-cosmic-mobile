@@ -13,6 +13,7 @@ import '../../../services/integration_service.dart';
 import '../../../services/intervals_service.dart';
 import '../../../services/athlete_profile_service.dart' as src_profile;
 import '../../../l10n/app_localizations.dart';
+import '../../../logic/fit_generator.dart';
 
 class PostWorkoutAnalysisScreen extends StatefulWidget {
   final String fitFilePath;
@@ -42,6 +43,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   List<int> _hr = [];
   List<int> _cadence = [];
   List<double> _timestamps = [];
+  List<double> _speed = []; // NEW: Store speed data
   
   // Computed Metrics
   double _np = 0;
@@ -49,6 +51,8 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   double _if = 0;
   double _calories = 0;
   double _avgSmoothness = 0;
+  double _avgCadence = 0;
+  String _formattedDuration = "00:00";
   Map<String, double> _peaks = {};
 
   // Chart Toggles
@@ -77,6 +81,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       final power = data['power']?.map((e) => e.toDouble()).toList() ?? [];
       final hr = data['heartRate']?.map((e) => e.toInt()).toList() ?? [];
       final cadence = data['cadence']?.map((e) => e.toInt()).toList() ?? [];
+      final speed = data['speed']?.map((e) => e.toDouble()).toList() ?? []; // Extract speed
       final timestamps = data['timestamps']?.map((e) => e.toDouble()).toList() ?? [];
       
       // Prefer using Total Calories from FIT file if available in 'totalCalories' field
@@ -122,11 +127,22 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
         _gearRatio = gearRatio;
         _hr = hr;
         _cadence = cadence;
+        _speed = speed; // Store speed
         _timestamps = timestamps;
         _np = np;
         _if = ifFactor;
         _tss = tss;
         _calories = (power.reduce((a, b) => a + b) / power.length) * duration / 1000;
+        _avgCadence = cadence.isNotEmpty ? (cadence.reduce((a, b) => a + b) / cadence.length).toDouble() : 0.0;
+        
+        final durationObj = Duration(seconds: duration);
+        final hrs = durationObj.inHours;
+        final mins = durationObj.inMinutes % 60;
+        final secs = durationObj.inSeconds % 60;
+        _formattedDuration = hrs > 0 
+           ? '${hrs}h ${mins}m ${secs}s'
+           : '${mins}m ${secs}s';
+
         _peaks = peaks;
         _avgSmoothness = avgSmooth;
         _newFtp = null; // Calculated FTP not available in simplified engine
@@ -194,6 +210,23 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildSummaryCards(),
+                    const SizedBox(height: 20),
+                    // Repair Button for recovery (ALWAYS visible for convenience)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: _isSaving ? null : () => _handleRepairAndSync(context),
+                        icon: const Icon(LucideIcons.wrench, size: 18),
+                        label: const Text("RIPARA E RIVIA A STRAVA", style: TextStyle(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange.withOpacity(0.2),
+                          foregroundColor: Colors.orangeAccent,
+                          side: const BorderSide(color: Colors.orangeAccent, width: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     _buildChartSection(),
                     const SizedBox(height: 24),
@@ -248,6 +281,78 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _handleRepairAndSync(BuildContext context) async {
+    setState(() => _isSaving = true);
+    try {
+      // 1. Validate and Fix Speed Data
+      List<double> finalSpeedHistory = [];
+      
+      // If speed is missing or has significantly fewer points than power (indicating dropouts/corruption)
+      // or if the user reported "790 km/h" which suggests we might have bad data...
+      // Let's use a heuristic: if speed has < 90% of points, or if we want to force repair:
+      bool forceSyntheticSpeed = true; // For "Repair", we prefer consistent synthetic data over broken real data
+      
+      if (_speed.isNotEmpty && _speed.length >= _power.length * 0.9 && !forceSyntheticSpeed) {
+         // Use existing speed, but ensure it's in km/h for FitGenerator?
+         // FitGenerator expects km/h. FitReader returned m/s? 
+         // Let's assume FitReader returned m/s (standard FIT). We must convert to km/h.
+         finalSpeedHistory = _speed.map((s) => s * 3.6).toList();
+         
+         // Fill gaps if any
+         while (finalSpeedHistory.length < _power.length) {
+            finalSpeedHistory.add(finalSpeedHistory.isNotEmpty ? finalSpeedHistory.last : 0.0);
+         }
+      } else {
+         // Synthesize Speed from Power
+         // v = 1.5 * P^(1/3)  (approximate for flat road) -> m/s
+         // km/h = v * 3.6
+         finalSpeedHistory = _power.map((p) {
+            if (p < 10) return 0.0;
+            final vMps = 1.5 * pow(p, 0.333);
+            return vMps * 3.6; 
+         }).toList();
+      }
+
+      // 2. Rigenera il file FIT
+      final repairedFile = await FitGenerator.generateActivityFit(
+        powerHistory: _power,
+        hrHistory: _hr,
+        cadenceHistory: _cadence,
+        speedHistory: finalSpeedHistory, // Now guaranteed to be km/h and full length
+        avgPower: _power.isNotEmpty ? _power.reduce((a, b) => a + b) / _power.length : 0.0,
+        maxHr: _hr.isNotEmpty ? _hr.reduce(max) : 0,
+        durationSeconds: _power.length,
+        totalDistance: finalSpeedHistory.fold<double>(0, (a, b) => a + (b / 3.6)), // Sum (km/h / 3.6) * 1s = meters
+        totalCalories: _calories.toInt(),
+        startTime: FitReader.parseFilename(widget.fitFilePath)['date'],
+        workoutTitle: FitReader.parseFilename(widget.fitFilePath)['title'],
+      );
+
+      // 3. Upload a Strava
+      final integrationService = context.read<IntegrationService>();
+
+      if (integrationService.isStravaConnected) {
+         final res = await integrationService.uploadActivityToStrava(repairedFile);
+         if (mounted) {
+           ScaffoldMessenger.of(context).showSnackBar(
+             SnackBar(
+               content: Text(res == 'Success' ? "✅ Workout riparato e inviato a Strava!" : "❌ Errore: $res"), 
+               backgroundColor: res == 'Success' ? Colors.green : Colors.red,
+             )
+           );
+         }
+      } else {
+         throw Exception("Strava non connesso");
+      }
+    } catch (e) {
+      if (mounted) {
+         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Errore riparazione: $e"), backgroundColor: Colors.red));
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
   }
 
   Future<void> _handleSave(BuildContext context) async {
@@ -395,9 +500,9 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       children: [
         Row(
           children: [
-            Expanded(child: _buildMetricCard('TSS', _tss.toStringAsFixed(0), Colors.purpleAccent, LucideIcons.trophy)),
+            Expanded(child: _buildMetricCard('DURATION', _formattedDuration, Colors.white, LucideIcons.timer)),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard('IF', _if.toStringAsFixed(2), Colors.blueAccent, LucideIcons.activity)),
+            Expanded(child: _buildMetricCard('TSS', _tss.toStringAsFixed(0), Colors.purpleAccent, LucideIcons.trophy)),
           ],
         ),
         const SizedBox(height: 12),
@@ -405,15 +510,15 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
           children: [
             Expanded(child: _buildMetricCard('NP', '${_np.toStringAsFixed(0)} W', Colors.orangeAccent, LucideIcons.zap)),
             const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard('PEDAL S.', '${_avgSmoothness.toStringAsFixed(1)}%', Colors.cyanAccent, LucideIcons.refreshCw)),
+            Expanded(child: _buildMetricCard('AVG CAD', '${_avgCadence.toInt()} RPM', Colors.greenAccent, LucideIcons.refreshCw)),
           ],
         ),
         const SizedBox(height: 12),
         Row(
           children: [
-            Expanded(child: _buildMetricCard('CALORIE', _calories.toStringAsFixed(0), Colors.redAccent, LucideIcons.flame)),
-            const SizedBox(width: 12),
-            Expanded(child: _buildMetricCard('W\' used', '${(((_wBal.first - _wBal.reduce(min)) / 1000)).toStringAsFixed(1)} kJ', Colors.purpleAccent, LucideIcons.batteryCharging)),
+             Expanded(child: _buildMetricCard('IF', _if.toStringAsFixed(2), Colors.blueAccent, LucideIcons.activity)),
+             const SizedBox(width: 12),
+             Expanded(child: _buildMetricCard('CALORIE', _calories.toStringAsFixed(0), Colors.redAccent, LucideIcons.flame)),
           ],
         ),
       ],
@@ -452,18 +557,24 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text('GRAFICO ANALISI', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-              Row(
-                children: [
-                  _buildToggle('Pwr', Colors.orange, _showPower, () => setState(() => _showPower = !_showPower)),
-                  const SizedBox(width: 8),
-                  _buildToggle('W\'bal', Colors.purpleAccent, _showWBal, () => setState(() => _showWBal = !_showWBal)),
-                  const SizedBox(width: 8),
-                  _buildToggle('HR', Colors.red, _showHr, () => setState(() => _showHr = !_showHr)),
-                  const SizedBox(width: 8),
-                  _buildToggle('Cad', Colors.blue, _showCadence, () => setState(() => _showCadence = !_showCadence)),
-                  const SizedBox(width: 8),
-                  _buildToggle('Gear', Colors.orange, _showGear, () => setState(() => _showGear = !_showGear)),
-                ],
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 8),
+                      _buildToggle('Pwr', Colors.orange, _showPower, () => setState(() => _showPower = !_showPower)),
+                      const SizedBox(width: 8),
+                      _buildToggle('W\'bal', Colors.purpleAccent, _showWBal, () => setState(() => _showWBal = !_showWBal)),
+                      const SizedBox(width: 8),
+                      _buildToggle('HR', Colors.red, _showHr, () => setState(() => _showHr = !_showHr)),
+                      const SizedBox(width: 8),
+                      _buildToggle('Cad', Colors.blue, _showCadence, () => setState(() => _showCadence = !_showCadence)),
+                      const SizedBox(width: 8),
+                      _buildToggle('Gear', Colors.orange, _showGear, () => setState(() => _showGear = !_showGear)),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -472,8 +583,36 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
             height: 250,
             child: LineChart(
               LineChartData(
-                gridData: FlGridData(show: false),
-                titlesData: FlTitlesData(show: false),
+                gridData: FlGridData(
+                  show: true,
+                  drawVerticalLine: false,
+                  getDrawingHorizontalLine: (value) => FlLine(color: Colors.white10, strokeWidth: 1),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 22,
+                      getTitlesWidget: (value, meta) {
+                        if (value % 600 != 0) return const SizedBox.shrink(); // Show every 10 mins
+                        final mins = (value / 60).toInt();
+                        return Text('${mins}m', style: const TextStyle(color: Colors.white38, fontSize: 10));
+                      },
+                    ),
+                  ),
+                  leftTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      reservedSize: 30,
+                      getTitlesWidget: (value, meta) {
+                        return Text(value.toInt().toString(), style: const TextStyle(color: Colors.white38, fontSize: 10));
+                      },
+                    ),
+                  ),
+                ),
                 borderData: FlBorderData(show: false),
                 lineBarsData: [
                    if (_showPower) _createLineData(_power, Colors.orangeAccent, 1.0),
@@ -546,16 +685,21 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       children: [
         const Text('POWER DURATION CURVE (PICCHI)', style: TextStyle(color: Colors.white54, fontSize: 12, letterSpacing: 1.5)),
         const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildPeakCard('5 sec', _peaks['5s']?.toInt() ?? 0)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildPeakCard('1 min', _peaks['1m']?.toInt() ?? 0)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildPeakCard('5 min', _peaks['5m']?.toInt() ?? 0)),
-            const SizedBox(width: 8),
-            Expanded(child: _buildPeakCard('20 min', _peaks['20m']?.toInt() ?? 0)),
-          ],
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _buildPeakCard('5 sec', _peaks['5s']?.toInt() ?? 0),
+              const SizedBox(width: 8),
+              _buildPeakCard('1 min', _peaks['1m']?.toInt() ?? 0),
+              const SizedBox(width: 8),
+              _buildPeakCard('5 min', _peaks['5m']?.toInt() ?? 0),
+              const SizedBox(width: 8),
+              _buildPeakCard('20 min', _peaks['20m']?.toInt() ?? 0),
+              const SizedBox(width: 8),
+              _buildPeakCard('60 min', _peaks['60m']?.toInt() ?? 0),
+            ],
+          ),
         ),
       ],
     );
@@ -612,16 +756,19 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   }
 
   Widget _buildPeakCard(String label, int value) {
-    return GlassCard(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      borderRadius: 12,
-      child: Column(
-        children: [
-          Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
-          const SizedBox(height: 8),
-          Text('$value', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-          const Text('Watt', style: TextStyle(color: Colors.white30, fontSize: 8)),
-        ],
+    return Container(
+      width: 85, // Fixed width for scrollable row items
+      child: GlassCard(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        borderRadius: 12,
+        child: Column(
+          children: [
+            Text(label, style: const TextStyle(color: Colors.white54, fontSize: 10)),
+            const SizedBox(height: 8),
+            Text('$value', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text('Watt', style: TextStyle(color: Colors.white30, fontSize: 8)),
+          ],
+        ),
       ),
     );
   }

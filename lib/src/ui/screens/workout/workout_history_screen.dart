@@ -149,6 +149,10 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             value: 'strava',
             child: Row(children: [const Icon(LucideIcons.activity, color: Colors.orange, size: 20), const SizedBox(width: 12), const Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
           ),
+          PopupMenuItem(
+            value: 'repair_strava',
+            child: Row(children: [const Icon(LucideIcons.wrench, color: Colors.orangeAccent, size: 20), const SizedBox(width: 12), const Text('Ripara e Invia (Strava)', style: TextStyle(color: Colors.white))]),
+          ),
         ];
         
         // Mostra Intervals.icu solo se connesso
@@ -195,13 +199,18 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
              ));
            } else {
              // Show detailed error returned by IntegrationService (es. non connesso, token scaduto, errore Strava)
-             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-               content: Text('Errore invio Strava: $result'),
-               backgroundColor: Colors.red,
-               duration: const Duration(seconds: 5),
-             ));
-           }
-         }
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                content: Text('Errore invio Strava: $result'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ));
+            }
+          }
+      } else if (action == 'repair_strava') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PostWorkoutAnalysisScreen(fitFilePath: path)),
+          );
       } else if (action == 'intervals') {
          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invio a Intervals.icu in corso...')));
          final result = await context.read<IntervalsService>().uploadActivity(file);

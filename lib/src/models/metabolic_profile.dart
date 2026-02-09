@@ -30,6 +30,9 @@ class MetabolicProfile {
   final Map<String, dynamic>? inputSources; // Metadata about inputs used
   final double? bmr; // Basal Metabolic Rate
   final double? tdee; // Total Daily Energy Expenditure
+  final String? phenotypeLabel; // Fenotipo dal PDC (es. "All-Rounder")
+  final double? hrMax; // Frequenza cardiaca massima
+  final AdvancedParams? advancedParams; // Parametri avanzati dal PDC
   final MetabolicStats metabolic;
   final List<MetabolicZone> zones;
   final List<CombustionData> combustionCurve;
@@ -41,13 +44,16 @@ class MetabolicProfile {
     required this.vlamax,
     required this.map,
     required this.vo2max,
-    this.mlss,
+   this.mlss,
     this.fatMax,
     this.wPrime,
     this.confidenceScore,
     this.inputSources,
     this.bmr,
     this.tdee,
+    this.phenotypeLabel,
+    this.hrMax,
+    this.advancedParams,
     required this.metabolic,
     required this.zones,
     required this.combustionCurve,
@@ -67,6 +73,9 @@ class MetabolicProfile {
     'inputSources': inputSources,
     'bmr': bmr,
     'tdee': tdee,
+    'phenotypeLabel': phenotypeLabel,
+    'hrMax': hrMax,
+    'advancedParams': advancedParams?.toJson(),
     'metabolic': metabolic.toJson(),
     'zones': zones.map((z) => z.toJson()).toList(),
     'combustionCurve': combustionCurve.map((c) => c.toJson()).toList(),
@@ -90,6 +99,11 @@ class MetabolicProfile {
         inputSources: json['inputSources'] != null ? Map<String, dynamic>.from(json['inputSources']) : null,
         bmr: _safeDouble(json['bmr']),
         tdee: _safeDouble(json['tdee']),
+        phenotypeLabel: json['phenotype_label'] as String? ?? json['phenotypeLabel'] as String?,
+        hrMax: _safeDouble(json['hrMax'] ?? json['hr_max']),
+        advancedParams: json['advanced_params'] != null 
+            ? AdvancedParams.fromJson(Map<String, dynamic>.from(json['advanced_params']))
+            : null,
         metabolic: json['metabolic'] != null 
             ? MetabolicStats.fromJson(Map<String, dynamic>.from(json['metabolic']))
             : MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
@@ -112,6 +126,52 @@ class MetabolicProfile {
 
   String toJsonString() => jsonEncode(toJson());
   static MetabolicProfile fromJsonString(String jsonStr) => MetabolicProfile.fromJson(jsonDecode(jsonStr));
+}
+
+class AdvancedParams {
+  final double ftpEstimated; // FTP dal PDC (advanced_params.ftp_estimated)
+  final double criticalPower;
+  final double vo2maxEstimated;
+  final double? sprintPower; // W/kg
+  final double? anaerobicCapacity; // kJ
+  final double? pMax;
+  final double? aerobicPower; // APR
+  final double? tteVo2max; // Time to Exhaustion @ VO2max (minutes)
+
+  AdvancedParams({
+    required this.ftpEstimated,
+    required this.criticalPower,
+    required this.vo2maxEstimated,
+    this.sprintPower,
+    this.anaerobicCapacity,
+    this.pMax,
+    this.aerobicPower,
+    this.tteVo2max,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'ftp_estimated': ftpEstimated,
+    'critical_power': criticalPower,
+    'vo2max_estimated': vo2maxEstimated,
+    'sprint_power': sprintPower,
+    'anaerobic_capacity': anaerobicCapacity,
+    'p_max': pMax,
+    'aerobic_power': aerobicPower,
+    'tte_vo2max': tteVo2max,
+  };
+
+  factory AdvancedParams.fromJson(Map<String, dynamic> json) {
+    return AdvancedParams(
+      ftpEstimated: _safeDouble(json['ftp_estimated']) ?? 0.0,
+      criticalPower: _safeDouble(json['critical_power']) ?? 0.0,
+      vo2maxEstimated: _safeDouble(json['vo2max_estimated']) ?? 0.0,
+      sprintPower: _safeDouble(json['sprint_power']),
+      anaerobicCapacity: _safeDouble(json['anaerobic_capacity']),
+      pMax: _safeDouble(json['p_max']),
+      aerobicPower: _safeDouble(json['aerobic_power']),
+      tteVo2max: _safeDouble(json['tte_vo2max']),
+    );
+  }
 }
 
 class MetabolicStats {

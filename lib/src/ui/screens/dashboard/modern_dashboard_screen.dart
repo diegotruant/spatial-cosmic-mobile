@@ -13,7 +13,7 @@ import '../workout/modern_workout_screen.dart';
 import '../settings/settings_screens.dart';
 import '../settings/bluetooth_scan_screen.dart';
 import '../profile/medical_certificate_screen.dart';
-import '../profile/metabolic_calculator_screen.dart';
+import '../profile/metabolic_lab_view_screen.dart';
 import '../workout/workout_history_screen.dart';
 import '../../../logic/zwo_parser.dart';
 import '../../../services/workout_service.dart';
@@ -437,7 +437,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                  const SizedBox(height: 24),
                  ElevatedButton(
                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicLabViewScreen()));
                    }, 
                    style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
                    child: const Text("CALCOLA PROFILO"),
@@ -459,28 +459,28 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       );
     }
     
+    // ✅ Leggo phenotype dal PDC invece di calcolare localmente
+    final phenotype = profileService.phenotypeLabel.toUpperCase();
+    
     Color typeColor;
     IconData typeIcon;
-    switch (profile.type) {
-      case AthleteType.sprinter:
-        typeColor = AppColors.zone5;
-        typeIcon = LucideIcons.zap;
-        break;
-      case AthleteType.climber:
-        typeColor = AppColors.zone3;
-        typeIcon = LucideIcons.mountain;
-        break;
-      case AthleteType.timeTrialist:
-        typeColor = AppColors.zone2;
-        typeIcon = LucideIcons.clock;
-        break;
-      case AthleteType.allRounder:
-        typeColor = AppColors.zone7;
-        typeIcon = LucideIcons.target;
-        break;
-      default:
-        typeColor = AppColors.textDim;
-        typeIcon = LucideIcons.helpCircle;
+    
+    // Mappa phenotype PDC a colori/icone
+    if (phenotype.contains('SPRINT')) {
+      typeColor = AppColors.zone5;
+      typeIcon = LucideIcons.zap;
+    } else if (phenotype.contains('CLIMB')) {
+      typeColor = AppColors.zone3;
+      typeIcon = LucideIcons.mountain;
+    } else if (phenotype.contains('TIME')) {
+      typeColor = AppColors.zone2;
+      typeIcon = LucideIcons.clock;
+    } else if (phenotype.contains('ALL') || phenotype.contains('ROUNDER')) {
+      typeColor = AppColors.zone7;
+      typeIcon = LucideIcons.target;
+    } else {
+      typeColor = AppColors.textDim;
+      typeIcon = LucideIcons.helpCircle;
     }
 
     return ListView(
@@ -516,18 +516,21 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          profileService.getTypeLabel(profile.type),
+                          phenotype,
                           style: TextStyle(color: typeColor, fontSize: 20, fontWeight: FontWeight.bold, letterSpacing: 1.5),
                         ),
                         const SizedBox(height: 4),
-                        Text(AppLocalizations.of(context).get('based_on_power_curve'), style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
+                        Text('Basato sulla Power Duration Curve', style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 11)),
                       ],
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 16),
-              Text(profile.description, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5)),
+              Text(
+                'Profilo fisiologico calcolato dal Metabolic Lab basato sulla tua PDC e test metabolici.',
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, height: 1.5)
+              ),
             ],
           ),
         ),
@@ -691,7 +694,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicLabViewScreen())),
               icon: const Icon(LucideIcons.calculator, size: 18),
               label: const Text('CALCOLA PROFILO'),
               style: ElevatedButton.styleFrom(
@@ -749,7 +752,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
               const SizedBox(height: 12),
               Center(
                 child: TextButton.icon(
-                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
+                  onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicLabViewScreen())),
                   icon: const Icon(LucideIcons.refreshCw, size: 16),
                   label: const Text('Ricalcola'),
                   style: TextButton.styleFrom(foregroundColor: Colors.white54),
@@ -1630,7 +1633,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       child: GlassCard(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
         child: InkWell(
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicCalculatorScreen())),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const MetabolicLabViewScreen())),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

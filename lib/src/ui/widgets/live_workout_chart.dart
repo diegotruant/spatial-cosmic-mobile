@@ -186,10 +186,11 @@ class _LiveGraphPainter extends CustomPainter {
         );
       }
 
-      // Draw Active Block (Adjusted)
+      // Draw Active Block (Adjusted) con colori PIÙ INTENSI e BORDI DEFINITI
       if (block is SteadyState) {
-        canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = blockColor.withOpacity(0.4));
-        canvas.drawLine(Offset(currentX, yAdj), Offset(currentX + w, yAdj), Paint()..color = borderColor.withOpacity(0.8)..strokeWidth = 2);
+        canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = blockColor.withOpacity(0.55));
+        canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = borderColor.withOpacity(0.3)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+        canvas.drawLine(Offset(currentX, yAdj), Offset(currentX + w, yAdj), Paint()..color = borderColor.withOpacity(0.9)..strokeWidth = 3.5);
       } else if (block is IntervalsT) {
          final double onTargetW = block.onPower * ftp * intensityFactor;
          final double onH = onTargetW * wattToY;
@@ -198,7 +199,9 @@ class _LiveGraphPainter extends CustomPainter {
          double effectiveOnFactor = block.onPower * intensityFactor;
          Color onColor = showPowerZones ? _getZoneColor(effectiveOnFactor) : const Color(0xFF40C4FF);
          
-         canvas.drawRect(Rect.fromLTWH(currentX, yOn, w, onH), Paint()..color = onColor.withOpacity(0.25));
+         // On Interval
+         canvas.drawRect(Rect.fromLTWH(currentX, yOn, w, onH), Paint()..color = onColor.withOpacity(0.45));
+         canvas.drawLine(Offset(currentX, yOn), Offset(currentX + w, yOn), Paint()..color = onColor..strokeWidth = 3.5);
       }
       currentX += w;
     }

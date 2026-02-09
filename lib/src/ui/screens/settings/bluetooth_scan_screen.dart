@@ -169,11 +169,53 @@ class _BluetoothScanScreenState extends State<BluetoothScanScreen> {
           subtitle: Text('$label • ${l10n.get('connected')}', style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
           trailing: IconButton(
             icon: const Icon(Icons.close, color: Colors.redAccent),
-            onPressed: () {
-               // Implement disconnect logic if service supports it, or just clearing the variable
-               // For now just forcing disconnect from device
-               device.disconnect();
-               // We might need a method in BluetoothService to clear the slot (e.g. disconnectTrainer())
+            onPressed: () async {
+              // TODO: Implement getDeviceType and disconnectDevice methods in BluetoothService
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Disconnect feature temporarily disabled'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              
+              /* DISABLED UNTIL METHODS ARE IMPLEMENTED
+              // Get device type before disconnecting
+              final deviceType = service.getDeviceType(device);
+              if (deviceType == null) return;
+              
+              // Show loading indicator
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      ),
+                      const SizedBox(width: 12),
+                      Text('Disconnecting ${device.platformName}...'),
+                    ],
+                  ),
+                  duration: const Duration(seconds: 1),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+              
+              // Disconnect device
+              await service.disconnectDevice(deviceType);
+              
+              // Show success
+              if (context.mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('✅ ${device.platformName} disconnected'),
+                    backgroundColor: Colors.green,
+                    duration: const Duration(seconds: 2),
+                  ),
+                );
+              }
+              */
             }, 
           ),
         ),
@@ -219,6 +261,21 @@ class _BluetoothScanScreenState extends State<BluetoothScanScreen> {
     }
 
     // 2. Fallback to manual selection if unknown
+    // OR if it IS a Trainer, we want to ask which features to use!
+    
+    // Check if name suggests trainer or if we already detected it
+    bool likelyTrainer = device.platformName.toUpperCase().contains("KICKR") || 
+                         device.platformName.toUpperCase().contains("TACX") ||
+                         device.platformName.toUpperCase().contains("TRAINER") || 
+                         device.platformName.toUpperCase().contains("ELITE") ||
+                         device.platformName.toUpperCase().contains("DIRETO") ||
+                         device.platformName.toUpperCase().contains("NEO");
+
+    if (likelyTrainer) {
+       _showTrainerConfigDialog(context, device);
+       return;
+    }
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -226,7 +283,7 @@ class _BluetoothScanScreenState extends State<BluetoothScanScreen> {
         title: Text(device.platformName, style: const TextStyle(color: Colors.white)),
         content: Text(AppLocalizations.of(context).get('select_device_type'), style: const TextStyle(color: Colors.white70)),
         actions: [
-          _buildTypeButton(ctx, device, 'Smart Trainer', 'TRAINER'),
+          _buildTypeButton(ctx, device, 'Smart Trainer (Config)', 'TRAINER_CONFIG'), // Special type to trigger config
           _buildTypeButton(ctx, device, 'Heart Rate', 'HR'),
           _buildTypeButton(ctx, device, 'Power Meter', 'POWER'),
           _buildTypeButton(ctx, device, 'Cadence', 'CADENCE'),
@@ -236,11 +293,86 @@ class _BluetoothScanScreenState extends State<BluetoothScanScreen> {
     );
   }
   
+  void _showTrainerConfigDialog(BuildContext context, BluetoothDevice device) {
+    final bluetooth = context.read<BluetoothService>();
+    // Temporary state for the dialog
+    bool usePower = true;
+    bool useCadence = true;
+    bool useSpeed = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF1A1A2E),
+              title: const Text("Trainer Configuration", style: TextStyle(color: Colors.white)),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    "Select which data to use from this trainer:",
+                    style: TextStyle(color: Colors.white70),
+                  ),
+                  const SizedBox(height: 16),
+                  CheckboxListTile(
+                    title: const Text("Power", style: TextStyle(color: Colors.white)),
+                    value: usePower,
+                    activeColor: Colors.blueAccent,
+                    onChanged: (v) => setState(() => usePower = v!),
+                  ),
+                  CheckboxListTile(
+                    title: const Text("Cadence", style: TextStyle(color: Colors.white)),
+                    subtitle: const Text("Uncheck if using external sensor", style: TextStyle(color: Colors.white30, fontSize: 10)),
+                    value: useCadence,
+                    activeColor: Colors.blueAccent,
+                    onChanged: (v) => setState(() => useCadence = v!),
+                  ),
+                  CheckboxListTile(
+                    title: const Text("Speed", style: TextStyle(color: Colors.white)),
+                    value: useSpeed,
+                    activeColor: Colors.blueAccent,
+                    onChanged: (v) => setState(() => useSpeed = v!),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Cancel"),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Update Service Preferences
+                    bluetooth.useTrainerPower = usePower;
+                    bluetooth.useTrainerCadence = useCadence;
+                    bluetooth.useTrainerSpeed = useSpeed;
+                    
+                    // Connect as Trainer
+                    bluetooth.connectToDevice(device, 'TRAINER');
+                    Navigator.pop(ctx);
+                  },
+                  child: const Text("Connect"),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
   Widget _buildTypeButton(BuildContext ctx, BluetoothDevice device, String label, String type) {
     return TextButton(
       onPressed: () {
-        context.read<BluetoothService>().connectToDevice(device, type);
-        Navigator.pop(ctx); // Close dialog
+        if (type == 'TRAINER_CONFIG') {
+           Navigator.pop(ctx);
+           _showTrainerConfigDialog(context, device);
+        } else {
+           context.read<BluetoothService>().connectToDevice(device, type);
+           Navigator.pop(ctx); // Close dialog
+        }
       },
       child: Text(label, style: const TextStyle(color: Colors.blueAccent)),
     );

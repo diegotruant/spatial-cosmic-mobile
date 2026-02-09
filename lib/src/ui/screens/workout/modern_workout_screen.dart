@@ -162,17 +162,17 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
     // Layout richiesto: grafico in alto + griglia metriche sotto (foto 2)
     return Column(
       children: [
-        // Grafico con controlli in alto
+        // Grafico con controlli in alto - Aumentata altezza per visibilità
         SizedBox(
-          height: 260,
+          height: 320, 
           child: _buildChartWithControls(),
         ),
-        const SizedBox(height: 12),
-        // Griglia metriche “pro” sotto il grafico
+        const SizedBox(height: 8),
+        // Griglia metriche “pro” sotto il grafico - Più compatta
         Expanded(
           child: GridView.count(
-            crossAxisCount: 3, // Increased to 3 for more density
-            childAspectRatio: 1.3, // Adjusted for shorter tiles
+            crossAxisCount: 3, 
+            childAspectRatio: 1.5, // Molto più sottili per evitare overlap
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
             children: _buildMetricTiles(bluetooth, workoutService, formatTime),
@@ -321,7 +321,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                  ? formatTime(workoutService.currentWorkout!.blocks[workoutService.currentBlockIndex].duration - workoutService.elapsedInBlock)
                  : '-')
              : formatTime(workoutService.elapsedInBlock), 
-          unit: 'mm:ss', 
+          unit: '',
           accentColor: Colors.blueAccent
         ),
       ),
@@ -362,7 +362,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
           value: _showTotalRemainingTime
              ? formatTime(totalWorkoutDuration - workoutService.totalElapsed)
              : formatTime(workoutService.totalElapsed),
-          unit: 'mm:ss', 
+          unit: '',
           accentColor: Colors.white, // Neutral
         ),
       ),
@@ -600,6 +600,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                      totalCalories: workoutService.totalCalories.toInt(),
                      startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
                      workoutTitle: workoutService.currentWorkout?.title ?? "Manual Workout",
+                     rrHistory: workoutService.rrHistory,  // Include RR intervals
                    );
                  
                   if (context.mounted) {

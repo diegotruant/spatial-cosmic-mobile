@@ -20,9 +20,41 @@ class WorkoutService extends ChangeNotifier {
   bool isActive = false;
   bool isPaused = false;
   
+  // Countdown State
+  bool _isCountingDown = false;
+  bool get isCountingDown => _isCountingDown;
+  
+  int _countdownValue = 0;
+  int get countdownValue => _countdownValue;
+
   // Mode Management
   WorkoutMode _mode = WorkoutMode.erg;
   WorkoutMode get mode => _mode;
+  
+  // ... (rest of state) ...
+
+  WorkoutService() {
+    _initAudio();
+  }
+  
+  Future<void> _initAudio() async {
+    // Configure AudioContext to mix with other apps (e.g. Spotify) and NOT duck/pause them.
+    await _audioPlayer.setAudioContext(AudioContext(
+      android: const AudioContextAndroid(
+        isSpeakerphoneOn: true,
+        stayAwake: true,
+        contentType: AndroidContentType.sonification,
+        usageType: AndroidUsageType.assistanceSonification,
+        audioFocus: AndroidAudioFocus.none, // KEY: Do not request focus, just mix.
+      ),
+      iOS: AudioContextIOS(
+        category: AVAudioSessionCategory.ambient, // Ambient = mix with others
+        options: {
+          AVAudioSessionOptions.mixWithOthers
+        },
+      ),
+    ));
+  }
   
   // Mode State
   double _currentSlope = 0.0; // 0% to 20%
@@ -35,7 +67,9 @@ class WorkoutService extends ChangeNotifier {
   List<int> hrHistory = [];
   List<int> cadenceHistory = [];
   List<double> tempHistory = [];
-  List<double> speedHistory = []; 
+  List<double> speedHistory = [];
+  // RR Intervals: List of {timestamp, rr_intervals}
+  List<Map<String, dynamic>> rrHistory = [];
   int totalElapsed = 0;
   
   double totalDistance = 0.0; // km
@@ -162,7 +196,8 @@ class WorkoutService extends ChangeNotifier {
     hrHistory = [];
     cadenceHistory = [];
     tempHistory = [];
-    speedHistory = []; 
+    speedHistory = [];
+    rrHistory = [];
     totalDistance = 0.0;
     totalCalories = 0.0; 
     _lastSentTargetWatts = -1; // Reset control state
@@ -200,10 +235,23 @@ class WorkoutService extends ChangeNotifier {
     notifyListeners();
   }
   
+  // User manually requested next interval
   void nextInterval() {
     if (currentWorkout == null) return;
     
-    if (currentBlockIndex < currentWorkout!.blocks.length - 1) {
+    // Start Countdown 3-2-1
+    if (!_isCountingDown) {
+       _isCountingDown = true;
+       _countdownValue = 3;
+       // Start immediately for responsiveness
+       _playBeep();
+       notifyListeners();
+    }
+  }
+
+  // Internal method to actually switch block
+  void _advanceToNextBlock() {
+     if (currentBlockIndex < currentWorkout!.blocks.length - 1) {
       // Avanza semplicemente allo step successivo senza falsare il tempo totale.
       // Così il "TOTAL TIME" e la durata finale NON includono gli step saltati.
       currentBlockIndex++;
@@ -214,45 +262,15 @@ class WorkoutService extends ChangeNotifier {
          HapticFeedback.mediumImpact();
       }
       
+      // CRITICAL FIX: Notify listeners to update chart and target immediately
+      notifyListeners();
+      
     } else {
       // Check if this is a RAMP TEST (Infinite)
       // We look for a specific ID or title pattern
       if (currentWorkout?.id == 'ramp_test' || (currentWorkout?.title.toLowerCase().contains('ramp test') ?? false)) {
-          // Infinite Logic: Add new step
-          // Last block was presumably the step.
-          // Get last block properties
-          final lastBlock = currentWorkout!.blocks.last;
-          if (lastBlock is SteadyState) {
-             // Create next step: +25W (approx 0.08 of 300W, or just fixed calculation if absolute)
-             // But here we use Factor relative to FTP.
-             // Assume Ramp Step is usually 1 min @ +X%
-             // Let's assume the previous step diff defined the ramp rate.
-             // Or just add 6% FTP (approx 20W for 330W FTP) every step?
-             // Standard MAP test: +25W every minute.
-             
-             // Calculate current watts
-             double currentFactor = lastBlock.power;
-             int currentWatts = (currentFactor * userFtp).round();
-             int nextWatts = currentWatts + 25; // Add 25 Watts
-             double nextFactor = nextWatts / userFtp;
-             
-             // Add new block
-             currentWorkout!.blocks.add(SteadyState(
-               duration: 60, // 1 minute
-               power: nextFactor,
-             ));
-             
-             // Advance
-             currentBlockIndex++;
-             elapsedInBlock = 0;
-             // totalElapsed continues normally
-             
-             if (settingsService?.vibration == true) {
-               HapticFeedback.mediumImpact();
-             }
-             notifyListeners();
-             return; // Continue!
-          }
+          _addRampStep();
+          return;
       }
 
       stopWorkout();
@@ -261,6 +279,33 @@ class WorkoutService extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  void _addRampStep() {
+      // Get last block properties
+      final lastBlock = currentWorkout!.blocks.last;
+      if (lastBlock is SteadyState) {
+         double currentFactor = lastBlock.power;
+         int currentWatts = (currentFactor * userFtp).round();
+         int nextWatts = currentWatts + 25; // Add 25 Watts
+         double nextFactor = nextWatts / userFtp;
+         
+         // Add new block
+         currentWorkout!.blocks.add(SteadyState(
+           duration: 60, // 1 minute
+           power: nextFactor,
+         ));
+         
+         // Advance
+         currentBlockIndex++;
+         elapsedInBlock = 0;
+         // totalElapsed continues normally
+         
+         if (settingsService?.vibration == true) {
+           HapticFeedback.mediumImpact();
+         }
+         notifyListeners();
+      }
   }
 
   BluetoothService? bluetoothService;
@@ -382,7 +427,20 @@ class WorkoutService extends ChangeNotifier {
     hrHistory.add(activeHr);
     cadenceHistory.add(activeCadence);
     tempHistory.add(activeTemp);
-    speedHistory.add(activeSpeed); 
+    speedHistory.add(activeSpeed);
+    
+    // Capture RR intervals if available
+    if (bluetoothService != null && bluetoothService!.heartRateSensor != null) {
+      if (bluetoothService!.rrIntervals.isNotEmpty) {
+        rrHistory.add({
+          'timestamp': DateTime.now().toIso8601String(),
+          'elapsed': totalElapsed,
+          'rr': List<int>.from(bluetoothService!.rrIntervals),
+        });
+        // Clear the buffer after capturing to avoid duplicates
+        bluetoothService!.rrIntervals.clear();
+      }
+    } 
 
     if (powerHistory.length > 3600) { 
        if (powerHistory.length > 7200) { // Limit huge history
@@ -391,6 +449,7 @@ class WorkoutService extends ChangeNotifier {
          cadenceHistory.removeAt(0);
          tempHistory.removeAt(0);
          speedHistory.removeAt(0);
+         if (rrHistory.isNotEmpty) rrHistory.removeAt(0);
        }
     }
 

@@ -450,7 +450,7 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
   Widget _buildKeyMetrics(MetabolicProfile p) {
      return Column(
        children: [
-         // Row 0: MLSS and FatMax
+         // Row 0: FTP and MLSS
          Row(
            children: [
              Expanded(
@@ -459,16 +459,16 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
                  decoration: BoxDecoration(
                    color: const Color(0xFF1E293B), 
                    borderRadius: BorderRadius.circular(24),
-                   border: Border.all(color: Colors.emeraldAccent.withOpacity(0.5), width: 2),
+                   border: Border.all(color: Colors.yellowAccent.withOpacity(0.6), width: 2),
                  ),
                  child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
-                   children: [
-                     const Text("MLSS (SOGLIA)", style: TextStyle(color: Colors.emeraldAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
-                     const SizedBox(height: 4),
-                     Text("${p.mlss?.round() ?? p.metabolic.estimatedFtp.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                     const Text("FISIOLOGICA [FTP]", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
-                   ],
+                    children: [
+                      const Text("FTP", style: TextStyle(color: Colors.yellowAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                      const SizedBox(height: 4),
+                      Text("${p.advancedParams?.ftpEstimated.round() ?? p.map.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                      const Text("60 MIN POWER", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                    ],
                  ),
                ),
              ),
@@ -479,20 +479,70 @@ class _MetabolicCalculatorScreenState extends State<MetabolicCalculatorScreen> {
                  decoration: BoxDecoration(
                    color: const Color(0xFF1E293B), 
                    borderRadius: BorderRadius.circular(24),
-                   border: Border.all(color: Colors.orangeAccent.withOpacity(0.3), width: 1),
+                   border: Border.all(color: Colors.greenAccent.withOpacity(0.5), width: 2),
                  ),
                  child: Column(
                    crossAxisAlignment: CrossAxisAlignment.start,
                    children: [
-                     const Text("FAT MAX", style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                     const Text("MLSS", style: TextStyle(color: Colors.greenAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
                      const SizedBox(height: 4),
-                     Text("${p.fatMax?.round() ?? p.metabolic.fatMaxWatt.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-                     const Text("PICCO LIPIDICO", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                     Text("${p.mlss?.round() ?? p.metabolic.estimatedFtp.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                     const Text("SOGLIA LATTATO", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
                    ],
                  ),
                ),
              ),
            ],
+         ),
+         const SizedBox(height: 12),
+         // Row 1: MAP (VO2max Power) - full width
+         Container(
+           padding: const EdgeInsets.all(16),
+           decoration: BoxDecoration(
+             color: const Color(0xFF1E293B), 
+             borderRadius: BorderRadius.circular(24),
+             border: Border.all(color: Colors.blueAccent.withOpacity(0.6), width: 2),
+           ),
+           child: Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   const Text("MAP", style: TextStyle(color: Colors.blueAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                   const SizedBox(height: 4),
+                   Text("${p.map.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                   const Text("VO2MAX POWER", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                 ],
+               ),
+               const Icon(LucideIcons.zap, color: Colors.blueAccent, size: 32),
+             ],
+           ),
+         ),
+         const SizedBox(height: 12),
+         // Row 2: FAT MAX (full width)
+         Container(
+           padding: const EdgeInsets.all(16),
+           decoration: BoxDecoration(
+             color: const Color(0xFF1E293B), 
+             borderRadius: BorderRadius.circular(24),
+             border: Border.all(color: Colors.orangeAccent.withOpacity(0.3), width: 1),
+           ),
+           child: Row(
+             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+             children: [
+               Column(
+                 crossAxisAlignment: CrossAxisAlignment.start,
+                 children: [
+                   const Text("FAT MAX", style: TextStyle(color: Colors.orangeAccent, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                   const SizedBox(height: 4),
+                   Text("${p.fatMax?.round() ?? p.metabolic.fatMaxWatt.round()} W", style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+                   const Text("PICCO LIPIDICO", style: TextStyle(color: Colors.white30, fontSize: 9, fontWeight: FontWeight.bold)),
+                 ],
+               ),
+               const Icon(LucideIcons.flame, color: Colors.orangeAccent, size: 32),
+             ],
+           ),
          ),
          const SizedBox(height: 12),
          Row(

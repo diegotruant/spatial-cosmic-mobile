@@ -155,6 +155,7 @@ class WorkoutAnalysisScreen extends StatelessWidget {
         totalDistance: workoutService.totalDistance * 1000, // km to m
         totalCalories: workoutService.totalCalories.toInt(),
         startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
+        rrHistory: workoutService.rrHistory,  // Include RR intervals
       );
       debugPrint('FIT File generated: ${fitFile.path}');
       

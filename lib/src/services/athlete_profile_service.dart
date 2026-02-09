@@ -66,6 +66,10 @@ class AthleteProfileService extends ChangeNotifier {
   String _gender = 'male'; // Default: male
   String? _timeAvailable;
   String? _discipline;
+  
+  // PDC values
+  double? _mlss; // MLSS dal metabolic_profile PDC
+  String? _phenotypeLabel; // Fenotipo dal PDC (es. "All-Rounder")
 
   // Output profile
   MetabolicProfile? _lastCalculatedProfile;
@@ -92,6 +96,21 @@ class AthleteProfileService extends ChangeNotifier {
   String get gender => _gender;
   String? get timeAvailable => _timeAvailable;
   String? get discipline => _discipline;
+  
+  // PDC-specific getters
+  double? get mlss => _mlss;
+  
+  /// Phenotype label: uses PDC phenotype if available, otherwise calculates from VLamax
+  String get phenotypeLabel {
+    // First try: PDC phenotype from MetabolicProfile
+    if (_phenotypeLabel != null && _phenotypeLabel!.isNotEmpty) {
+      return _phenotypeLabel!;
+    }
+    
+    // Fallback: Calculate from VLamax using _categorizeAthlete()
+    final calculatedType = _categorizeAthlete();
+    return getTypeLabel(calculatedType);
+  }
   
   MetabolicProfile? get metabolicProfile => _lastCalculatedProfile;
   
@@ -241,17 +260,27 @@ class AthleteProfileService extends ChangeNotifier {
               final oldFtp = _ftp;
               final oldVlamax = _vlamax;
               
-              _ftp = mp.metabolic.estimatedFtp;
+              // ✅ FTP dal PDC (advanced_params.ftp_estimated) con fallback a MAP
+              _ftp = mp.advancedParams?.ftpEstimated ?? mp.map;
+              
+              // ✅ MLSS separato (Maximal Lactate Steady State)
+              _mlss = mp.mlss;
+              
               _vo2max = mp.vo2max;
               _vlamax = mp.vlamax;
               _wPrime = mp.wPrime ?? _wPrime;
               
+              // ✅ Fenotipo dal PDC (non calcolato)
+              if (mp.phenotypeLabel != null) {
+                _phenotypeLabel = mp.phenotypeLabel;
+              }
+              
               debugPrint('[AthleteProfile] ✅ Successfully loaded metabolic profile.');
-              debugPrint('[AthleteProfile] FTP: $oldFtp → $_ftp (from metabolic.estimatedFtp: ${mp.metabolic.estimatedFtp})');
+              debugPrint('[AthleteProfile] FTP (advanced_params): $oldFtp → $_ftp W');
+              debugPrint('[AthleteProfile] MLSS: $_mlss W');
+              debugPrint('[AthleteProfile] Phenotype: $_phenotypeLabel');
               debugPrint('[AthleteProfile] VLamax: $oldVlamax → $_vlamax');
               debugPrint('[AthleteProfile] VO2max: $_vo2max');
-              debugPrint('[AthleteProfile] W\': $_wPrime');
-              debugPrint('[AthleteProfile] Athlete type will be: ${_categorizeAthlete()}');
             } else {
               debugPrint('[AthleteProfile] ⚠️ mpMap is null after parsing');
             }

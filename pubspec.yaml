@@ -34,6 +34,10 @@ dependencies:
   wakelock_plus: ^1.4.0
   audioplayers: ^6.5.1
   vibration: ^3.1.5
+  
+  # Local Storage
+  drift: ^2.14.1
+  sqlite3_flutter_libs: ^0.5.18
 
 dev_dependencies:
   flutter_test:
@@ -41,12 +45,17 @@ dev_dependencies:
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
   flutter_native_splash: ^2.4.0
+  drift_dev: ^2.14.1
+  build_runner: ^2.4.8
 
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
   image_path: "assets/images/logo.png"
   min_sdk_android: 21
+  # Adaptive icon per Android (risolve logo troppo piccolo)
+  adaptive_icon_foreground: "assets/images/logo.png"
+  adaptive_icon_background: "#FFFFFF"
 
 flutter_native_splash:
   color: "#000000"
