@@ -194,6 +194,32 @@ class _LiveGraphPainter extends CustomPainter {
         canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = blockColor.withOpacity(0.55));
         canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = borderColor.withOpacity(0.3)..style = PaintingStyle.stroke..strokeWidth = 1.0);
         canvas.drawLine(Offset(currentX, yAdj), Offset(currentX + w, yAdj), Paint()..color = borderColor.withOpacity(0.9)..strokeWidth = 3.5);
+      } else if (block is Ramp) {
+        // Ramp: Draw trapezoid from powerLow to powerHigh
+        final double lowTargetW = block.powerLow * ftp * intensityFactor;
+        final double highTargetW = block.powerHigh * ftp * intensityFactor;
+        final double lowH = lowTargetW * wattToY;
+        final double highH = highTargetW * wattToY;
+        final double yLow = size.height - lowH;
+        final double yHigh = size.height - highH;
+        
+        // Determine color based on average power
+        double avgFactor = ((block.powerLow + block.powerHigh) / 2) * intensityFactor;
+        Color rampColor = showPowerZones ? _getZoneColor(avgFactor) : const Color(0xFFFFAB40);
+        
+        // Draw trapezoid using Path
+        final rampPath = Path();
+        rampPath.moveTo(currentX, yLow);
+        rampPath.lineTo(currentX + w, yHigh);
+        rampPath.lineTo(currentX + w, size.height);
+        rampPath.lineTo(currentX, size.height);
+        rampPath.close();
+        
+        canvas.drawPath(rampPath, Paint()..color = rampColor.withOpacity(0.55));
+        canvas.drawPath(rampPath, Paint()..color = rampColor.withOpacity(0.3)..style = PaintingStyle.stroke..strokeWidth = 1.0);
+        
+        // Draw top line (ramp slope)
+        canvas.drawLine(Offset(currentX, yLow), Offset(currentX + w, yHigh), Paint()..color = rampColor.withOpacity(0.9)..strokeWidth = 3.5);
       } else if (block is IntervalsT) {
          final double onTargetW = block.onPower * ftp * intensityFactor;
          final double onH = onTargetW * wattToY;
