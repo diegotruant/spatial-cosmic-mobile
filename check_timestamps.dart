@@ -18,11 +18,11 @@ void main() async {
     if (record.message is RecordMessage) {
       final msg = record.message as RecordMessage;
       if (msg.timestamp != null) {
-        if (firstTime == null) firstTime = msg.timestamp;
+        firstTime ??= msg.timestamp;
         lastTime = msg.timestamp;
         
         if (count < 20) {
-          print('  Record #${count}: Timestamp ${msg.timestamp}');
+          print('  Record #$count: Timestamp ${msg.timestamp}');
         }
         count++;
       }

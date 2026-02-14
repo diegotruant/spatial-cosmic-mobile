@@ -34,4 +34,6 @@ class AppColors {
   static const Color warning = Color(0xFFFFC400);
   static const Color error = Color(0xFFFF3D00);
   static const Color info = Color(0xFF2979FF);
+  
+  static const Color emerald = Color(0xFF10B981);
 }

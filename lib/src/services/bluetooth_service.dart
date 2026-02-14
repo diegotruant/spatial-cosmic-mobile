@@ -31,9 +31,19 @@ class BluetoothService extends ChangeNotifier {
 
   bool isScanning = false;
   List<blue.ScanResult> scanResults = [];
+  
+  // Debug Logs
+  List<String> logs = [];
 
   BluetoothService() {
     _init();
+  }
+  
+  void log(String msg) {
+    debugPrint(msg);
+    logs.add("${DateTime.now().hour}:${DateTime.now().minute}:${DateTime.now().second} $msg");
+    if (logs.length > 50) logs.removeAt(0); // Keep last 50
+    notifyListeners();
   }
 
   void _init() {
@@ -76,6 +86,8 @@ class BluetoothService extends ChangeNotifier {
         coreSensor = device;
         _setupCoreSensor(device);
         break;
+      case 'CADENCE':
+        cadenceSensor = device;
         _setupCadenceSensor(device);
         break;
     }
@@ -87,35 +99,71 @@ class BluetoothService extends ChangeNotifier {
   void _setupCoreSensor(blue.BluetoothDevice device) async {
     // Service UUID: 00002100-5B1E-4347-B07C-97B514DAE121
     // Characteristic UUID: 00002101-5B1E-4347-B07C-97B514DAE121
+    log("Setting up Core Sensor: ${device.platformName}");
     List<blue.BluetoothService> services = await device.discoverServices();
+    log("Core Sensor Services found: ${services.length}");
+    
+    bool foundService = false;
     for (var service in services) {
+      log("Service UUID: ${service.uuid}");
       if (service.uuid.toString().toUpperCase().contains("2100")) { 
+        log("Found Core Service!");
+        foundService = true;
         for (var characteristic in service.characteristics) {
+          log("Char UUID: ${characteristic.uuid}");
           if (characteristic.uuid.toString().toUpperCase().contains("2101")) {
-            await characteristic.setNotifyValue(true);
-            characteristic.onValueReceived.listen((value) {
-              _parseCoreData(value);
-            });
+            log("Found Core Data Characteristic!");
+            
+            // Try reading first
+            try {
+               final initialVal = await characteristic.read();
+               log("Initial Core Read: $initialVal");
+               if (initialVal.isNotEmpty) _parseCoreData(initialVal);
+            } catch (e) {
+               log("Error reading Core char: $e");
+            }
+
+            try {
+              await characteristic.setNotifyValue(true);
+              characteristic.onValueReceived.listen((value) {
+                _parseCoreData(value);
+              });
+              log("Subscribed to Core Data");
+            } catch (e) {
+              log("Error subscribing: $e");
+            }
           }
         }
       }
     }
+    
+    if (!foundService) {
+       log("ERROR: Core Service (2100) NOT FOUND in ${services.length} services.");
+    }
   }
 
   void _parseCoreData(List<int> value) {
+    log("Core Data Raw: $value");
     if (value.length < 4) return;
     
-    // Core Temp is often bytes 0-1 (UINT16, 0.01 degC)
-    // Skin Temp is often bytes 2-3 (UINT16, 0.01 degC)
-    // Structure depends on specific firmware but this is common for 2101
+    // Based on logs: [55, 126, 14, 104, 12...]
+    // Bytes 2-3: 14, 104 -> 0x0E68 = 3688 -> 36.88 degC
+    // Format appears to be Big Endian at Offset 2.
     
-    int rawCore = value[0] | (value[1] << 8);
-    double temp = rawCore * 0.01;
-    
-    // Sanity check (30C to 45C)
-    if (temp > 30 && temp < 45) {
-      coreTemp = temp;
-      notifyListeners();
+    try {
+      int rawCore = (value[2] << 8) | value[3]; // Big Endian
+      double temp = rawCore * 0.01;
+      log("Parsed Core Temp (Offset 2, BE): $temp");
+      
+      // Sanity check (20C to 50C)
+      if (temp > 20 && temp < 50) {
+        coreTemp = temp;
+        notifyListeners();
+      } else {
+        log("Core Temp disregarded (out of range): $temp");
+      }
+    } catch (e) {
+      log("Error parsing core data: $e");
     }
   }
 
@@ -298,8 +346,11 @@ class BluetoothService extends ChangeNotifier {
     // Instantaneous Power (if Bit 6 set) - 2 bytes (INT16)
     if (instPowerPresent) {
       if (offset + 2 <= value.length) {
+         // RAW Power from Trainer
+         int rawPower = value[offset] | (value[offset + 1] << 8);
+         
+         // ONLY update if USER wants Trainer Power
          if (useTrainerPower) {
-            int rawPower = value[offset] | (value[offset + 1] << 8);
             power = rawPower.toDouble();
             notifyListeners();
          }
@@ -602,6 +653,7 @@ class BluetoothService extends ChangeNotifier {
     if (name.contains("STAGES")) return 'POWER';
     
     return null; // Unknown, ask user
+  }
   
   // ========================================
   // DISCONNECT METHODS
@@ -696,4 +748,4 @@ class BluetoothService extends ChangeNotifier {
     return null;
   }
 }
-}
+

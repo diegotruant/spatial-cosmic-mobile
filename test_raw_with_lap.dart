@@ -6,7 +6,7 @@ void main() async {
   
   final builder = FitFileBuilder();
   
-  final startTime = DateTime.now().subtract(Duration(seconds: 3779));
+  final startTime = DateTime.now().subtract(const Duration(seconds: 3779));
   final startFit = (startTime.millisecondsSinceEpoch - DateTime.utc(1989, 12, 31).millisecondsSinceEpoch) ~/ 1000;
   final endTime = DateTime.now();
   final endFit = (endTime.millisecondsSinceEpoch - DateTime.utc(1989, 12, 31).millisecondsSinceEpoch) ~/ 1000;

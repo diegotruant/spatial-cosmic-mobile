@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'src/app.dart';
 import 'src/services/auth_service.dart';
 import 'src/services/bluetooth_service.dart';
-import 'src/services/payment_service.dart';
 import 'src/services/physiological_service.dart';
 import 'src/services/workout_service.dart';
 import 'src/services/sync_service.dart';

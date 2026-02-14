@@ -11,7 +11,7 @@ void main() {
   print('Calculated FIT Time: ${toFitTime(now)}');
 
   // Check 2043 scenario
-  final fit2043 = 1735689600; // Approx Unix for 2025? No.
+  const fit2043 = 1735689600; // Approx Unix for 2025? No.
   // Unix Now ~ 1.73 Billion.
   // 1.73B seconds since 1989?
   // 1989 + 1.73B seconds = 1989 + 54 years = 2043.

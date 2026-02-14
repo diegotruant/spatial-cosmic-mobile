@@ -26,7 +26,7 @@ class OuraService extends ChangeNotifier {
     
     // Clear Oura token when user changes
     Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-      final newUserId = data.session?.user?.id;
+      final newUserId = data.session?.user.id;
       
       if (newUserId != null && _currentUserId != null && newUserId != _currentUserId) {
         debugPrint('[OuraService] User changed, clearing Oura token');

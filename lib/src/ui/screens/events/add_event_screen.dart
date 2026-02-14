@@ -69,7 +69,7 @@ class _AddEventScreenState extends State<AddEventScreen> {
                       
                       // Type Dropdown
                       DropdownButtonFormField<EventType>(
-                        value: _type,
+                        initialValue: _type,
                         dropdownColor: const Color(0xFF2A2A40),
                         style: const TextStyle(color: Colors.white),
                         decoration: _buildInputDecoration('Tipo', LucideIcons.tag),

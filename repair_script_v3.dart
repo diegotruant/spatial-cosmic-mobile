@@ -98,7 +98,7 @@ void main() async {
   );
 
   final repairedFile = builder.build();
-  final desktopPath = 'C:/Users/Diego Truant/Desktop/Workout_VERO_Diego.fit';
+  const desktopPath = 'C:/Users/Diego Truant/Desktop/Workout_VERO_Diego.fit';
   await File(desktopPath).writeAsBytes(repairedFile.toBytes());
   
   print('SUCCESSO: File VERO salvato sul Desktop.');

@@ -39,7 +39,7 @@ void main() async {
   }
   
   // 4. Add NEW Records
-  final startTime = DateTime.now().subtract(Duration(seconds: 3779));
+  final startTime = DateTime.now().subtract(const Duration(seconds: 3779));
   int startFit = (startTime.millisecondsSinceEpoch - DateTime.utc(1989, 12, 31).millisecondsSinceEpoch) ~/ 1000;
   
   for (int i = 0; i < 3779; i += 60) {

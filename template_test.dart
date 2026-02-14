@@ -79,7 +79,7 @@ void main() async {
   // Standard RecordMessages should be fine? Or do we need template Record too?
   // Let's rely on standard records for now (Record is usually Message 20, standard).
   
-  final startTime = DateTime.now().subtract(Duration(seconds: 3779));
+  final startTime = DateTime.now().subtract(const Duration(seconds: 3779));
   // toFitTime logic equivalent
   int startFit = (startTime.millisecondsSinceEpoch - DateTime.utc(1989, 12, 31).millisecondsSinceEpoch) ~/ 1000;
   

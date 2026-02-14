@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart'; // For HapticFeedback
-import 'dart:typed_data'; // For BytesSource
+// For BytesSource
 import 'package:audioplayers/audioplayers.dart';
 import '../logic/zwo_parser.dart';
 import 'bluetooth_service.dart';
@@ -49,7 +49,7 @@ class WorkoutService extends ChangeNotifier {
       ),
       iOS: AudioContextIOS(
         category: AVAudioSessionCategory.ambient, // Ambient = mix with others
-        options: {
+        options: const {
           AVAudioSessionOptions.mixWithOthers
         },
       ),
@@ -159,6 +159,12 @@ class WorkoutService extends ChangeNotifier {
     for (var block in currentWorkout!.blocks) {
       if (seconds < cumulative + block.duration) {
         if (block is SteadyState) return block.power;
+        if (block is Ramp) {
+           int elapsedInStep = seconds - cumulative;
+           double progress = elapsedInStep / block.duration;
+           // Linear interpolation
+           return block.powerLow + (block.powerHigh - block.powerLow) * progress;
+        }
         if (block is IntervalsT) {
           int cycleTime = block.onDuration + block.offDuration;
           int withinCycle = (seconds - cumulative) % cycleTime;
@@ -324,6 +330,18 @@ class WorkoutService extends ChangeNotifier {
   static const int _smoothingWindow = 3; 
 
   void _tick() {
+    // Countdown Logic
+    if (_isCountingDown) {
+       _countdownValue--;
+       notifyListeners();
+       
+       if (_countdownValue <= 0) {
+          _isCountingDown = false;
+          _advanceToNextBlock();
+       }
+       return; // Skip normal tick processing during countdown
+    }
+    
     if (currentWorkout == null) return;
     
     // Auto-Pause Check
@@ -458,8 +476,9 @@ class WorkoutService extends ChangeNotifier {
     // Check for Auto-Extend Recovery
     bool isRecovery = false;
     double targetFactor = 0.0;
-    if (currentBlock is SteadyState) targetFactor = currentBlock.power;
-    else if (currentBlock is IntervalsT) targetFactor = currentBlock.offPower; 
+    if (currentBlock is SteadyState) {
+      targetFactor = currentBlock.power;
+    } else if (currentBlock is IntervalsT) targetFactor = currentBlock.offPower; 
     
     if (targetFactor < 0.65) isRecovery = true;
 

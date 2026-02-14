@@ -320,7 +320,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return GlassCard(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: DropdownButtonFormField<String>(
-        value: value,
+        initialValue: value,
         dropdownColor: const Color(0xFF101018),
         decoration: InputDecoration(
           labelText: label,

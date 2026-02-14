@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_text_styles.dart';
 
@@ -16,11 +15,9 @@ class AppTheme {
         secondary: AppColors.secondary,
         surface: AppColors.surface,
         error: AppColors.error,
-        background: AppColors.background,
         onPrimary: Colors.black, // Low contrast text on primary
         onSecondary: Colors.black,
         onSurface: AppColors.textPrimary,
-        onBackground: AppColors.textPrimary,
         onError: Colors.black,
       ),
 

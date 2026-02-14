@@ -12,39 +12,39 @@ class TermsScreen extends StatelessWidget {
         backgroundColor: Colors.transparent,
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24.0),
+      body: const SingleChildScrollView(
+        padding: EdgeInsets.all(24.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Informativa sulla Privacy',
               style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: 24),
             
-            const _SectionTitle(title: 'Chi siamo'),
-            const _SectionText(text: 'Il titolare del trattamento dei dati è Truant Diego. L\'applicazione è sviluppata per il monitoraggio delle prestazioni sportive.'),
+            _SectionTitle(title: 'Chi siamo'),
+            _SectionText(text: 'Il titolare del trattamento dei dati è Truant Diego. L\'applicazione è sviluppata per il monitoraggio delle prestazioni sportive.'),
 
-            const _SectionTitle(title: 'Dati Raccolti e Memoria Locale'),
-            const _SectionText(text: 'L\'applicazione non utilizza "cookie" nel senso tradizionale dei siti web. Invece, utilizza la memoria sicura del tuo dispositivo per salvare:\n• Le tue preferenze (es. FC Max, FTP).\n• I token di accesso per mantenere la sessione attiva.\n• I file degli allenamenti svolti (.fit).\n\nQuesti dati restano sul tuo dispositivo e vengono inviati ai nostri server (o servizi terzi connessi) solo tramite connessioni sicure.'),
+            _SectionTitle(title: 'Dati Raccolti e Memoria Locale'),
+            _SectionText(text: 'L\'applicazione non utilizza "cookie" nel senso tradizionale dei siti web. Invece, utilizza la memoria sicura del tuo dispositivo per salvare:\n• Le tue preferenze (es. FC Max, FTP).\n• I token di accesso per mantenere la sessione attiva.\n• I file degli allenamenti svolti (.fit).\n\nQuesti dati restano sul tuo dispositivo e vengono inviati ai nostri server (o servizi terzi connessi) solo tramite connessioni sicure.'),
 
-            const _SectionTitle(title: 'Servizi di Terze Parti'),
-            const _SectionText(text: 'L\'app può integrarsi con piattaforme esterne come Intervals.icu, Strava o Dropbox su tua esplicita richiesta. Quando colleghi questi servizi, accetti che i tuoi dati di allenamento vengano trasmessi a loro secondo le loro rispettive normative sulla privacy.'),
+            _SectionTitle(title: 'Servizi di Terze Parti'),
+            _SectionText(text: 'L\'app può integrarsi con piattaforme esterne come Intervals.icu, Strava o Dropbox su tua esplicita richiesta. Quando colleghi questi servizi, accetti che i tuoi dati di allenamento vengano trasmessi a loro secondo le loro rispettive normative sulla privacy.'),
 
-            const _SectionTitle(title: 'Per quanto tempo conserviamo i tuoi dati'),
-            const _SectionText(text: 'Conserviamo i dati del tuo profilo e lo storico degli allenamenti per tutto il tempo in cui il tuo account è attivo per permetterti di analizzare i tuoi progressi.'),
+            _SectionTitle(title: 'Per quanto tempo conserviamo i tuoi dati'),
+            _SectionText(text: 'Conserviamo i dati del tuo profilo e lo storico degli allenamenti per tutto il tempo in cui il tuo account è attivo per permetterti di analizzare i tuoi progressi.'),
 
-            const _SectionTitle(title: 'Quali diritti hai sui tuoi dati'),
-            const _SectionText(text: 'Puoi richiedere in qualsiasi momento l\'esportazione di tutti i tuoi dati o la cancellazione completa del tuo account e dei dati associati contattando il supporto.'),
+            _SectionTitle(title: 'Quali diritti hai sui tuoi dati'),
+            _SectionText(text: 'Puoi richiedere in qualsiasi momento l\'esportazione di tutti i tuoi dati o la cancellazione completa del tuo account e dei dati associati contattando il supporto.'),
 
-            const _SectionTitle(title: 'Informazioni di contatto'),
-            const _SectionText(text: 'Per qualsiasi richiesta riguardante la privacy:\n\nTruant Diego Dino\nVia Brugnera 4/C\n33074 Fontanafredda (PN)'),
+            _SectionTitle(title: 'Informazioni di contatto'),
+            _SectionText(text: 'Per qualsiasi richiesta riguardante la privacy:\n\nTruant Diego Dino\nVia Brugnera 4/C\n33074 Fontanafredda (PN)'),
             
-            const _SectionTitle(title: 'Sicurezza e Crittografia'),
-            const _SectionText(text: 'La sicurezza dei tuoi dati è prioritaria:\n\n• Trasmissione: Tutte le comunicazioni tra l\'app e i server avvengono tramite connessioni cifrate (HTTPS/SSL), proteggendo i dati da intercettazioni.\n• Dati Sanitari: I dati biometrici (Battito Cardiaco, Potenza) sono trattati come dati sensibili e utilizzati esclusivamente per le funzionalità di analisi sportiva.\n• Archiviazione: I nostri server adottano misure di sicurezza standard per proteggere i dati da accessi non autorizzati.'),
+            _SectionTitle(title: 'Sicurezza e Crittografia'),
+            _SectionText(text: 'La sicurezza dei tuoi dati è prioritaria:\n\n• Trasmissione: Tutte le comunicazioni tra l\'app e i server avvengono tramite connessioni cifrate (HTTPS/SSL), proteggendo i dati da intercettazioni.\n• Dati Sanitari: I dati biometrici (Battito Cardiaco, Potenza) sono trattati come dati sensibili e utilizzati esclusivamente per le funzionalità di analisi sportiva.\n• Archiviazione: I nostri server adottano misure di sicurezza standard per proteggere i dati da accessi non autorizzati.'),
 
-            const SizedBox(height: 48),
+            SizedBox(height: 48),
           ],
         ),
       ),

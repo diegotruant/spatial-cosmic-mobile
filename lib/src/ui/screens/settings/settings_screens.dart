@@ -12,7 +12,7 @@ import '../../../services/intervals_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../profile/profile_edit_screen.dart';
 import '../profile/medical_certificate_screen.dart';
-import '../profile/metabolic_calculator_screen.dart';
+
 
 class AdvancedOptionsScreen extends StatelessWidget {
   const AdvancedOptionsScreen({super.key});
@@ -112,7 +112,7 @@ class AdvancedOptionsScreen extends StatelessWidget {
           Switch(
             value: value,
             onChanged: (_) => onToggle(),
-            activeColor: Colors.blueAccent,
+            activeThumbColor: Colors.blueAccent,
             inactiveThumbColor: Colors.grey,
             inactiveTrackColor: Colors.grey.withOpacity(0.3),
           ),
@@ -426,7 +426,7 @@ class AccountInfoScreen extends StatelessWidget {
           Switch(
             value: value,
             onChanged: (_) => onToggle(),
-            activeColor: Colors.blueAccent,
+            activeThumbColor: Colors.blueAccent,
           ),
         ],
       ),
@@ -646,12 +646,12 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                 color: Colors.greenAccent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                   const Icon(Icons.link, color: Colors.greenAccent),
-                   const SizedBox(width: 12),
+                   Icon(Icons.link, color: Colors.greenAccent),
+                   SizedBox(width: 12),
                    Expanded(
-                     child: const Text(
+                     child: Text(
                        'Oura Collegato Correttamente', 
                        style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)
                      ),
@@ -761,12 +761,12 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
                 color: Colors.greenAccent.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
-              child: Row(
+              child: const Row(
                 children: [
-                  const Icon(Icons.link, color: Colors.greenAccent),
-                  const SizedBox(width: 12),
+                  Icon(Icons.link, color: Colors.greenAccent),
+                  SizedBox(width: 12),
                   Expanded(
-                    child: const Text(
+                    child: Text(
                       'Account Collegato Correttamente', 
                       style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)
                     ),

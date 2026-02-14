@@ -10,9 +10,7 @@ import '../../../logic/analysis_engine.dart';
 import '../../../services/settings_service.dart';
 import '../../../services/sync_service.dart' as src;
 import '../../../services/integration_service.dart';
-import '../../../services/intervals_service.dart';
 import '../../../services/athlete_profile_service.dart' as src_profile;
-import '../../../l10n/app_localizations.dart';
 import '../../../logic/fit_generator.dart';
 
 class PostWorkoutAnalysisScreen extends StatefulWidget {
@@ -61,7 +59,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   bool _showHr = false;
   bool _showCadence = false;
   bool _showGear = false;
-  bool _showSmoothness = false;
+  final bool _showSmoothness = false;
 
   @override
   void initState() {
@@ -586,12 +584,12 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
                 gridData: FlGridData(
                   show: true,
                   drawVerticalLine: false,
-                  getDrawingHorizontalLine: (value) => FlLine(color: Colors.white10, strokeWidth: 1),
+                  getDrawingHorizontalLine: (value) => const FlLine(color: Colors.white10, strokeWidth: 1),
                 ),
                 titlesData: FlTitlesData(
                   show: true,
-                  topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
                   bottomTitles: AxisTitles(
                     sideTitles: SideTitles(
                       showTitles: true,
@@ -674,7 +672,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       color: color,
       barWidth: 2,
       isStrokeCapRound: true,
-      dotData: FlDotData(show: false),
+      dotData: const FlDotData(show: false),
       belowBarData: BarAreaData(show: true, color: color.withOpacity(0.1)),
     );
   }
@@ -756,7 +754,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   }
 
   Widget _buildPeakCard(String label, int value) {
-    return Container(
+    return SizedBox(
       width: 85, // Fixed width for scrollable row items
       child: GlassCard(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),

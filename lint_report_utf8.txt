@@ -1,0 +1,878 @@
+﻿Analyzing spatial-cosmic-mobile...                              
+
+   info - Don't invoke 'print' in production code - analyze_fit.dart:7:5 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:12:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:16:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:23:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:25:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:26:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:35:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:36:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:37:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:38:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:39:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:40:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:41:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:42:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:43:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:44:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:48:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:49:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:50:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:51:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:53:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:57:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:58:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:59:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:60:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:61:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:62:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:63:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:67:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:68:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:69:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:70:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:71:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:72:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:83:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_fit.dart:84:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:10:5 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:17:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:18:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:25:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:26:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:30:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:36:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:37:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:40:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:41:9 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:43:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:47:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:48:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:49:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:50:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:51:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:52:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:53:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:57:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:58:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:59:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:60:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:61:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:62:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:66:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_original.dart:71:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:8:5 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:15:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:29:5 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:39:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:40:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:41:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:42:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:43:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:62:5 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:64:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:70:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:71:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:72:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:73:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:75:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:76:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:77:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_power.dart:78:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:10:5 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:21:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:22:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:23:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:25:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:26:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:40:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:41:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:42:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:43:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:44:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:45:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:53:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:54:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:55:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:56:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:57:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:58:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:66:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:67:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:68:7 - avoid_print
+   info - Don't invoke 'print' in production code - analyze_working.dart:69:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:9:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:16:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:22:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:23:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:25:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:26:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:30:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:36:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:37:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:38:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:39:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:43:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:44:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:45:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:46:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:47:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:52:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_power_scale.dart:57:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_property.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_property.dart:11:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_property.dart:15:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:15:3 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:25:11 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:33:5 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:34:5 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:35:5 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:36:5 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:37:5 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:40:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:42:7 - avoid_print
+   info - Don't invoke 'print' in production code - check_timestamps.dart:45:5 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:13:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:17:5 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:30:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:31:9 - avoid_print
+  error - The getter 'architecture' isn't defined for the type 'DefinitionMessage' - compare_definitions.dart:31:41 - undefined_getter
+   info - Don't invoke 'print' in production code - compare_definitions.dart:32:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:37:13 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:38:13 - avoid_print
+  error - The getter 'baseType' isn't defined for the type 'FieldDefinition' - compare_definitions.dart:38:48 - undefined_getter
+   info - Don't invoke 'print' in production code - compare_definitions.dart:39:13 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:43:13 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:44:13 - avoid_print
+  error - The getter 'baseType' isn't defined for the type 'FieldDefinition' - compare_definitions.dart:44:48 - undefined_getter
+   info - Don't invoke 'print' in production code - compare_definitions.dart:45:13 - avoid_print
+   info - Don't invoke 'print' in production code - compare_definitions.dart:52:10 - avoid_print
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:12:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:16:5 - avoid_print
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:32:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:33:9 - avoid_print
+  error - The getter 'architecture' isn't defined for the type 'DefinitionMessage' - compare_defs_v2.dart:33:41 - undefined_getter
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:34:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_defs_v2.dart:36:11 - avoid_print
+  error - The getter 'baseType' isn't defined for the type 'FieldDefinition' - compare_defs_v2.dart:36:80 - undefined_getter
+   info - Don't invoke 'print' in production code - compare_fit.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:16:7 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:17:7 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:18:7 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:19:7 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:20:7 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:22:7 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:24:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:25:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:30:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:31:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:32:3 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:43:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:44:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:45:9 - avoid_print
+   info - Don't invoke 'print' in production code - compare_fit.dart:46:9 - avoid_print
+   info - Don't invoke 'print' in production code - compile_test.dart:12:5 - avoid_print
+   info - Don't invoke 'print' in production code - compile_test.dart:14:5 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:10:5 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:17:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:18:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:25:5 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:30:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:35:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:36:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:40:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:41:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:42:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:43:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:44:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:48:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:49:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:50:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:51:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:52:7 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:58:9 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:59:9 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:60:9 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:61:9 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:62:9 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:67:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:68:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:69:3 - avoid_print
+   info - Don't invoke 'print' in production code - complete_dump.dart:70:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:11:5 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:16:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:17:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:21:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:22:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:30:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:35:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:36:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:40:9 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:41:9 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:42:9 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:43:9 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:44:9 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:45:9 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:51:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:52:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:53:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:54:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:55:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:56:7 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:61:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:62:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:63:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:64:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:65:3 - avoid_print
+   info - Don't invoke 'print' in production code - deep_analysis.dart:66:3 - avoid_print
+   info - Don't invoke 'print' in production code - extract_record_def.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - extract_record_def.dart:17:9 - avoid_print
+   info - Don't invoke 'print' in production code - extract_record_def.dart:20:13 - avoid_print
+   info - Don't invoke 'print' in production code - extract_record_def.dart:21:13 - avoid_print
+   info - Don't invoke 'print' in production code - fit_pro_repair.dart:121:3 - avoid_print
+   info - Don't invoke 'print' in production code - fit_pro_repair.dart:122:3 - avoid_print
+   info - Don't invoke 'print' in production code - fit_pro_repair.dart:123:3 - avoid_print
+   info - Don't invoke 'print' in production code - fit_pro_repair.dart:124:3 - avoid_print
+   info - Don't invoke 'print' in production code - fit_pro_repair.dart:125:3 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:21:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:22:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:23:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:25:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:26:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:30:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:34:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:38:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:39:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:40:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:41:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:42:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:46:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:47:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:48:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:49:7 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:53:3 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:54:3 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:56:5 - avoid_print
+   info - Don't invoke 'print' in production code - full_original_dump.dart:58:3 - avoid_print
+  error - The name 'BikeSamplesData' isn't a type, so it can't be used as a type argument - lib\data\local\database.dart:64:15 - non_type_as_type_argument
+  error - The name 'RrIntervalsData' isn't a type, so it can't be used as a type argument - lib\data\local\database.dart:70:15 - non_type_as_type_argument
+warning - The value of the local variable 'unixEpoch' isn't used - lib\src\logic\verify_fit_math.dart:4:9 - unused_local_variable
+   info - Don't invoke 'print' in production code - lib\src\logic\verify_fit_math.dart:8:3 - avoid_print
+   info - Don't invoke 'print' in production code - lib\src\logic\verify_fit_math.dart:9:3 - avoid_print
+   info - Don't invoke 'print' in production code - lib\src\logic\verify_fit_math.dart:10:3 - avoid_print
+   info - Don't invoke 'print' in production code - lib\src\logic\verify_fit_math.dart:11:3 - avoid_print
+warning - The value of the local variable 'fit2043' isn't used - lib\src\logic\verify_fit_math.dart:14:9 - unused_local_variable
+   info - Don't invoke 'print' in production code - lib\src\logic\verify_fit_math.dart:25:3 - avoid_print
+   info - 'text' is deprecated and shouldn't be used. Use [value] to access the textual content of this node, or [innerText] to access the textual content of its descendants - lib\src\logic\zwo_parser.dart:51:38 - deprecated_member_use
+   info - 'text' is deprecated and shouldn't be used. Use [value] to access the textual content of this node, or [innerText] to access the textual content of its descendants - lib\src\logic\zwo_parser.dart:52:24 - deprecated_member_use
+   info - 'text' is deprecated and shouldn't be used. Use [value] to access the textual content of this node, or [innerText] to access the textual content of its descendants - lib\src\logic\zwo_parser.dart:55:42 - deprecated_member_use
+   info - 'text' is deprecated and shouldn't be used. Use [value] to access the textual content of this node, or [innerText] to access the textual content of its descendants - lib\src\logic\zwo_parser.dart:55:77 - deprecated_member_use
+warning - The left operand can't be null, so the right operand is never executed - lib\src\services\athlete_profile_service.dart:694:47 - dead_null_aware_expression
+warning - The left operand can't be null, so the right operand is never executed - lib\src\services\athlete_profile_service.dart:795:45 - dead_null_aware_expression
+warning - Dead code - lib\src\services\bluetooth_service.dart:79:9 - dead_code
+warning - The value of the local variable 'avgPowerPresent' isn't used - lib\src\services\bluetooth_service.dart:272:10 - unused_local_variable
+warning - Dead code - lib\src\services\bluetooth_service.dart:611:3 - dead_code
+warning - The declaration 'disconnectAll' isn't referenced - lib\src\services\bluetooth_service.dart:679:16 - unused_element
+warning - The declaration 'getDeviceType' isn't referenced - lib\src\services\bluetooth_service.dart:690:11 - unused_element
+warning - The declaration '_exchangeToken' isn't referenced - lib\src\services\integration_service.dart:208:16 - unused_element
+   info - Don't invoke 'print' in production code - lib\src\services\library_service.dart:262:7 - avoid_print
+   info - The constant name 'MAX_RETRIES' isn't a lowerCamelCase identifier - lib\src\services\sync_service.dart:13:20 - constant_identifier_names
+   info - The constant name 'INITIAL_RETRY_DELAY' isn't a lowerCamelCase identifier - lib\src\services\sync_service.dart:14:25 - constant_identifier_names
+warning - The declaration '_addToOfflineQueue' isn't referenced - lib\src\services\sync_service.dart:57:16 - unused_element
+   info - Statements in an if should be enclosed in a block - lib\src\services\workout_service.dart:475:44 - curly_braces_in_flow_control_structures
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:90:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:97:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:102:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:107:28 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:123:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:128:60 - deprecated_member_use
+warning - The left operand can't be null, so the right operand is never executed - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:174:70 - dead_null_aware_expression
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:243:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:243:98 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:249:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:249:100 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:249:132 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:251:71 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:296:77 - deprecated_member_use
+   info - 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:323:25 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:336:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:435:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:499:34 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:508:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:523:104 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:532:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:563:78 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:588:81 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:643:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:693:52 - deprecated_member_use
+warning - The value of the local variable 'profile' isn't used - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:773:11 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:851:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:876:45 - deprecated_member_use
+warning - The declaration '_showAdvancedOptions' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:917:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1000:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1010:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1030:37 - deprecated_member_use
+warning - The declaration '_showLanguageSelector' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1041:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1068:61 - deprecated_member_use
+warning - The declaration '_showAccountInfo' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1082:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1156:37 - deprecated_member_use
+warning - The declaration '_showConnections' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1179:8 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1224:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1232:59 - deprecated_member_use
+warning - The declaration '_buildMedicalCertificateAlert' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1268:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1304:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1306:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1475:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1484:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1506:67 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1521:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1531:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1552:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1558:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1572:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1578:57 - deprecated_member_use
+warning - The declaration '_buildWPrimeCard' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1590:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1600:65 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1600:103 - deprecated_member_use
+warning - The declaration '_buildAprCalculatorButton' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1630:10 - unused_element
+warning - The left operand can't be null, so the right operand is never executed - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1686:79 - dead_null_aware_expression
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1737:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1774:66 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1787:66 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1813:87 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1857:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1861:30 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1878:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1878:98 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1884:92 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1920:51 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1925:60 - deprecated_member_use
+warning - The declaration '_buildMetricsGrid' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1941:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1966:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1968:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:1979:60 - deprecated_member_use
+warning - The declaration '_buildMetabolicProfile' isn't referenced - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2016:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2049:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2051:63 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2118:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2121:57 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2173:39 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2175:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2182:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2250:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\dashboard\modern_dashboard_screen.dart:2254:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\events\add_event_screen.dart:121:125 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\events\add_event_screen.dart:124:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_manager_screen.dart:85:22 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_manager_screen.dart:87:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_manager_screen.dart:106:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_manager_screen.dart:114:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_screen.dart:68:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_screen.dart:68:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_screen.dart:73:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_screen.dart:117:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_screen.dart:125:78 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\payments\payment_screen.dart:125:111 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\payments\payment_screen.dart:156:28 - use_build_context_synchronously
+warning - The left operand can't be null, so the right operand is never executed - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:82:42 - dead_null_aware_expression
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:93:26 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:96:19 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:125:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:152:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:195:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:196:68 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:263:31 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:264:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:268:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:286:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\physiological\hrv_measurement_screen.dart:318:64 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\medical_certificate_screen.dart:133:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:119:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:162:56 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:178:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:187:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:209:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:296:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:374:44 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\profile\metabolic_lab_view_screen.dart:385:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:88:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:91:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:161:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:165:65 - deprecated_member_use
+  error - The method 'getDeviceType' isn't defined for the type 'BluetoothService' - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:174:42 - undefined_method
+  error - The method 'disconnectDevice' isn't defined for the type 'BluetoothService' - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:197:29 - undefined_method
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\settings\bluetooth_scan_screen.dart:201:38 - use_build_context_synchronously
+  error - Target of URI doesn't exist: '../profile/metabolic_calculator_screen.dart' - lib\src\ui\screens\settings\settings_screens.dart:15:8 - uri_does_not_exist
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:107:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:117:45 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:137:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:211:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:266:55 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:389:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:421:69 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:447:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:479:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:482:54 - deprecated_member_use
+warning - The value of the local variable 'settings' isn't used - lib\src\ui\screens\settings\settings_screens.dart:522:11 - unused_local_variable
+warning - The value of the local variable 'connections' isn't used - lib\src\ui\screens\settings\settings_screens.dart:525:11 - unused_local_variable
+warning - The value of the local variable 'integration' isn't used - lib\src\ui\screens\settings\settings_screens.dart:529:11 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:578:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:580:53 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:596:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:607:54 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\settings\settings_screens.dart:635:42 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:646:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:676:35 - deprecated_member_use
+warning - The declaration '_buildIntervalsSection' isn't referenced - lib\src\ui\screens\settings\settings_screens.dart:688:10 - unused_element
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:695:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:697:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:713:50 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\settings\settings_screens.dart:741:42 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\settings\settings_screens.dart:743:42 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:761:43 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:809:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\settings_screens.dart:817:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\settings\workout_recovery_screen.dart:118:88 - deprecated_member_use
+warning - The value of the field '_intensity' isn't used - lib\src\ui\screens\workout\modern_workout_screen.dart:29:13 - unused_field
+warning - The value of the field '_showAvgPower' isn't used - lib\src\ui\screens\workout\modern_workout_screen.dart:32:14 - unused_field
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:96:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:99:54 - deprecated_member_use
+  error - The method '_buildLandscapeLayout' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:113:38 - undefined_method
+  error - The method '_buildVerticalControlBar' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:117:23 - undefined_method
+warning - The declaration '_buildTopBar' isn't referenced - lib\src\ui\screens\workout\modern_workout_screen.dart:126:10 - unused_element
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:152:10 - named_function_expression
+  error - The element type 'Row Function(BluetoothService, WorkoutService, String Function(int))' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:152:31 - list_element_type_not_assignable
+  error - The method '_buildIntervalTimer' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:167:38 - undefined_method
+  error - The method '_buildTotalTimeTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:169:38 - undefined_method
+  error - The method '_buildNextStep' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:171:38 - undefined_method
+  error - The method '_buildMainPowerTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:182:40 - undefined_method
+  error - The method '_buildTargetPowerTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:184:40 - undefined_method
+  error - The method '_buildHeartRateTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:198:43 - undefined_method
+  error - The method '_buildCadenceTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:200:43 - undefined_method
+  error - The method '_buildWPrimeTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:202:43 - undefined_method
+  error - The method '_buildSpeedDistTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:208:43 - undefined_method
+  error - The method '_buildBalanceTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:210:43 - undefined_method
+  error - The method '_buildCoreTempTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:212:43 - undefined_method
+  error - The method '_buildChartWithControls' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:225:18 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:231:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:231:10 - named_function_expression
+  error - The element type 'Column Function(BluetoothService, WorkoutService, String Function(int))' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:231:30 - list_element_type_not_assignable
+  error - The method '_buildChartWithControls' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:237:18 - undefined_method
+  error - The method '_buildIntervalTimer' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:250:43 - undefined_method
+  error - The method '_buildTotalTimeTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:252:43 - undefined_method
+  error - The method '_buildPowerAndTargetSplit' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:262:43 - undefined_method
+  error - The method '_buildHeartRateTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:274:49 - undefined_method
+  error - The method '_buildCadenceTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:276:49 - undefined_method
+  error - The method '_buildNextStep' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:278:49 - undefined_method
+  error - The method '_buildWPrimeTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:283:49 - undefined_method
+  error - The method '_buildSpeedDistTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:285:49 - undefined_method
+  error - The method '_buildCoreTempTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:287:49 - undefined_method
+  error - The method '_buildBalanceTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:293:49 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:312:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:312:10 - named_function_expression
+  error - The element type 'GestureDetector Function(WorkoutService, String Function(int))' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:312:29 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:329:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:329:10 - named_function_expression
+  error - The element type 'GestureDetector Function(WorkoutService, String Function(int))' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:329:29 - list_element_type_not_assignable
+  error - The method '_calculateTotalDuration' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:335:28 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:344:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:344:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(WorkoutService, String Function(int))' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:344:24 - list_element_type_not_assignable
+  error - The method '_calculateBlockColor' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:350:24 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:361:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:361:10 - named_function_expression
+  error - The element type 'GestureDetector Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:361:29 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:380:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:380:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:380:31 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:390:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:390:10 - named_function_expression
+  error - The element type 'Row Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:390:35 - list_element_type_not_assignable
+  error - The method '_buildMainPowerTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:394:31 - undefined_method
+  error - The method '_buildTargetPowerTile' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:396:31 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:401:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:401:10 - named_function_expression
+  error - The element type 'GestureDetector Function(BluetoothService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:401:29 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:415:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:415:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(BluetoothService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:415:27 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:424:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:424:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(WPrimeService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:424:26 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:435:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:435:10 - named_function_expression
+  error - The element type 'Container Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:435:36 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:443:33 - deprecated_member_use
+  error - The method '_buildIntensityControl' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:447:17 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:452:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:452:7 - named_function_expression
+  error - The element type 'int Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:452:30 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:462:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:462:9 - named_function_expression
+  error - The element type 'Color Function(dynamic, int)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:462:29 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:469:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:469:10 - named_function_expression
+  error - The element type 'Stack Function()' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:469:33 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:493:39 - deprecated_member_use
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:512:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:512:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:512:29 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:521:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:521:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(BluetoothService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:521:27 - list_element_type_not_assignable
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:533:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:533:10 - named_function_expression
+  error - The element type 'BigMetricTile Function(BluetoothService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:533:28 - list_element_type_not_assignable
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:538:31 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:539:27 - curly_braces_in_flow_control_structures
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:550:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:550:10 - named_function_expression
+  error - The element type 'Padding Function()' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:550:22 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:580:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:582:65 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:614:94 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:615:87 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:616:90 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:617:87 - curly_braces_in_flow_control_structures
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:652:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:652:10 - named_function_expression
+  error - The element type 'GlassCard Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:652:26 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:656:33 - deprecated_member_use
+  error - The method '_buildControlButton' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:661:13 - undefined_method
+  error - The method '_buildControlButton' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:667:13 - undefined_method
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:700:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:702:23 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:714:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:715:41 - use_build_context_synchronously
+  error - The method '_buildControlButton' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:721:13 - undefined_method
+  error - The method '_buildModeSelector' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:725:13 - undefined_method
+  error - The method '_buildIntensityControl' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:727:13 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:734:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:734:10 - named_function_expression
+  error - The element type 'InkWell Function(IconData, Color, VoidCallback)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:734:29 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:741:24 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:743:43 - deprecated_member_use
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:750:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:750:10 - named_function_expression
+  error - The element type 'Flex Function({bool isVertical})' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:750:32 - list_element_type_not_assignable
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:759:26 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:760:10 - curly_braces_in_flow_control_structures
+   info - Statements in an if should be enclosed in a block - lib\src\ui\screens\workout\modern_workout_screen.dart:765:26 - curly_braces_in_flow_control_structures
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:777:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:777:82 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:779:69 - deprecated_member_use
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:802:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:802:10 - named_function_expression
+  error - The element type 'Container Function(WorkoutService, {bool isVertical})' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:802:28 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:806:29 - deprecated_member_use
+  error - The method '_buildModeItem' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:814:11 - undefined_method
+  error - The method '_buildModeItem' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:815:11 - undefined_method
+  error - The method '_buildModeItem' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:816:11 - undefined_method
+  error - The method '_buildModeItem' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:822:11 - undefined_method
+  error - The method '_buildModeItem' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:823:11 - undefined_method
+  error - The method '_buildModeItem' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:824:11 - undefined_method
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:830:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:830:10 - named_function_expression
+  error - The element type 'GestureDetector Function(WorkoutMode, String, WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:830:24 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:837:49 - deprecated_member_use
+  error - Expected to find ',' - lib\src\ui\screens\workout\modern_workout_screen.dart:852:3 - expected_token
+  error - Function expressions can't be named - lib\src\ui\screens\workout\modern_workout_screen.dart:852:10 - named_function_expression
+  error - The element type 'GlassCard Function(WorkoutService)' can't be assigned to the list type 'Widget' - lib\src\ui\screens\workout\modern_workout_screen.dart:852:34 - list_element_type_not_assignable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\modern_workout_screen.dart:856:34 - deprecated_member_use
+  error - The method '_buildControlButton' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:861:14 - undefined_method
+  error - The method '_buildControlButton' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:867:14 - undefined_method
+  error - The method '_buildModeSelector' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:871:14 - undefined_method
+  error - The method '_buildIntensityControl' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:873:14 - undefined_method
+  error - The method '_buildControlButton' isn't defined for the type '_ModernWorkoutScreenState' - lib\src\ui\screens\workout\modern_workout_screen.dart:875:14 - undefined_method
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:903:39 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:905:27 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:917:38 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\modern_workout_screen.dart:918:45 - use_build_context_synchronously
+  error - Expected to find ';' - lib\src\ui\screens\workout\modern_workout_screen.dart:926:3 - expected_token
+  error - Expected to find ')' - lib\src\ui\screens\workout\modern_workout_screen.dart:927:1 - expected_token
+  error - Expected to find ']' - lib\src\ui\screens\workout\modern_workout_screen.dart:927:1 - expected_token
+  error - Expected to find '}' - lib\src\ui\screens\workout\modern_workout_screen.dart:929:1 - expected_token
+warning - The value of the field '_timestamps' isn't used - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:43:16 - unused_field
+warning - The value of the field '_avgSmoothness' isn't used - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:51:10 - unused_field
+warning - The value of the field '_showSmoothness' isn't used - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:62:14 - unused_field
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:220:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:249:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:259:60 - deprecated_member_use
+warning - Dead code - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:295:94 - dead_code
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:332:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:337:33 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:349:31 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:370:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:372:58 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:402:29 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:410:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:425:30 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:438:34 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:447:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:453:22 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:458:31 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:541:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:648:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:676:58 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\post_workout_analysis_screen.dart:720:52 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\workout\workout_analysis_screen.dart:172:15 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_history_screen.dart:105:44 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\workout_history_screen.dart:190:44 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\workout_history_screen.dart:196:35 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\workout_history_screen.dart:202:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\workout_history_screen.dart:220:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\workout_history_screen.dart:223:36 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - lib\src\ui\screens\workout\workout_history_screen.dart:232:41 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\workout\workout_history_screen.dart:264:18 - use_build_context_synchronously
+   info - 'WillPopScope' is deprecated and shouldn't be used. Use PopScope instead. The Android predictive back feature will not work with WillPopScope. This feature was deprecated after v3.12.0-1.0.pre - lib\src\ui\screens\workout\workout_library_screen.dart:104:25 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:117:56 - deprecated_member_use
+   info - Don't use 'BuildContext's across async gaps - lib\src\ui\screens\workout\workout_library_screen.dart:168:28 - use_build_context_synchronously
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:221:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:224:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:238:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:318:68 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:319:74 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:320:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:322:87 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:323:93 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:324:59 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:400:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\screens\workout\workout_library_screen.dart:401:61 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\anaerobic_battery_gauge.dart:79:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\big_metric_tile.dart:27:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\big_metric_tile.dart:55:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\glass_card.dart:35:49 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\glass_card.dart:38:50 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\glass_card.dart:45:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\glass_card.dart:46:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:29:29 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:31:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:132:30 - deprecated_member_use
+   info - Statements in an if should be enclosed in a block - lib\src\ui\widgets\live_workout_chart.dart:156:39 - curly_braces_in_flow_control_structures
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:183:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:188:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:194:93 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:195:94 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:196:106 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:206:89 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\live_workout_chart.dart:328:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\metric_tile.dart:31:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\metric_tile.dart:58:47 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\metric_tile.dart:78:60 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\metric_tile.dart:94:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\platform_selector.dart:52:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\platform_selector.dart:59:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\primary_button.dart:31:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\primary_button.dart:45:54 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\workout_chart.dart:78:35 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\src\ui\widgets\workout_chart.dart:79:35 - deprecated_member_use
+   info - Don't invoke 'print' in production code - reencode_working.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:10:5 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:36:3 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:42:3 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:43:3 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:44:3 - avoid_print
+   info - Don't invoke 'print' in production code - reencode_working.dart:45:3 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script.dart:14:5 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script.dart:42:3 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script.dart:120:3 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script_v2.dart:112:3 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script_v3.dart:31:3 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script_v3.dart:104:3 - avoid_print
+   info - Don't invoke 'print' in production code - repair_script_v4.dart:99:3 - avoid_print
+   info - Don't invoke 'print' in production code - tcx_final_repair.dart:66:3 - avoid_print
+   info - Don't invoke 'print' in production code - tcx_repair.dart:64:3 - avoid_print
+   info - Don't invoke 'print' in production code - tcx_repair_strict.dart:73:3 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:25:5 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:105:3 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:106:3 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:107:3 - avoid_print
+   info - Don't invoke 'print' in production code - template_test.dart:108:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_datetime.dart:4:3 - avoid_print
+warning - The value of the local variable 'now' isn't used - test_datetime.dart:20:9 - unused_local_variable
+   info - Don't invoke 'print' in production code - test_datetime.dart:36:5 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding.dart:33:9 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding.dart:36:13 - avoid_print
+  error - The getter 'baseType' isn't defined for the type 'FieldDefinition' - test_encoding.dart:36:67 - undefined_getter
+   info - Don't invoke 'print' in production code - test_encoding.dart:39:13 - avoid_print
+  error - The getter 'baseType' isn't defined for the type 'FieldDefinition' - test_encoding.dart:39:65 - undefined_getter
+   info - Don't invoke 'print' in production code - test_encoding.dart:47:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding.dart:48:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding.dart:49:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_inspect.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_inspect.dart:28:9 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_inspect.dart:31:13 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_inspect.dart:33:13 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_inspect.dart:36:13 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_inspect.dart:37:13 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_simple.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_simple.dart:31:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_simple.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_simple.dart:33:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_simple.dart:36:9 - avoid_print
+   info - Don't invoke 'print' in production code - test_encoding_simple.dart:38:9 - avoid_print
+   info - Don't invoke 'print' in production code - test_hex_dump.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_hex_dump.dart:36:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_hex_dump.dart:44:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_hex_dump.dart:45:18 - avoid_print
+   info - Don't invoke 'print' in production code - test_hex_dump.dart:46:16 - avoid_print
+   info - Don't invoke 'print' in production code - test_hex_dump.dart:49:5 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:20:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:21:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:24:10 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:26:10 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:28:10 - avoid_print
+   info - Don't invoke 'print' in production code - test_large_timestamp.dart:30:10 - avoid_print
+   info - Don't invoke 'print' in production code - test_mix.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_mix.dart:64:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_mix.dart:65:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:97:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:98:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:99:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:100:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:101:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:126:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:127:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:128:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:129:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:130:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:131:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_no_scale.dart:132:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_raw_with_lap.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_raw_with_lap.dart:87:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_raw_with_lap.dart:88:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_raw_with_lap.dart:89:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_raw_with_lap.dart:90:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_record_hex.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_record_hex.dart:34:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_record_hex.dart:35:18 - avoid_print
+   info - Don't invoke 'print' in production code - test_record_hex.dart:36:18 - avoid_print
+   info - Don't invoke 'print' in production code - test_record_hex.dart:39:5 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:3:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:8:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:9:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:14:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:15:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:18:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:42:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_calc.dart:43:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_field.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_field.dart:31:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_field.dart:33:6 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_field.dart:35:6 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_field.dart:44:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_field.dart:45:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_ms.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_ms.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_ms.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_ms.dart:31:9 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_ms.dart:33:9 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_offset.dart:4:3 - avoid_print
+   info - Don't invoke 'print' in production code - test_timestamp_offset.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - tool\test_zwo_parse.dart:79:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:5:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:6:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:7:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:8:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:12:5 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:23:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:24:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:25:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:26:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:27:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:28:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:29:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:30:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:32:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:36:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:37:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:39:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:40:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:46:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:47:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:49:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:50:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:54:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:55:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:57:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:60:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:61:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:64:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:71:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:72:9 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:74:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:75:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:79:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:80:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:81:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:82:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:83:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:84:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:85:7 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:89:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:90:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:91:3 - avoid_print
+   info - Don't invoke 'print' in production code - verify_fixed_fit.dart:92:3 - avoid_print
+

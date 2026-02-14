@@ -4,7 +4,7 @@ import 'package:fit_tool/fit_tool.dart';
 
 String formatTcxTime(DateTime dt) {
   // Ritorna formato YYYY-MM-DDTHH:mm:ssZ senza millisecondi
-  return dt.toUtc().toIso8601String().split('.').first + 'Z';
+  return '${dt.toUtc().toIso8601String().split('.').first}Z';
 }
 
 void main() async {
@@ -29,7 +29,7 @@ void main() async {
       }
     }
   }
-  if (startTime == null) startTime = DateTime.now().subtract(Duration(seconds: powers.length + 3600));
+  startTime ??= DateTime.now().subtract(Duration(seconds: powers.length + 3600));
 
   final startStr = formatTcxTime(startTime);
   final buffer = StringBuffer();

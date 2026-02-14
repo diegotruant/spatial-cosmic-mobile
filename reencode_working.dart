@@ -27,18 +27,16 @@ void main() async {
     // Let's rely on fit_tool's ability to handle standard messages.
     
     // Note: builder.add() takes a Message.
-    if (msg is Message) {
-      if (msg is DefinitionMessage) continue; // Skip definitions, builder generates them
-      
-      builder.add(msg);
-      msgCount++;
+    if (msg is DefinitionMessage) continue; // Skip definitions, builder generates them
+    
+    builder.add(msg);
+    msgCount++;
     }
-  }
   
   print('Added $msgCount messages to builder.');
   
   final newFile = builder.build();
-  final outputPath = 'C:/Users/Diego Truant/Desktop/Threshold_ReEncoded.fit';
+  const outputPath = 'C:/Users/Diego Truant/Desktop/Threshold_ReEncoded.fit';
   await File(outputPath).writeAsBytes(newFile.toBytes());
   
   print('✅ GENERATED: $outputPath');

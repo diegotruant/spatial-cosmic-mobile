@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:fit_tool/fit_tool.dart';
 
 String formatTime(DateTime dt) {
-  return dt.toUtc().toIso8601String().substring(0, 19) + 'Z';
+  return '${dt.toUtc().toIso8601String().substring(0, 19)}Z';
 }
 
 void main() async {

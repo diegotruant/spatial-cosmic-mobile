@@ -24,7 +24,7 @@ void main() async {
       }
     }
   }
-  if (startTime == null) startTime = DateTime.now();
+  startTime ??= DateTime.now();
 
   final buffer = StringBuffer();
   buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');

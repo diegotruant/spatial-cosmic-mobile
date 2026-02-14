@@ -37,7 +37,7 @@ void main() async {
     }
   }
 
-  if (startTime == null) startTime = DateTime.now();
+  startTime ??= DateTime.now();
 
   print('Extracted ${powers.length} records. Repairing...');
 
@@ -114,7 +114,7 @@ void main() async {
   );
 
   final repairedFile = builder.build();
-  final desktopPath = 'C:/Users/Diego Truant/Desktop/Workout_Riparato_Diego.fit';
+  const desktopPath = 'C:/Users/Diego Truant/Desktop/Workout_Riparato_Diego.fit';
   await File(desktopPath).writeAsBytes(repairedFile.toBytes());
   
   print('SUCCESS: Repaired file saved to $desktopPath');

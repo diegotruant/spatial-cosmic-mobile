@@ -154,7 +154,7 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
 
       final ftp = context.read<SettingsService>().ftp; // Get user FTP for scaling
       final dir = await getApplicationDocumentsDirectory();
-      final filename = "${parsedWorkout!.title.replaceAll(' ', '_')}.fit";
+      final filename = "${parsedWorkout.title.replaceAll(' ', '_')}.fit";
       final file = File('${dir.path}/$filename');
       final bytes = FitGenerator.toBytes(parsedWorkout, ftp);
       await file.writeAsBytes(bytes);
@@ -236,8 +236,8 @@ class _WorkoutLibraryScreenState extends State<WorkoutLibraryScreen> {
                   child: GlassCard(
                     padding: const EdgeInsets.all(14),
                     borderColor: Colors.orangeAccent.withOpacity(0.4),
-                    child: Row(
-                      children: const [
+                    child: const Row(
+                      children: [
                         Icon(LucideIcons.alertTriangle, color: Colors.orangeAccent, size: 18),
                         SizedBox(width: 10),
                         Expanded(

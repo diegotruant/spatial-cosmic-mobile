@@ -5,7 +5,6 @@ import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:vibration/vibration.dart';
 import '../../../services/bluetooth_service.dart';
 import '../../../services/physiological_service.dart';
-import '../../widgets/glass_card.dart';
 
 class HrvMeasurementScreen extends StatefulWidget {
   const HrvMeasurementScreen({super.key});

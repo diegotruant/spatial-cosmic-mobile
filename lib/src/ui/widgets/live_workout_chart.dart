@@ -98,7 +98,9 @@ class _LiveGraphPainter extends CustomPainter {
     
     final blocks = currentWorkout!.blocks;
     var totalWorkoutDuration = 0;
-    for (var b in blocks) totalWorkoutDuration += b.duration;
+    for (var b in blocks) {
+      totalWorkoutDuration += b.duration;
+    }
     if (totalWorkoutDuration == 0) return;
 
     // View Window Logic
@@ -114,7 +116,7 @@ class _LiveGraphPainter extends CustomPainter {
     // Scrolling Logic
     double scrollOffset = 0.0;
     if (isZoomed) {
-       final headStart = 120; // 2 minutes padding on left
+       const headStart = 120; // 2 minutes padding on left
        if (totalElapsed > headStart) {
          scrollOffset = (totalElapsed - headStart) * secToX;
        }
@@ -149,8 +151,9 @@ class _LiveGraphPainter extends CustomPainter {
       }
 
       double baseFactor = 0.0;
-      if (block is SteadyState) baseFactor = block.power;
-      else if (block is IntervalsT) baseFactor = block.onPower; 
+      if (block is SteadyState) {
+        baseFactor = block.power;
+      } else if (block is IntervalsT) baseFactor = block.onPower; 
 
       // Target watts a 100% e con intensità applicata
       final double targetW100 = baseFactor * ftp;
@@ -227,7 +230,9 @@ class _LiveGraphPainter extends CustomPainter {
         final y = size.height - (norm * size.height);
         
         if (first || i==0) { tempPath.moveTo(x, y); first = false; }
-        else tempPath.lineTo(x, y);
+        else {
+          tempPath.lineTo(x, y);
+        }
       }
       canvas.drawPath(tempPath, Paint()..color = Colors.purpleAccent..style = PaintingStyle.stroke..strokeWidth = 2.0);
     }
@@ -272,7 +277,9 @@ class _LiveGraphPainter extends CustomPainter {
            final y = size.height - (pct * size.height); // 1.0 -> 0 (Top), 0.0 -> Height (Bottom)
            
            if (firstW) { wPath.moveTo(x, y); firstW = false; }
-           else wPath.lineTo(x, y);
+           else {
+             wPath.lineTo(x, y);
+           }
         }
         
         canvas.drawPath(wPath, wPaint);

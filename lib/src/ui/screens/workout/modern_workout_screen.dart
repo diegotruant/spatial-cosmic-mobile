@@ -6,22 +6,17 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../services/bluetooth_service.dart';
 import '../../../services/workout_service.dart';
 import '../../../services/settings_service.dart';
-import '../../widgets/metric_tile.dart';
+import '../../widgets/big_metric_tile.dart'; // NEW
 import '../../widgets/live_workout_chart.dart';
 import '../../../logic/zwo_parser.dart';
 import '../../widgets/glass_card.dart';
-import 'workout_analysis_screen.dart';
 import '../settings/bluetooth_scan_screen.dart' as com_bluetooth;
 import '../settings/settings_screens.dart' as com_settings;
 import 'package:wakelock_plus/wakelock_plus.dart';
 import '../../../logic/fit_generator.dart';
 import 'post_workout_analysis_screen.dart';
-import '../../../services/sync_service.dart';
-import '../../../services/intervals_service.dart';
-import '../../../services/integration_service.dart';
 import '../../../services/athlete_profile_service.dart' as src_profile;
 import '../../../services/w_prime_service.dart';
-import '../../widgets/anaerobic_battery_gauge.dart';
 
 class ModernWorkoutScreen extends StatefulWidget {
   const ModernWorkoutScreen({super.key});
@@ -31,10 +26,10 @@ class ModernWorkoutScreen extends StatefulWidget {
 }
 
 class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
-  int _intensity = 100;
+  final int _intensity = 100;
   bool _isChartZoomed = false; // Zoom state
   bool _showPercentHr = false;
-  bool _showAvgPower = false;
+  final bool _showAvgPower = false;
   // New Interactive States
   bool _showRemainingTime = false;
   bool _showPercentPower = false;
@@ -55,20 +50,21 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
   @override
   void initState() {
     super.initState();
+    // Force Landscape
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     WakelockPlus.enable(); // Keep screen on
   }
 
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    final bluetooth = context.read<BluetoothService>();
-    final settings = context.read<SettingsService>();
-    context.read<WorkoutService>().updateBluetoothService(bluetooth);
-    context.read<WorkoutService>().updateSettingsService(settings);
-  }
-
-  @override
   void dispose() {
+    // Reset Orientation
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
     WakelockPlus.disable(); // Allow screen off
     super.dispose();
   }
@@ -106,52 +102,106 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
             ),
           ),
           
-          OrientationBuilder(
-            builder: (context, orientation) {
-              final isLandscape = orientation == Orientation.landscape;
-              
-              return SafeArea(
-                child: Column(
+          SafeArea(
+              bottom: false, // Let controls go to bottom
+              child: Row(
                   children: [
-                    _buildTopBar(),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                        child: isLandscape 
-                          ? _buildLandscapeLayout(bluetooth, workoutService, formatTime)
-                          : _buildPortraitLayout(bluetooth, workoutService, formatTime),
+                      // Main Content (Metrics + Chart)
+                      Expanded(
+                          child: Padding(
+                              padding: const EdgeInsets.only(left: 16, top: 4, bottom: 4), 
+                              child: Column(
+                                children: [
+                                  _buildTopBar(),
+                                  Expanded(child: _buildLandscapeLayout(bluetooth, workoutService, formatTime)),
+                                ],
+                              ),
+                          ),
                       ),
-                    ),
-                    _buildControlBar(workoutService),
+                      // Vertical Controls
+                      _buildVerticalControlBar(workoutService),
                   ],
-                ),
-              );
-            },
+              ),
           ),
         ],
       ),
     );
   }
 
-
   Widget _buildLandscapeLayout(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
+    // Landscape: Left Panel (Metrics) + Right Panel (Chart)
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Left Side: Metrics Grid (2x3)
+        // Left Side: Metrics Panel
         Expanded(
-          flex: 2,
-          child: GridView.count(
-            crossAxisCount: 3, // Increased density
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            childAspectRatio: 1.5,
-            children: _buildMetricTiles(bluetooth, workoutService, formatTime),
+          flex: 4, // 40% width
+          child: Column(
+            children: [
+              // Row 1: Timers
+              Expanded(
+                flex: 12, // Ratio 1.2
+                child: Row(
+                  children: [
+                     Expanded(child: _buildIntervalTimer(workoutService, formatTime)),
+                     const SizedBox(width: 8),
+                     Expanded(child: _buildTotalTimeTile(workoutService, formatTime)),
+                     const SizedBox(width: 8),
+                     Expanded(child: _buildNextStep(workoutService, formatTime)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              
+              // Row 2: MAIN POWER & TARGET
+              Expanded(
+                 flex: 20, // Ratio 2.0
+                 child: Row(
+                    children: [
+                       Expanded(child: _buildMainPowerTile(workoutService)),
+                       const SizedBox(width: 8),
+                       Expanded(child: _buildTargetPowerTile(workoutService)),
+                    ],
+                 )
+              ),
+              const SizedBox(height: 8),
+              
+              // Row 3: Secondary Metrics (SCROLLABLE)
+              Expanded(
+                flex: 12, // Ratio 1.2
+
+                child: PageView(
+                  children: [
+                    // Page 1: Standard
+                    Row(
+                       children: [
+                          Expanded(child: _buildHeartRateTile(bluetooth)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildCadenceTile(bluetooth)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildWPrimeTile(context.watch<WPrimeService>())),
+                       ]
+                    ),
+                    // Page 2: Extended Stats
+                    Row(
+                       children: [
+                          Expanded(child: _buildSpeedDistTile(workoutService)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildBalanceTile(bluetooth)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildCoreTempTile(bluetooth)),
+                       ]
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(width: 16),
         // Right Side: Advanced Graph
         Expanded(
-          flex: 3,
+          flex: 6, // 60% width
           child: _buildChartWithControls(),
         ),
       ],
@@ -159,91 +209,241 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
   }
 
   Widget _buildPortraitLayout(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
-    // Layout richiesto: grafico in alto + griglia metriche sotto (foto 2)
     return Column(
       children: [
-        // Grafico con controlli in alto - Aumentata altezza per visibilità
+        // Top: Chart
         SizedBox(
-          height: 320, 
+          height: 250, // Fixed height for chart in portrait
           child: _buildChartWithControls(),
         ),
-        const SizedBox(height: 8),
-        // Griglia metriche “pro” sotto il grafico - Più compatta
+        const SizedBox(height: 12),
+        
+        // Bottom: Metrics Grid (Custom Column/Row for better control)
         Expanded(
-          child: GridView.count(
-            crossAxisCount: 3, 
-            childAspectRatio: 1.5, // Molto più sottili per evitare overlap
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-            children: _buildMetricTiles(bluetooth, workoutService, formatTime),
-          ),
+           child: Column(
+              children: [
+                 // Row 1: Timers
+                 Expanded(
+                    flex: 1,
+                    child: Row(
+                       children: [
+                          Expanded(child: _buildIntervalTimer(workoutService, formatTime)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildTotalTimeTile(workoutService, formatTime)),
+                       ],
+                    ),
+                 ),
+                 const SizedBox(height: 8),
+                 // Row 2: MAIN POWER
+                 Expanded(
+                    flex: 2, // Huge
+                    child: Row(
+                       children: [
+                          Expanded(child: _buildPowerAndTargetSplit(workoutService)), // Split or just Power? Let's do Split 
+                       ],
+                    ),
+                 ),
+                 const SizedBox(height: 8),
+                 // Row 3: Secondary (SCROLLABLE)
+                 Expanded(
+                    flex: 1,
+                    child: PageView(
+                       children: [
+                          Row(
+                             children: [
+                                Expanded(child: _buildHeartRateTile(bluetooth)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildCadenceTile(bluetooth)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildNextStep(workoutService, formatTime)),
+                             ],
+                          ),
+                          Row(
+                             children: [
+                                Expanded(child: _buildWPrimeTile(context.watch<WPrimeService>())),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildSpeedDistTile(workoutService)),
+                                const SizedBox(width: 8),
+                                Expanded(child: _buildCoreTempTile(bluetooth)),
+                             ],
+                          ),
+                          // Optional Page 3 for Balance if needed
+                          Row(
+                             children: [
+                                Expanded(child: _buildBalanceTile(bluetooth)),
+                                const SizedBox(width: 8),
+                                const Spacer(flex: 2), 
+                             ],
+                          )
+                       ],
+                    ),
+                 ),
+                 // Row 4: Extra if space permits? Or merge into others.
+                 // Let's keep it simple for now to match TrainerDay look
+              ],
+           ),
         ),
       ],
     );
   }
 
-  List<Widget> _buildSimpleMetricTiles(
-    BluetoothService bluetooth,
-    WorkoutService workoutService,
-    String Function(int) formatTime,
-  ) {
-    final int currentWatts = (workoutService.powerHistory.isNotEmpty ? workoutService.powerHistory.last : 0).toInt();
-    final String balanceValue = (bluetooth.leftPowerBalance != null && bluetooth.rightPowerBalance != null)
-        ? '${bluetooth.leftPowerBalance}/${bluetooth.rightPowerBalance}'
-        : '-';
+  // --- Helper Builders for Tiles ---
 
-    return [
-      MetricTile(
-        label: 'DURATION',
-        value: formatTime(workoutService.totalElapsed),
-        unit: 'mm:ss',
-        isLarge: true,
-        accentColor: Colors.white,
-      ),
-      MetricTile(
-        label: 'POWER',
-        value: currentWatts.toString(),
+  Widget _buildIntervalTimer(WorkoutService service, String Function(int) formatTime) {
+      return GestureDetector(
+        onTap: () => setState(() => _showRemainingTime = !_showRemainingTime),
+        child: BigMetricTile(
+          label: _showRemainingTime ? 'INT REM' : 'INTERVAL', 
+          value: _showRemainingTime 
+             ? (service.currentWorkout != null && service.currentBlockIndex < service.currentWorkout!.blocks.length
+                 ? formatTime(service.currentWorkout!.blocks[service.currentBlockIndex].duration - service.elapsedInBlock)
+                 : '-')
+             : formatTime(service.elapsedInBlock), 
+          unit: '',
+          accentColor: Colors.blueAccent,
+          isHuge: false,
+        ),
+      );
+  }
+
+  Widget _buildTotalTimeTile(WorkoutService service, String Function(int) formatTime) {
+      return GestureDetector(
+        onTap: () => setState(() => _showTotalRemainingTime = !_showTotalRemainingTime),
+        child: BigMetricTile(
+          label: _showTotalRemainingTime ? 'TOT REM' : 'TOT.TIME', 
+          value: _showTotalRemainingTime
+              ? formatTime(_calculateTotalDuration(service) - service.totalElapsed)
+              : formatTime(service.totalElapsed),
+          unit: '',
+          accentColor: Colors.grey,
+          isHuge: false,
+        ),
+      );
+  }
+
+  Widget _buildNextStep(WorkoutService service, String Function(int) formatTime) {
+     final blocks = service.currentWorkout?.blocks;
+     if (blocks == null || service.currentBlockIndex >= blocks.length - 1) {
+        return const BigMetricTile(label: 'NEXT', value: 'FINISH', unit: '', accentColor: Colors.grey);
+     }
+     final nextBlock = blocks[service.currentBlockIndex + 1];
+     Color zoneColor = _calculateBlockColor(nextBlock, service.userFtp);
+     
+     return BigMetricTile(
+        label: 'NEXT STEP',
+        value: formatTime(nextBlock.duration),
+        unit: '', 
+        accentColor: zoneColor,
+        valueColor: zoneColor,
+     );
+  }
+
+  Widget _buildMainPowerTile(WorkoutService service) {
+     final currentWatts = (service.powerHistory.isNotEmpty ? service.powerHistory.last : 0).toInt();
+     final color = _getZoneColor(currentWatts, service.userFtp);
+     
+     return GestureDetector(
+        onTap: () => setState(() => _showPercentPower = !_showPercentPower),
+        child: BigMetricTile(
+           label: _showPercentPower ? 'POWER %' : 'POWER',
+           value: _showPercentPower 
+              ? (service.userFtp > 0 ? ((currentWatts / service.userFtp) * 100).toStringAsFixed(0) : '-')
+              : currentWatts.toString(),
+           unit: _showPercentPower ? '%' : 'W',
+           accentColor: color,
+           valueColor: color,
+           isHuge: true,
+        ),
+     );
+  }
+
+  Widget _buildTargetPowerTile(WorkoutService service) {
+     return BigMetricTile(
+        label: 'TARGET',
+        value: service.currentTargetWatts.toString(),
         unit: 'W',
-        isLarge: true,
-        accentColor: _getZoneColor(currentWatts, workoutService.userFtp),
-      ),
-      MetricTile(
-        label: 'HEART RATE',
-        value: bluetooth.heartRate > 0 ? bluetooth.heartRate.toString() : '-',
-        unit: 'BPM',
-        accentColor: Colors.pinkAccent,
-      ),
-      MetricTile(
-        label: 'CADENCE',
-        value: bluetooth.cadence > 0 ? bluetooth.cadence.toString() : '-',
-        unit: 'RPM',
-        accentColor: Colors.greenAccent,
-      ),
-      MetricTile(
-        label: 'SPD / DIST',
-        value: workoutService.currentSpeed.toStringAsFixed(1),
-        unit: 'km/h',
-        accentColor: Colors.blueAccent,
-      ),
-      MetricTile(
-        label: 'DISTANCE',
-        value: workoutService.totalDistance.toStringAsFixed(1),
-        unit: 'km',
-        accentColor: Colors.purpleAccent,
-      ),
-      MetricTile(
-        label: 'CALORIES',
-        value: workoutService.totalCalories.toStringAsFixed(0),
-        unit: 'kcal',
-        accentColor: Colors.orangeAccent,
-      ),
-      MetricTile(
-        label: 'BALANCE L/R',
-        value: balanceValue,
-        unit: '%',
-        accentColor: Colors.cyanAccent,
-      ),
-    ];
+        accentColor: Colors.white,
+        isHuge: true,
+     );
+  }
+  
+  Widget _buildPowerAndTargetSplit(WorkoutService service) {
+      // For Portrait: Combine Power and Target side-by-side in one huge row
+      return Row(
+          children: [
+              Expanded(child: _buildMainPowerTile(service)),
+              const SizedBox(width: 8),
+              Expanded(child: _buildTargetPowerTile(service)),
+          ],
+      );
+  }
+
+  Widget _buildHeartRateTile(BluetoothService bt) {
+     return GestureDetector(
+        onTap: () => setState(() => _showPercentHr = !_showPercentHr),
+        child: BigMetricTile(
+           label: _showPercentHr ? 'HR %' : 'HR',
+           value: _showPercentHr 
+              ? (context.read<SettingsService>().hrMax > 0 && bt.heartRate > 0 ? ((bt.heartRate / context.read<SettingsService>().hrMax) * 100).toInt().toString() : '-') 
+              : bt.heartRate > 0 ? bt.heartRate.toString() : '-',
+           unit: _showPercentHr ? '%' : 'BPM',
+           accentColor: Colors.redAccent,
+        )
+     );
+  }
+
+  Widget _buildCadenceTile(BluetoothService bt) {
+      return BigMetricTile(
+          label: 'CAD',
+          value: bt.cadence > 0 ? bt.cadence.toString() : '-',
+          unit: 'RPM',
+          accentColor: Colors.greenAccent
+      );
+  }
+
+  Widget _buildWPrimeTile(WPrimeService wPrime) {
+      return BigMetricTile(
+          label: 'W\' BAL',
+          value: (wPrime.currentWPrime / 1000).toStringAsFixed(1),
+          unit: 'kJ',
+          accentColor: wPrime.isDepleting ? Colors.orangeAccent : Colors.purpleAccent,
+      );
+  }
+  
+  // Reusing intensity logic but wrapping in tile if needed, or just regular widget?
+  // Let's make a custom tile that creates the intensity UI inside
+  Widget _buildIntensityControlTile(WorkoutService service) {
+      // We can wrap the existing intensity control
+      // But for the tile layout, maybe just display Intensity % ?
+      // Let's use the BigMetricTile to show the % and onTap opens the control?
+      // Or just put the control widget directly in the row.
+      return Container(
+         padding: const EdgeInsets.all(8),
+         decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.05),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
+         ),
+         child: _buildIntensityControl(), // Reusing existing method
+      );
+  }
+
+  // --- Helpers ---
+  int _calculateTotalDuration(WorkoutService service) {
+    int total = 0;
+    if (service.currentWorkout != null) {
+      for (var b in service.currentWorkout!.blocks) {
+        total += b.duration;
+      }
+    }
+    return total;
+  }
+
+  Color _calculateBlockColor(dynamic block, int ftp) {
+      double target = 0;
+      if (block is SteadyState) target = block.power * ftp; 
+      if (block is IntervalsT) target = block.onPower * ftp; 
+      return _getZoneColor(target.toInt(), ftp);
   }
 
   Widget _buildChartWithControls() {
@@ -287,172 +487,44 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
     );
   }
 
-  List<Widget> _buildMetricTiles(BluetoothService bluetooth, WorkoutService workoutService, String Function(int) formatTime) {
-    final settings = context.watch<SettingsService>();
-    
-    // Calculate Average Power on the fly (or optimization: move to service)
-    int avgPower = 0;
-    if (workoutService.powerHistory.isNotEmpty) {
-      avgPower = (workoutService.powerHistory.reduce((a, b) => a + b) / workoutService.powerHistory.length).toInt();
-    }
+  // --- Additional Helper Builders ---
 
-    final int currentWatts = (workoutService.powerHistory.isNotEmpty ? workoutService.powerHistory.last : 0).toInt();
-    final int userFtp = workoutService.userFtp;
-    final int targetWatts = workoutService.currentTargetWatts;
-    final String balanceValue = (bluetooth.leftPowerBalance != null && bluetooth.rightPowerBalance != null)
-        ? '${bluetooth.leftPowerBalance}/${bluetooth.rightPowerBalance}'
-        : '-';
-
-
-    // Calculate Total Duration
-    int totalWorkoutDuration = 0;
-    if (workoutService.currentWorkout != null) {
-      for (var b in workoutService.currentWorkout!.blocks) totalWorkoutDuration += b.duration;
-    }
-    
-    return [
-      // 1. Interval Timer (Toggle Elapsed / Remaining)
-      GestureDetector(
-        onTap: () => setState(() => _showRemainingTime = !_showRemainingTime),
-        child: MetricTile(
-          label: _showRemainingTime ? 'INT REMAINING' : 'INTERVAL', 
-          value: _showRemainingTime 
-             ? (workoutService.currentWorkout != null && workoutService.currentBlockIndex < workoutService.currentWorkout!.blocks.length
-                 ? formatTime(workoutService.currentWorkout!.blocks[workoutService.currentBlockIndex].duration - workoutService.elapsedInBlock)
-                 : '-')
-             : formatTime(workoutService.elapsedInBlock), 
-          unit: '',
+  Widget _buildSpeedDistTile(WorkoutService service) {
+      return BigMetricTile(
+          label: 'SPD / DIST',
+          value: '${service.currentSpeed.toStringAsFixed(1)} / ${service.totalDistance.toStringAsFixed(1)}',
+          unit: 'km/h / km',
           accentColor: Colors.blueAccent
-        ),
-      ),
-      
-      // 1b. NEXT INTERVAL (Enhanced with Zone Color)
-      Builder(builder: (context) {
-         final blocks = workoutService.currentWorkout?.blocks;
-         if (blocks == null || workoutService.currentBlockIndex >= blocks.length - 1) {
-            return const MetricTile(label: 'NEXT STEP', value: 'FINISH', unit: '', accentColor: Colors.grey);
-         }
-         final nextBlock = blocks[workoutService.currentBlockIndex + 1];
-         // Determine Duration
-         final dur = formatTime(nextBlock.duration);
-         
-         // Determine Color/Zone
-         Color zoneColor = Colors.grey;
-         double target = 0;
-         if (nextBlock is SteadyState) target = nextBlock.power * userFtp; 
-         if (nextBlock is IntervalsT) target = nextBlock.onPower * userFtp; // Use ON power for preview
-         
-         zoneColor = _getZoneColor(target.toInt(), userFtp);
-         
-         return MetricTile(
-            label: 'NEXT STEP',
-            value: dur,
-            unit: 'durata', 
-            accentColor: zoneColor, // Box color changes with zone
-            valueColor: zoneColor, // Duration text also uses zone color
-            isLarge: false,
-         );
-      }),
-      
-      // 2. Total Time Box (Restored)
-      GestureDetector(
-        onTap: () => setState(() => _showTotalRemainingTime = !_showTotalRemainingTime),
-        child: MetricTile(
-          label: _showTotalRemainingTime ? 'TOT REMAINING' : 'TOTAL TIME', 
-          value: _showTotalRemainingTime
-             ? formatTime(totalWorkoutDuration - workoutService.totalElapsed)
-             : formatTime(workoutService.totalElapsed),
-          unit: '',
-          accentColor: Colors.white, // Neutral
-        ),
-      ),
+      );
+  }
 
-      // 2b. W' Balance (Anaerobic Capacity)
-      Consumer<WPrimeService>(
-        builder: (context, wPrime, child) => MetricTile(
-          label: 'W\' BALANCE', 
-          value: '${((wPrime.currentWPrime) / 1000).toStringAsFixed(1)}', 
-          unit: 'kJ', 
-          accentColor: wPrime.isDepleting ? Colors.orangeAccent : Colors.purpleAccent,
-        ),
-      ),
+  Widget _buildBalanceTile(BluetoothService bt) {
+      final val = (bt.leftPowerBalance != null && bt.rightPowerBalance != null)
+        ? '${bt.leftPowerBalance}/${bt.rightPowerBalance}'
+        : '-';
+      return BigMetricTile(
+          label: 'BAL',
+          value: val,
+          unit: '%',
+          accentColor: Colors.cyanAccent
+      );
+  }
 
-      // 3. Target Power
-      MetricTile(
-        label: 'TARGET', 
-        value: targetWatts.toString(), 
-        unit: 'W', 
-        isLarge: true, 
-        accentColor: _getZoneColor(currentWatts, userFtp),
-      ),
-      
-      // 4. Current Power
-      GestureDetector(
-        onTap: () => setState(() => _showPercentPower = !_showPercentPower),
-        child: MetricTile(
-          label: _showPercentPower ? 'POWER %' : 'POWER', 
-          value: _showPercentPower 
-             ? (userFtp > 0 ? ((currentWatts / userFtp) * 100).toStringAsFixed(0) : '-')
-             : currentWatts.toString(), 
-          unit: _showPercentPower ? '%' : 'W', 
-          isLarge: true, 
-          accentColor: _getZoneColor(currentWatts, userFtp) 
-        ),
-      ),
-      
-      // 5. Heart Rate
-      GestureDetector(
-        onTap: () => setState(() => _showPercentHr = !_showPercentHr),
-        child: MetricTile(
-          label: _showPercentHr ? 'HR %' : 'HEART RATE', 
-          value: _showPercentHr 
-             ? (settings.hrMax > 0 && bluetooth.heartRate > 0 ? ((bluetooth.heartRate / settings.hrMax) * 100).toInt().toString() : '-') 
-             : bluetooth.heartRate.toString(), 
-          unit: _showPercentHr ? '%' : 'BPM', 
-          accentColor: Colors.pinkAccent
-        ),
-      ),
+  Widget _buildCoreTempTile(BluetoothService bt) {
+      final temp = bt.coreTemp;
+      Color tempColor = Colors.greenAccent;
+      if (temp > 38.0) {
+        tempColor = Colors.redAccent;
+      } else if (temp > 37.0) tempColor = Colors.yellowAccent;
+      else if (temp <= 0) tempColor = Colors.grey;
 
-      // 6. Cadence
-      MetricTile(label: 'CADENCE', value: bluetooth.cadence.toString(), unit: 'RPM', accentColor: Colors.greenAccent),
-      
-      // 7. Speed / Dist (Compact)
-      MetricTile(
-        label: 'SPD / DIST', 
-        value: '${workoutService.currentSpeed.toStringAsFixed(1)} / ${workoutService.totalDistance.toStringAsFixed(1)}', 
-        unit: 'km/h / km', 
-        accentColor: Colors.purpleAccent
-      ),
-
-      // 8. Pedal Balance L/R
-      MetricTile(
-        label: 'L/R BAL',
-        value: balanceValue,
-        unit: '%',
-        accentColor: Colors.cyanAccent,
-      ),
-
-      // 9. CORE BODY TEMP
-      Builder(builder: (context) {
-        final temp = bluetooth.coreTemp;
-        Color tempColor = Colors.greenAccent;
-        if (temp > 38.0) {
-          tempColor = Colors.redAccent;
-        } else if (temp > 37.0) {
-          tempColor = Colors.yellowAccent;
-        } else if (temp <= 0) {
-          tempColor = Colors.grey;
-        }
-
-        return MetricTile(
-          label: 'CORE TEMP',
+      return BigMetricTile(
+          label: 'CORE',
           value: temp > 0 ? temp.toStringAsFixed(1) : '-',
           unit: '°C',
           accentColor: tempColor,
           valueColor: tempColor,
-        );
-      }),
-    ];
+      );
   }
 
   Widget _buildTopBar() {
@@ -517,8 +589,9 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                             final bt = context.read<BluetoothService>();
                             String name = entry.key; // Fallback to ID
                             
-                            if (bt.trainer?.remoteId.toString() == entry.key) name = bt.trainer?.platformName ?? "Trainer";
-                            else if (bt.heartRateSensor?.remoteId.toString() == entry.key) name = bt.heartRateSensor?.platformName ?? "HR Monitor";
+                            if (bt.trainer?.remoteId.toString() == entry.key) {
+                              name = bt.trainer?.platformName ?? "Trainer";
+                            } else if (bt.heartRateSensor?.remoteId.toString() == entry.key) name = bt.heartRateSensor?.platformName ?? "HR Monitor";
                             else if (bt.powerMeter?.remoteId.toString() == entry.key) name = bt.powerMeter?.platformName ?? "Power Meter";
                             else if (bt.cadenceSensor?.remoteId.toString() == entry.key) name = bt.cadenceSensor?.platformName ?? "Cadence Sensor";
                             else if (bt.coreSensor?.remoteId.toString() == entry.key) name = bt.coreSensor?.platformName ?? "CORE Sensor";
@@ -654,23 +727,24 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
     );
   }
 
-  Widget _buildIntensityControl() {
+  Widget _buildIntensityControl({bool isVertical = false}) {
     // Read from service directly to stay in sync
     final service = context.watch<WorkoutService>();
     final isSlope = service.mode == WorkoutMode.slope;
     final isResist = service.mode == WorkoutMode.resistance;
     
     String displayValue = '';
-    if (isSlope) displayValue = '${service.currentSlope.toStringAsFixed(1)}%';
-    else if (isResist) displayValue = '${service.currentResistance}%';
+    if (isSlope) {
+      displayValue = '${service.currentSlope.toStringAsFixed(1)}%';
+    } else if (isResist) displayValue = '${service.currentResistance}%';
     else displayValue = '${service.intensityPercentage}%';
     
     String label = 'INTENSITY';
-    if (isSlope) label = 'SLOPE';
-    else if (isResist) label = 'RESIST';
+    if (isSlope) {
+      label = 'SLOPE';
+    } else if (isResist) label = 'RESIST';
 
-    return Row(
-      children: [
+    List<Widget> children = [
         IconButton(
           icon: const Icon(Icons.remove, color: Colors.white),
           onPressed: () {
@@ -697,11 +771,15 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         ),
         const SizedBox(width: 12),
         Text(label, style: const TextStyle(color: Colors.white24, fontSize: 10, fontWeight: FontWeight.bold)),
-      ],
-    );
+    ];
+
+    if (isVertical) {
+       return Column(children: children);
+    }
+    return Row(children: children);
   }
 
-  Widget _buildModeSelector(WorkoutService service) {
+  Widget _buildModeSelector(WorkoutService service, {bool isVertical = false}) {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
@@ -709,7 +787,16 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: Colors.white10),
       ),
-      child: Row(
+      child: isVertical 
+      ? Column(
+         mainAxisSize: MainAxisSize.min,
+         children: [
+          _buildModeItem(WorkoutMode.erg, 'ERG', service),
+          _buildModeItem(WorkoutMode.slope, 'SIM', service),
+          _buildModeItem(WorkoutMode.resistance, 'RES', service),
+         ],
+      )
+      : Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           _buildModeItem(WorkoutMode.erg, 'ERG', service),
@@ -739,6 +826,82 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildVerticalControlBar(WorkoutService workoutService) {
+    return GlassCard(
+      borderRadius: 0,
+       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 24),
+       borderColor: Colors.white.withOpacity(0.05),
+       child: SingleChildScrollView(
+         scrollDirection: Axis.vertical,
+         child: Column(
+           children: [
+             _buildControlButton(
+               workoutService.isPaused ? LucideIcons.play : LucideIcons.pause, 
+               workoutService.isPaused ? Colors.cyanAccent : Colors.orangeAccent, 
+               () => workoutService.togglePlayPause()
+             ),
+             const SizedBox(height: 16),
+             _buildControlButton(LucideIcons.skipForward, Colors.white, () {
+                workoutService.nextInterval();
+             }),
+             const SizedBox(height: 16),
+             _buildModeSelector(workoutService, isVertical: true),
+             const SizedBox(height: 16),
+             _buildIntensityControl(isVertical: true),
+             const SizedBox(height: 32),
+             _buildControlButton(LucideIcons.square, Colors.purpleAccent, () async {
+                 // Stop logic duplicated for now or extract to method
+                 workoutService.stopWorkout();
+                  showDialog(
+                    context: context, 
+                    barrierDismissible: false,
+                    builder: (ctx) => const Center(child: CircularProgressIndicator(color: Colors.purpleAccent))
+                  );
+                  try {
+                       final file = await FitGenerator.generateActivityFit(
+                         powerHistory: workoutService.powerHistory,
+                         hrHistory: workoutService.hrHistory,
+                         cadenceHistory: workoutService.cadenceHistory,
+                         speedHistory: workoutService.speedHistory,
+                         avgPower: workoutService.powerHistory.isNotEmpty 
+                            ? workoutService.powerHistory.reduce((a, b) => a + b) / workoutService.powerHistory.length 
+                            : 0.0,
+                         maxHr: workoutService.hrHistory.isNotEmpty 
+                            ? workoutService.hrHistory.reduce(max) 
+                            : 0,
+                         durationSeconds: workoutService.totalElapsed,
+                         totalDistance: workoutService.totalDistance * 1000,
+                         totalCalories: workoutService.totalCalories.toInt(),
+                         startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
+                         workoutTitle: workoutService.currentWorkout?.title ?? "Manual Workout",
+                         rrHistory: workoutService.rrHistory,
+                       );
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => PostWorkoutAnalysisScreen(
+                              fitFilePath: file.path, 
+                              workoutId: workoutService.currentWorkout?.id,
+                              isNewWorkout: true,
+                            )
+                          ),
+                        );
+                      }
+                  } catch (e) {
+                     if (context.mounted) {
+                       Navigator.pop(context);
+                       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+                     }
+                  }
+             }),
+           ],
+         ),
+       ),
     );
   }
 }

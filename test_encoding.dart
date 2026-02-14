@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:fit_tool/fit_tool.dart';
 
 void main() async {

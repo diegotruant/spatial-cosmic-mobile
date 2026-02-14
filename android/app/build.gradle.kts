@@ -37,6 +37,10 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
+
+    dependencies {
+        implementation("com.garmin:fit:21.188.0")
+    }
 }
 
 flutter {

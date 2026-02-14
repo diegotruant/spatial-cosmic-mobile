@@ -99,11 +99,11 @@ class SettingsService extends ChangeNotifier {
     language = _prefs?.getString('language') ?? language;
     
     // Load Connections
-    connections.keys.forEach((key) {
+    for (var key in connections.keys) {
       if (_prefs?.containsKey('conn_$key') == true) {
          connections[key] = _prefs!.getBool('conn_$key')!;
       }
-    });
+    }
 
     // Try to load from Supabase if authenticated
     _loadFromSupabase();

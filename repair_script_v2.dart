@@ -30,7 +30,7 @@ void main() async {
     }
   }
 
-  if (startTime == null) startTime = DateTime.now();
+  startTime ??= DateTime.now();
 
   final builder = FitFileBuilder();
   final startFitTime = toFitTime(startTime);
@@ -106,7 +106,7 @@ void main() async {
   );
 
   final repairedFile = builder.build();
-  final desktopPath = 'C:/Users/Diego Truant/Desktop/Workout_Riparato_Diego_V2.fit';
+  const desktopPath = 'C:/Users/Diego Truant/Desktop/Workout_Riparato_Diego_V2.fit';
   await File(desktopPath).writeAsBytes(repairedFile.toBytes());
   
   print('Riparazione V2 completata: $desktopPath');

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'athlete_profile_service.dart';
 import 'bluetooth_service.dart';

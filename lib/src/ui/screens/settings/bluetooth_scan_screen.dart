@@ -73,6 +73,32 @@ class _BluetoothScanScreenState extends State<BluetoothScanScreen> {
               icon: const Icon(LucideIcons.refreshCw, color: Colors.white),
               onPressed: () => bluetooth.startScan(),
             ),
+          // Debug Log Button
+          IconButton(
+            icon: const Icon(LucideIcons.fileText, color: Colors.white54),
+            onPressed: () {
+               showDialog(
+                 context: context,
+                 builder: (ctx) => AlertDialog(
+                   backgroundColor: const Color(0xFF1A1A2E),
+                   title: const Text("Debug Log", style: TextStyle(color: Colors.white)),
+                   content: SizedBox(
+                     width: double.maxFinite,
+                     height: 300,
+                     child: SingleChildScrollView(
+                       child: Column(
+                         crossAxisAlignment: CrossAxisAlignment.start,
+                         children: bluetooth.logs.map((log) => Text(log, style: const TextStyle(color: Colors.white70, fontSize: 10))).toList(),
+                       ),
+                     ),
+                   ),
+                   actions: [
+                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Close"))
+                   ],
+                 ),
+               );
+            },
+          ),
         ],
       ),
       body: Stack(
@@ -159,68 +185,100 @@ class _BluetoothScanScreenState extends State<BluetoothScanScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: GlassCard(
         borderColor: Colors.greenAccent.withOpacity(0.3),
-        child: ListTile(
-          leading: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
-            child: Icon(_getIconForType(type), color: Colors.greenAccent, size: 20),
-          ),
-          title: Text(device.platformName.isNotEmpty ? device.platformName : label, style: const TextStyle(color: Colors.white)),
-          subtitle: Text('$label • ${l10n.get('connected')}', style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
-          trailing: IconButton(
-            icon: const Icon(Icons.close, color: Colors.redAccent),
-            onPressed: () async {
-              // TODO: Implement getDeviceType and disconnectDevice methods in BluetoothService
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Disconnect feature temporarily disabled'),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              
-              /* DISABLED UNTIL METHODS ARE IMPLEMENTED
-              // Get device type before disconnecting
-              final deviceType = service.getDeviceType(device);
-              if (deviceType == null) return;
-              
-              // Show loading indicator
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Row(
-                    children: [
-                      const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                      ),
-                      const SizedBox(width: 12),
-                      Text('Disconnecting ${device.platformName}...'),
-                    ],
+        child: Column(
+          children: [
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(color: Colors.greenAccent.withOpacity(0.2), borderRadius: BorderRadius.circular(8)),
+                child: Icon(_getIconForType(type), color: Colors.greenAccent, size: 20),
+              ),
+              title: Text(device.platformName.isNotEmpty ? device.platformName : label, style: const TextStyle(color: Colors.white)),
+              subtitle: Text('$label • ${l10n.get('connected')}', style: const TextStyle(color: Colors.greenAccent, fontSize: 12)),
+              trailing: IconButton(
+                icon: const Icon(Icons.close, color: Colors.redAccent),
+                onPressed: () => _disconnectDeviceWithFeedback(device, type, service),
+              ),
+            ),
+            
+            // Configuration Toggles for TRAINER
+            if (type == 'TRAINER')
+               Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: Column(
+                     children: [
+                        const Divider(color: Colors.white10),
+                        // Power Toggle
+                        _buildFeatureToggle("Power Source", service.useTrainerPower, (v) {
+                           service.useTrainerPower = v;
+                           service.notifyListeners();
+                        }),
+                        // Cadence Toggle
+                        _buildFeatureToggle("Cadence", service.useTrainerCadence, (v) {
+                           service.useTrainerCadence = v;
+                           // If disabling, explicit reset
+                           if (!v && service.cadenceSource == CadenceSource.trainer) {
+                              service.cadence = 0; 
+                              service.cadenceSource = CadenceSource.none;
+                           }
+                           service.notifyListeners();
+                        }),
+                        // Speed Toggle
+                        _buildFeatureToggle("Speed", service.useTrainerSpeed, (v) {
+                           service.useTrainerSpeed = v;
+                           service.notifyListeners();
+                        }),
+                     ],
                   ),
-                  duration: const Duration(seconds: 1),
-                  backgroundColor: Colors.orange,
-                ),
-              );
-              
-              // Disconnect device
-              await service.disconnectDevice(deviceType);
-              
-              // Show success
-              if (context.mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('✅ ${device.platformName} disconnected'),
-                    backgroundColor: Colors.green,
-                    duration: const Duration(seconds: 2),
-                  ),
-                );
-              }
-              */
-            }, 
-          ),
+               ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _buildFeatureToggle(String label, bool value, Function(bool) onChanged) {
+      return Row(
+         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+         children: [
+            Text(label, style: const TextStyle(color: Colors.white70, fontSize: 12)),
+            Switch(
+               value: value, 
+               onChanged: onChanged,
+               activeColor: Colors.greenAccent,
+               activeTrackColor: Colors.greenAccent.withOpacity(0.2),
+               inactiveThumbColor: Colors.grey,
+               inactiveTrackColor: Colors.white10,
+            ),
+         ],
+      );
+  }
+
+  Future<void> _disconnectDeviceWithFeedback(BluetoothDevice device, String type, BluetoothService service) async {
+      // Get device type before disconnecting
+      final deviceType = service.getDeviceType(device);
+      if (deviceType == null) return;
+      
+      // Show loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Disconnessione ${device.platformName}...'),
+          duration: const Duration(seconds: 1),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      
+      await service.disconnectDevice(deviceType);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✅ ${device.platformName} disconnesso'),
+            backgroundColor: Colors.green,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
   }
   
   IconData _getIconForType(String type) {

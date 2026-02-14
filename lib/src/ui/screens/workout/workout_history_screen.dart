@@ -137,38 +137,38 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
       onSelected: (value) => _handleAction(context, value, path),
       itemBuilder: (context) {
         final items = <PopupMenuItem<String>>[
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'sync',
             child: Row(children: [
-              const Icon(LucideIcons.upload, color: Colors.blueAccent, size: 20), 
-              const SizedBox(width: 12), 
-              const Text('Sincronizza Cloud', style: TextStyle(color: Colors.white)),
+              Icon(LucideIcons.upload, color: Colors.blueAccent, size: 20), 
+              SizedBox(width: 12), 
+              Text('Sincronizza Cloud', style: TextStyle(color: Colors.white)),
             ]),
           ),
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'strava',
-            child: Row(children: [const Icon(LucideIcons.activity, color: Colors.orange, size: 20), const SizedBox(width: 12), const Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
+            child: Row(children: [Icon(LucideIcons.activity, color: Colors.orange, size: 20), SizedBox(width: 12), Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
           ),
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'repair_strava',
-            child: Row(children: [const Icon(LucideIcons.wrench, color: Colors.orangeAccent, size: 20), const SizedBox(width: 12), const Text('Ripara e Invia (Strava)', style: TextStyle(color: Colors.white))]),
+            child: Row(children: [Icon(LucideIcons.wrench, color: Colors.orangeAccent, size: 20), SizedBox(width: 12), Text('Ripara e Invia (Strava)', style: TextStyle(color: Colors.white))]),
           ),
         ];
         
         // Mostra Intervals.icu solo se connesso
         if (intervalsService.isConnected) {
           items.add(
-            PopupMenuItem(
+            const PopupMenuItem(
               value: 'intervals',
-              child: Row(children: [const Icon(LucideIcons.barChart, color: Colors.purpleAccent, size: 20), const SizedBox(width: 12), const Text('Invia a Intervals.icu', style: TextStyle(color: Colors.white))]),
+              child: Row(children: [Icon(LucideIcons.barChart, color: Colors.purpleAccent, size: 20), SizedBox(width: 12), Text('Invia a Intervals.icu', style: TextStyle(color: Colors.white))]),
             ),
           );
         }
         
         items.add(
-          PopupMenuItem(
+          const PopupMenuItem(
             value: 'delete',
-            child: Row(children: [const Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20), const SizedBox(width: 12), const Text('Elimina', style: TextStyle(color: Colors.white))]),
+            child: Row(children: [Icon(LucideIcons.trash2, color: Colors.redAccent, size: 20), SizedBox(width: 12), Text('Elimina', style: TextStyle(color: Colors.white))]),
           ),
         );
         

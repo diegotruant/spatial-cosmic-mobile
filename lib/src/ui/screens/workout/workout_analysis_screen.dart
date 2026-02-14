@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import '../../../services/native_fit_service.dart';
 import '../../widgets/glass_card.dart';
 import '../../../services/workout_service.dart';
 import '../../../services/settings_service.dart';
-import '../../../services/integration_service.dart';
 import '../../../services/sync_service.dart';
-import '../../../logic/fit_generator.dart';
+import 'dart:io'; // For File
+// import '../../../logic/fit_generator.dart'; // No longer needed directly here
 
 class WorkoutAnalysisScreen extends StatelessWidget {
   const WorkoutAnalysisScreen({super.key});
@@ -144,20 +145,40 @@ class WorkoutAnalysisScreen extends StatelessWidget {
     
     // Generate FIT File
     try {
-      final fitFile = await FitGenerator.generateActivityFit(
-        powerHistory: workoutService.powerHistory,
-        hrHistory: workoutService.hrHistory,
-        cadenceHistory: workoutService.cadenceHistory,
-        speedHistory: workoutService.speedHistory,
-        avgPower: _calculateAvg(workoutService.powerHistory),
-        maxHr: _calculateMax(workoutService.hrHistory),
+      // Prepare data for native generation
+      List<Map<String, dynamic>> workoutData = [];
+      final startTime = DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed));
+      
+      // Ensure we don't go out of bounds if lists have slight sync issues (unlikely but safe)
+      int len = workoutService.powerHistory.length;
+      
+      for (int i = 0; i < len; i++) {
+          double power = workoutService.powerHistory[i];
+          int hr = i < workoutService.hrHistory.length ? workoutService.hrHistory[i] : 0;
+          int cadence = i < workoutService.cadenceHistory.length ? workoutService.cadenceHistory[i] : 0;
+          double speedKmh = i < workoutService.speedHistory.length ? workoutService.speedHistory[i] : 0.0;
+          
+          workoutData.add({
+            'timestamp': startTime.add(Duration(seconds: i)).toIso8601String(),
+            'power': power,
+            'hr': hr,
+            'cadence': cadence,
+            'speed': speedKmh / 3.6, // Convert km/h to m/s for FIT
+            'distance': 0.0, // Optional: calculated by Strava/Analysis from speed/time
+          });
+      }
+
+      final fitPath = await NativeFitService.generateFitFile(
+        workoutData: workoutData,
         durationSeconds: workoutService.totalElapsed,
-        totalDistance: workoutService.totalDistance * 1000, // km to m
-        totalCalories: workoutService.totalCalories.toInt(),
-        startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
-        rrHistory: workoutService.rrHistory,  // Include RR intervals
+        totalDistanceMeters: workoutService.totalDistance * 1000, 
+        totalCalories: workoutService.totalCalories,
+        startTime: startTime,
+        rrIntervals: workoutService.rrHistory,
       );
-      debugPrint('FIT File generated: ${fitFile.path}');
+      
+      final fitFile = File(fitPath); // Keep using loop variable fitFile
+      debugPrint('FIT File generated native: ${fitFile.path}');
       
       // Check active connections
       final activeConnections = settings.connections.entries.where((e) => e.value).map((e) => e.key).toList();
