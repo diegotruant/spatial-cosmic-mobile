@@ -269,7 +269,9 @@ class BluetoothService extends ChangeNotifier {
     // Indoor Bike Data: 0x2AD2
     List<blue.BluetoothService> services = await device.discoverServices();
     for (var service in services) {
-      if (service.uuid.toString().toUpperCase().contains("1826")) { // Fitness Machine Service
+      String serviceUuid = service.uuid.toString().toUpperCase();
+      
+      if (serviceUuid.contains("1826")) { // Fitness Machine Service
         for (var characteristic in service.characteristics) {
           String uuid = characteristic.uuid.toString().toUpperCase();
           if (uuid.contains("2AD2")) { // Indoor Bike Data
@@ -284,6 +286,23 @@ class BluetoothService extends ChangeNotifier {
              _requestControl();
           }
         }
+      } 
+      
+      // ALSO Check for Cycling Power Service (0x1818) on the Trainer
+      // Many trainers broadcast both, and 1818 is often more reliable for pure power.
+      if (serviceUuid.contains("1818")) {
+         for (var characteristic in service.characteristics) {
+            if (characteristic.uuid.toString().toUpperCase().contains("2A63")) { // Power Measurement
+                log("Found CPM (2A63) on Trainer. Subscribing...");
+                await characteristic.setNotifyValue(true);
+                characteristic.onValueReceived.listen((value) {
+                    // Only use if user wants trainer power
+                    if (useTrainerPower) {
+                       _parsePowerMeasurement(value);
+                    }
+                });
+            }
+         }
       }
     }
   }

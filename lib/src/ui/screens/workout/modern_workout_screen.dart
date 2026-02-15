@@ -81,7 +81,16 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
       return "${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}";
     }
 
-    return Scaffold(
+    return PopScope(
+      canPop: true, // Allow pop, but we intercept to show snackbar? No, just allow pop is fine for minimize.
+      onPopInvoked: (didPop) {
+         if (didPop) {
+             // System Back Pressed -> Minimize
+             // We can't show SnackBar here easily as context might be unmounted, 
+             // but logic keeps running.
+         }
+      },
+      child: Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
         children: [
@@ -124,6 +133,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
               ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -190,6 +200,8 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                           Expanded(child: _buildBalanceTile(bluetooth)),
                           const SizedBox(width: 8),
                           Expanded(child: _buildCoreTempTile(bluetooth)),
+                          const SizedBox(width: 8),
+                          Expanded(child: _buildNpTile(workoutService)),
                        ]
                     ),
                   ],
@@ -302,6 +314,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
           unit: '',
           accentColor: Colors.blueAccent,
           isHuge: false,
+          labelFontSize: 9.0,
         ),
       );
   }
@@ -317,6 +330,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
           unit: '',
           accentColor: Colors.grey,
           isHuge: false,
+          labelFontSize: 9.0,
         ),
       );
   }
@@ -335,11 +349,12 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         unit: '', 
         accentColor: zoneColor,
         valueColor: zoneColor,
+        labelFontSize: 9.0,
      );
   }
 
   Widget _buildMainPowerTile(WorkoutService service) {
-     final currentWatts = (service.powerHistory.isNotEmpty ? service.powerHistory.last : 0).toInt();
+     final currentWatts = service.currentPower.toInt(); // Use Live Property
      final color = _getZoneColor(currentWatts, service.userFtp);
      
      return GestureDetector(
@@ -461,7 +476,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         ),
         Positioned(
           top: 8,
-          right: 8,
+          right: 48,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
@@ -527,6 +542,17 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
       );
   }
 
+  Widget _buildNpTile(WorkoutService service) {
+      return BigMetricTile(
+          label: 'NP (LIVE)',
+          value: service.currentNp > 0 ? service.currentNp.toString() : '-',
+          unit: 'W',
+          accentColor: Colors.deepPurpleAccent,
+          valueColor: Colors.deepPurpleAccent,
+      );
+  }
+
+
   Widget _buildTopBar() {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
@@ -534,10 +560,18 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new, color: Colors.white70, size: 20),
+            icon: const Icon(Icons.keyboard_arrow_down, color: Colors.white70, size: 30), // Changed icon to indicate minimize
             onPressed: () {
-               context.read<WorkoutService>().stopWorkout();
+               // Minimize (Run in Background)
                Navigator.pop(context);
+               
+               ScaffoldMessenger.of(context).showSnackBar(
+                 const SnackBar(
+                   content: Text('Allenamento ridotto a icona. Tocca il ciclista verde per riprendere.'),
+                   backgroundColor: Colors.blueAccent,
+                   duration: Duration(seconds: 2),
+                 )
+               );
             },
           ),
           Text(
@@ -674,6 +708,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                      startTime: DateTime.now().subtract(Duration(seconds: workoutService.totalElapsed)),
                      workoutTitle: workoutService.currentWorkout?.title ?? "Manual Workout",
                      rrHistory: workoutService.rrHistory,  // Include RR intervals
+                     coreTempHistory: workoutService.tempHistory,
                    );
                  
                   if (context.mounted) {

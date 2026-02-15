@@ -129,6 +129,7 @@ class FitGenerator {
     required DateTime startTime,
     String? workoutTitle,
     List<Map<String, dynamic>>? rrHistory,  // Optional RR intervals
+    List<double>? coreTempHistory, // Optional Core Body Temp
   }) async {
      // Prepare data for Native Service
      List<Map<String, dynamic>> workoutData = [];
@@ -148,29 +149,35 @@ class FitGenerator {
         int hr = i < hrHistory.length ? hrHistory[i] : 0;
         int cad = i < cadenceHistory.length ? cadenceHistory[i] : 0;
         double s = i < speedHistory.length ? speedHistory[i] : 0.0; // km/h
+        double coreTemp = (coreTempHistory != null && i < coreTempHistory.length) ? coreTempHistory[i] : 0.0;
         
         // Accumulate Distance (Speed is km/h, time is 1s)
         double distInThisSecond = (s / 3.6); // m/s
         cumulativeDistance += distInThisSecond;
         
         workoutData.add({
-           'timestamp': startTime.add(Duration(seconds: i)).toIso8601String(),
+           'timestamp': startTime.add(Duration(seconds: i)).toUtc().toIso8601String(),
            'power': p,
            'hr': hr,
            'cadence': cad,
            'speed': s / 3.6, // m/s for Native/FIT
            'distance': cumulativeDistance, // Accumulated meters
+           'core_temperature': coreTemp,
         });
-     }
+      }
 
-     try {
-       final path = await NativeFitService.generateFitFile(
-         workoutData: workoutData, 
-         durationSeconds: durationSeconds, 
-         totalDistanceMeters: totalDistance, // or cumulativeDistance? prefer passed total
-         totalCalories: totalCalories.toDouble(), 
-         startTime: startTime,
-         rrIntervals: rrHistory,
+      // Calculate Normalized Power
+      int normalizedPower = _calculateNormalizedPower(powerHistory);
+
+      try {
+        final path = await NativeFitService.generateFitFile(
+          workoutData: workoutData, 
+          durationSeconds: durationSeconds, 
+          totalDistanceMeters: totalDistance, // or cumulativeDistance? prefer passed total
+          totalCalories: totalCalories.toDouble(), 
+          startTime: startTime.toUtc(),
+          normalizedPower: normalizedPower,
+          rrIntervals: rrHistory,
        );
        return File(path);
      } catch (e) {

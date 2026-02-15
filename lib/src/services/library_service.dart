@@ -227,6 +227,7 @@ class LibraryService {
           .select('*')
           .eq('athlete_id', user.id)
           .gte('date', todayStr) // Fetch today and future
+          .neq('status', 'COMPLETED') // Excludes completed Strava/Intervals
           .order('date', ascending: true);
 
       return (data as List).map((json) {

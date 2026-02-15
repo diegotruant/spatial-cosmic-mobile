@@ -8,6 +8,7 @@ class BigMetricTile extends StatelessWidget {
   final Color accentColor;
   final Color? valueColor;
   final bool isHuge; // For the MAIN number (Power / Target)
+  final double? labelFontSize;
 
   const BigMetricTile({
     super.key,
@@ -17,6 +18,7 @@ class BigMetricTile extends StatelessWidget {
     required this.accentColor,
     this.valueColor,
     this.isHuge = false,
+    this.labelFontSize,
   });
 
   @override
@@ -28,7 +30,7 @@ class BigMetricTile extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           // Dynamic sizing based on height
-          double labelSize = isHuge ? 14 : 11;
+          double labelSize = labelFontSize ?? (isHuge ? 14 : 11);
           double valueSize = isHuge ? constraints.maxHeight * 0.55 : constraints.maxHeight * 0.45;
           // Clamp value size
           if (valueSize > 80) valueSize = 80;
@@ -39,16 +41,20 @@ class BigMetricTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Label (Top Left)
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  color: Colors.white54,
-                  fontSize: labelSize,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  label.toUpperCase(),
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: labelSize,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5, // Reduced from 1.0
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
               
               // Value (Bottom Left - Aligned)

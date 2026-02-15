@@ -30,7 +30,13 @@ void main() async {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthService()),
         ChangeNotifierProvider(create: (_) => BluetoothService()),
-        ChangeNotifierProvider(create: (_) => WorkoutService()),
+        ChangeNotifierProvider(create: (_) => SettingsService()),
+        ChangeNotifierProxyProvider2<BluetoothService, SettingsService, WorkoutService>(
+          create: (_) => WorkoutService(),
+          update: (_, bluetooth, settings, workout) => workout!
+            ..updateBluetoothService(bluetooth)
+            ..updateSettingsService(settings),
+        ),
         ChangeNotifierProvider(create: (_) => PaymentViewModel()),
         ChangeNotifierProvider(create: (_) => PaymentManagerViewModel()),
         ChangeNotifierProxyProvider<AuthService, PhysiologicalService>(
@@ -42,7 +48,6 @@ void main() async {
           create: (_) => AthleteProfileService(),
           update: (_, auth, profile) => profile!..updateAthleteId(auth.athleteId),
         ),
-        ChangeNotifierProvider(create: (_) => SettingsService()),
         ChangeNotifierProvider(create: (_) => IntegrationService()),
         ChangeNotifierProvider(create: (_) => OuraService()),
         ChangeNotifierProvider(create: (_) => IntervalsService()),

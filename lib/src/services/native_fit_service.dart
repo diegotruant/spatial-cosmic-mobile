@@ -20,6 +20,7 @@ class NativeFitService {
     required double totalDistanceMeters,
     required double totalCalories,
     required DateTime startTime,
+    required int normalizedPower,
     List<Map<String, dynamic>>? rrIntervals, // Optional: List of {timestamp, rr: [int, int...]}
   }) async {
     try {
@@ -29,6 +30,7 @@ class NativeFitService {
         'duration': durationSeconds,
         'totalDistance': totalDistanceMeters,
         'totalCalories': totalCalories,
+        'normalizedPower': normalizedPower,
         'rrIntervals': rrIntervals ?? [],
       });
       return result;

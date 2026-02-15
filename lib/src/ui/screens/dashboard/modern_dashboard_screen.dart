@@ -148,6 +148,19 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
           ),
         ],
       ),
+      floatingActionButton: context.watch<WorkoutService>().isActive 
+        ? FloatingActionButton.extended(
+            onPressed: () {
+               Navigator.push(
+                 context,
+                 MaterialPageRoute(builder: (context) => const ModernWorkoutScreen()),
+               );
+            },
+            backgroundColor: Colors.greenAccent,
+            icon: const Icon(LucideIcons.bike, color: Colors.black),
+            label: const Text("RIPRENDI", style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold)),
+          )
+        : null,
       bottomNavigationBar: _buildBottomNav(),
     );
   }
