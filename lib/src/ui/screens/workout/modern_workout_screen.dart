@@ -379,6 +379,37 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                   ),
                   child: Row(
                     children: [
+                      // HRV Warning
+                      Selector<BluetoothService, bool>(
+                        selector: (_, bt) => bt.isHrvMissing,
+                        builder: (_, isMissing, __) {
+                           if (!isMissing) return const SizedBox.shrink();
+                           return GestureDetector(
+                             onTap: () {
+                               showDialog(
+                                 context: context,
+                                 builder: (ctx) => AlertDialog(
+                                   backgroundColor: const Color(0xFF1A1A2E),
+                                   title: const Text("Dati HRV Mancanti", style: TextStyle(color: Colors.orangeAccent)),
+                                   content: const Text(
+                                     "Il sensore cardiaco è connesso ma NON sta inviando intervalli RR.\n\n"
+                                     "L'analisi avanzata (DFA Alpha-1, Soglia Aerobica) non sarà disponibile.\n\n"
+                                     "Suggerimento: Controlla se il tuo sensore richiede una modalità 'HRV' specifica (es. Scosche Rhythm24, Polar H10).",
+                                     style: TextStyle(color: Colors.white70)
+                                   ),
+                                   actions: [
+                                     TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("OK"))
+                                   ],
+                                 ),
+                               );
+                             },
+                             child: const Padding(
+                               padding: EdgeInsets.only(right: 8.0),
+                               child: Icon(LucideIcons.heartCrack, color: Colors.orangeAccent, size: 16),
+                             ),
+                           );
+                        },
+                      ),
                       const Icon(LucideIcons.bluetooth, color: Colors.blueAccent, size: 14),
                       const SizedBox(width: 4),
                       Selector<BluetoothService, int>(

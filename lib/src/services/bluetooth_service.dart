@@ -18,8 +18,14 @@ class BluetoothService extends ChangeNotifier {
   int cadence = 0;
   double coreTemp = 0.0;
   List<int> rrIntervals = [];
+  bool isRrAvailable = false; // Sensor is sending RR intervals
+  int _rrConsecutiveCount = 0; // Debounce for stability
+  int _hrPacketsReceived = 0; // To avoid initial false positive
   int? leftPowerBalance;
   int? rightPowerBalance;
+  
+  // Logic to determine if we SHOULD have RR but don't (wait for 30 packets ~30s or ~10s depending on device)
+  bool get isHrvMissing => heartRateSensor != null && heartRate > 0 && !isRrAvailable && _hrPacketsReceived > 30;
   
   // Cadence source tracking
   CadenceSource cadenceSource = CadenceSource.none;
@@ -471,6 +477,8 @@ class BluetoothService extends ChangeNotifier {
      
      int offset = 1;
      
+     _hrPacketsReceived++; // Count packets to delay warning
+     
      if (isUint16) {
        if (offset + 2 <= value.length) {
          heartRate = value[offset] | (value[offset + 1] << 8);
@@ -499,7 +507,22 @@ class BluetoothService extends ChangeNotifier {
          int rrMs = ((rr / 1024.0) * 1000).round();
          rrIntervals.add(rrMs);
          offset += 2;
+         
+         // Mark RR as available if we receive consistent data
+         _rrConsecutiveCount++;
+         if (_rrConsecutiveCount > 5) {
+            if (!isRrAvailable) {
+               isRrAvailable = true;
+               // notifyListeners() called at end
+            }
+         }
        }
+     } else {
+        // RR Flag NOT set
+        _rrConsecutiveCount = 0;
+        if (isRrAvailable) {
+           isRrAvailable = false;
+        }
      }
      
      // Notify right away
@@ -697,10 +720,11 @@ class BluetoothService extends ChangeNotifier {
           break;
           
         case 'HR':
-          deviceToDisconnect = heartRateSensor;
-          heartRateSensor = null;
           heartRate = 0;
           rrIntervals.clear();
+          isRrAvailable = false;
+          _hrPacketsReceived = 0;
+          _rrConsecutiveCount = 0;
           break;
           
         case 'POWER':
