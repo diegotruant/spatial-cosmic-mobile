@@ -9,7 +9,6 @@ class LiveWorkoutChart extends StatelessWidget {
   final bool showPowerZones; // Added parameter
   final double? wPrime;
   final int? cp;
-  final int userFtp;
 
   const LiveWorkoutChart({
     super.key, 
@@ -17,7 +16,6 @@ class LiveWorkoutChart extends StatelessWidget {
     this.showPowerZones = false,
     this.wPrime,
     this.cp,
-    required this.userFtp,
   });
 
   @override
@@ -40,12 +38,16 @@ class LiveWorkoutChart extends StatelessWidget {
             currentWorkout: workoutService.currentWorkout,
 
             totalElapsed: workoutService.totalElapsed,
+            currentWorkoutTime: workoutService.currentWorkoutTime, // NEW
+            workoutTimeHistory: workoutService.workoutTimeHistory, // NEW
+            
             isZoomed: isZoomed,
             intensityPercentage: workoutService.intensityPercentage,
             showPowerZones: showPowerZones,
             wPrime: wPrime,
             cp: cp,
-            userFtp: userFtp,
+            userFtp: workoutService.userFtp, // Read from service
+            currentBlockIndex: workoutService.currentBlockIndex, // Read from service
           ),
           child: Container(),
         ),
@@ -60,12 +62,16 @@ class _LiveGraphPainter extends CustomPainter {
   final List<double> tempHistory;
   final WorkoutWorkout? currentWorkout;
   final int totalElapsed;
+  final int currentWorkoutTime; // NEW
+  final List<int> workoutTimeHistory; // NEW
+  
   final bool isZoomed;
   final int intensityPercentage;
   final bool showPowerZones;
   final double? wPrime;
   final int? cp;
   final int userFtp;
+  final int currentBlockIndex; // NEW
 
   _LiveGraphPainter({
     required this.powerHistory,
@@ -73,27 +79,25 @@ class _LiveGraphPainter extends CustomPainter {
     required this.tempHistory,
     required this.currentWorkout,
     required this.totalElapsed,
+    required this.currentWorkoutTime,
+    required this.workoutTimeHistory,
     required this.isZoomed,
     required this.intensityPercentage,
     required this.showPowerZones,
     this.wPrime,
     this.cp,
     required this.userFtp,
+    required this.currentBlockIndex,
   });
   
   // Helper for Zone Colors
+  // Helper for Zone Colors
   Color _getZoneColor(double factor) {
-    if (factor < 0.55) return Colors.grey;
-    if (factor < 0.75) return Colors.blueAccent;
-    if (factor < 0.90) return Colors.greenAccent;
-    if (factor < 1.05) return Colors.yellowAccent;
-    if (factor < 1.20) return Colors.orangeAccent;
-    return Colors.redAccent;
+    return WorkoutService.getZoneColor(factor);
   }
 
   @override
   void paint(Canvas canvas, Size size) {
-    // 1. Calculate Scaling & Translation
     if (currentWorkout == null) return;
     
     final blocks = currentWorkout!.blocks;
@@ -107,157 +111,159 @@ class _LiveGraphPainter extends CustomPainter {
     final visibleDuration = isZoomed ? 600 : totalWorkoutDuration;
     final secToX = size.width / visibleDuration;
 
-    // Power scaling based on athlete FTP so che blocchi e linea coincidono a 100%
+    // Power scaling
     final double ftp = userFtp > 0 ? userFtp.toDouble() : 250.0;
-    final double maxPower = max(ftp * 1.5, 400.0); // un po' sopra FTP per margine
+    final double maxPower = max(ftp * 1.5, 400.0);
     final wattToY = size.height / maxPower;
-    final hrToY = size.height / 220; // 220 BPM max
+    final hrToY = size.height / 220;
     
     // Scrolling Logic
     double scrollOffset = 0.0;
     if (isZoomed) {
-       const headStart = 120; // 2 minutes padding on left
-       if (totalElapsed > headStart) {
-         scrollOffset = (totalElapsed - headStart) * secToX;
+       // Keep cursor at 1/3 of screen width (200s out of 600s)
+       const centerOffset = 200; 
+       if (currentWorkoutTime > centerOffset) {
+         scrollOffset = (currentWorkoutTime - centerOffset) * secToX;
        }
     }
 
     canvas.save();
     canvas.translate(-scrollOffset, 0);
 
-    // 2. Draw Grid & Blocks (Background)
-    
-    // Draw Grid Lines
-    final gridPaint = Paint()
-      ..color = Colors.white.withOpacity(0.15)
-      ..strokeWidth = 1.0;
-    
+    // 2. Draw Grid & Blocks
+    final double intensityFactor = intensityPercentage / 100.0;
+
+    // Highlight Current Block Area (Subtle Background)
+    double currentHighlightX = 0;
+    for (int i=0; i<currentBlockIndex && i<blocks.length; i++) {
+       currentHighlightX += blocks[i].duration * secToX;
+    }
+    if (currentBlockIndex < blocks.length) {
+       final highlightW = blocks[currentBlockIndex].duration * secToX;
+       if (currentHighlightX + highlightW >= scrollOffset && currentHighlightX <= scrollOffset + size.width) {
+          final highlightPaint = Paint()..color = Colors.white.withOpacity(0.03)..style = PaintingStyle.fill;
+          canvas.drawRect(Rect.fromLTWH(currentHighlightX, 0, highlightW, size.height), highlightPaint);
+          
+          // Top Line highlight
+          canvas.drawLine(Offset(currentHighlightX, 0), Offset(currentHighlightX + highlightW, 0), Paint()..color = Colors.white.withOpacity(0.2)..strokeWidth = 2.0);
+       }
+    }
+
+    // Draw Horizontal Grid Lines (e.g. 5 lines)
+    final gridPaint = Paint()..color = Colors.white.withOpacity(0.05)..strokeWidth = 1.0;
     for (var i = 1; i < 5; i++) {
-      final y = size.height * (i / 5);
-      canvas.drawLine(Offset(scrollOffset, y), Offset(scrollOffset + size.width, y), gridPaint);
+        double yPos = size.height * (i / 5.0);
+        canvas.drawLine(Offset(scrollOffset, yPos), Offset(scrollOffset + size.width, yPos), gridPaint);
     }
 
     // Draw Blocks
-    var currentX = 0.0;
-    final double intensityFactor = intensityPercentage / 100.0;
-
+    double currentX = 0.0;
     for (var block in blocks) {
       final w = block.duration * secToX;
       
-      // Optimization: Only draw if visible
-      if (currentX + w < scrollOffset || currentX > scrollOffset + size.width) {
+      // Optimization: Only draw if visible (careful with repeats inside intervals)
+      if (block is! IntervalsT && (currentX + w < scrollOffset || currentX > scrollOffset + size.width)) {
         currentX += w;
         continue;
       }
 
-      double baseFactor = 0.0;
+      // Handle Types
       if (block is SteadyState) {
-        baseFactor = block.power;
-      } else if (block is IntervalsT) baseFactor = block.onPower; 
-
-      // Target watts a 100% e con intensità applicata
-      final double targetW100 = baseFactor * ftp;
-      final double h100 = targetW100 * wattToY;
-      final double y100 = size.height - h100;
-
-      final double targetWAdj = targetW100 * intensityFactor;
-      final double hAdj = targetWAdj * wattToY;
-      final double yAdj = size.height - hAdj;
-      
-      // Determine Color
-      Color blockColor = const Color(0xFF00B0FF);
-      Color borderColor = Colors.cyanAccent;
-      
-      if (showPowerZones) {
-         // Usa il fattore di potenza relativo (ZWO) scalato per l'intensità
-         double effectiveFactor = baseFactor * intensityFactor;
-         Color zoneColor = _getZoneColor(effectiveFactor);
-         blockColor = zoneColor;
-         borderColor = zoneColor;
-      }
-
-      // Draw Ghost (if intensity changed)
-      if (intensityPercentage != 100) {
-        canvas.drawRect(
-          Rect.fromLTWH(currentX, y100, w, h100), 
-          Paint()..color = Colors.white.withOpacity(0.1) 
-        );
-        canvas.drawLine(
-           Offset(currentX, y100), 
-           Offset(currentX + w, y100), 
-           Paint()..color = Colors.white.withOpacity(0.2)..strokeWidth = 1
-        );
-      }
-
-      // Draw Active Block (Adjusted) con colori PIÙ INTENSI e BORDI DEFINITI
-      if (block is SteadyState) {
-        canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = blockColor.withOpacity(0.55));
-        canvas.drawRect(Rect.fromLTWH(currentX, yAdj, w, hAdj), Paint()..color = borderColor.withOpacity(0.3)..style = PaintingStyle.stroke..strokeWidth = 1.0);
-        canvas.drawLine(Offset(currentX, yAdj), Offset(currentX + w, yAdj), Paint()..color = borderColor.withOpacity(0.9)..strokeWidth = 3.5);
+        final double targetW = block.power * ftp * intensityFactor; 
+        final double h = targetW * wattToY;
+        final double y = size.height - h;
+        
+        Color blockColor = showPowerZones ? _getZoneColor(block.power * intensityFactor) : const Color(0xFF00B0FF);
+        
+        canvas.drawRect(Rect.fromLTWH(currentX, y, w, h), Paint()..color = blockColor.withOpacity(0.55));
+        canvas.drawLine(Offset(currentX, y), Offset(currentX + w, y), Paint()..color = blockColor..strokeWidth = 2.0);
+        
       } else if (block is Ramp) {
-        // Ramp: Draw trapezoid from powerLow to powerHigh
-        final double lowTargetW = block.powerLow * ftp * intensityFactor;
-        final double highTargetW = block.powerHigh * ftp * intensityFactor;
-        final double lowH = lowTargetW * wattToY;
-        final double highH = highTargetW * wattToY;
-        final double yLow = size.height - lowH;
-        final double yHigh = size.height - highH;
-        
-        // Determine color based on average power
-        double avgFactor = ((block.powerLow + block.powerHigh) / 2) * intensityFactor;
-        Color rampColor = showPowerZones ? _getZoneColor(avgFactor) : const Color(0xFFFFAB40);
-        
-        // Draw trapezoid using Path
-        final rampPath = Path();
-        rampPath.moveTo(currentX, yLow);
-        rampPath.lineTo(currentX + w, yHigh);
-        rampPath.lineTo(currentX + w, size.height);
-        rampPath.lineTo(currentX, size.height);
-        rampPath.close();
-        
-        canvas.drawPath(rampPath, Paint()..color = rampColor.withOpacity(0.55));
-        canvas.drawPath(rampPath, Paint()..color = rampColor.withOpacity(0.3)..style = PaintingStyle.stroke..strokeWidth = 1.0);
-        
-        // Draw top line (ramp slope)
-        canvas.drawLine(Offset(currentX, yLow), Offset(currentX + w, yHigh), Paint()..color = rampColor.withOpacity(0.9)..strokeWidth = 3.5);
+         final double startW = block.powerLow * ftp * intensityFactor;
+         final double endW = block.powerHigh * ftp * intensityFactor;
+         final double hStart = startW * wattToY;
+         final double hEnd = endW * wattToY;
+         final double yStart = size.height - hStart;
+         final double yEnd = size.height - hEnd;
+         
+         double avgFactor = (block.powerLow + block.powerHigh) / 2 * intensityFactor;
+         Color rampColor = showPowerZones ? _getZoneColor(avgFactor) : const Color(0xFFFFAB40);
+         
+         final rampPath = Path();
+         rampPath.moveTo(currentX, yStart);
+         rampPath.lineTo(currentX + w, yEnd);
+         rampPath.lineTo(currentX + w, size.height);
+         rampPath.lineTo(currentX, size.height);
+         rampPath.close();
+         
+         canvas.drawPath(rampPath, Paint()..color = rampColor.withOpacity(0.55));
+         canvas.drawLine(Offset(currentX, yStart), Offset(currentX + w, yEnd), Paint()..color = rampColor..strokeWidth = 2.0);
+
       } else if (block is IntervalsT) {
-         final double onTargetW = block.onPower * ftp * intensityFactor;
-         final double onH = onTargetW * wattToY;
-         final double yOn = size.height - onH;
-         
-         double effectiveOnFactor = block.onPower * intensityFactor;
-         Color onColor = showPowerZones ? _getZoneColor(effectiveOnFactor) : const Color(0xFF40C4FF);
-         
-         // On Interval
-         canvas.drawRect(Rect.fromLTWH(currentX, yOn, w, onH), Paint()..color = onColor.withOpacity(0.45));
-         canvas.drawLine(Offset(currentX, yOn), Offset(currentX + w, yOn), Paint()..color = onColor..strokeWidth = 3.5);
+         // Loop for repeats
+         for (int r = 0; r < block.repeat; r++) {
+            // ON
+            double wOn = block.onDuration * secToX;
+            double hOn = block.onPower * ftp * intensityFactor * wattToY;
+            double yOn = size.height - hOn;
+            Color onColor = showPowerZones ? _getZoneColor(block.onPower * intensityFactor) : const Color(0xFF40C4FF);
+            
+            if (currentX + wOn >= scrollOffset && currentX <= scrollOffset + size.width) {
+               canvas.drawRect(Rect.fromLTWH(currentX, yOn, wOn, hOn), Paint()..color = onColor.withOpacity(0.45));
+               canvas.drawLine(Offset(currentX, yOn), Offset(currentX + wOn, yOn), Paint()..color = onColor..strokeWidth = 3.5);
+            }
+            currentX += wOn;
+            
+            // OFF
+            double wOff = block.offDuration * secToX;
+            double hOff = block.offPower * ftp * intensityFactor * wattToY;
+            double yOff = size.height - hOff;
+            Color offColor = showPowerZones ? _getZoneColor(block.offPower * intensityFactor) : Colors.grey;
+            
+            if (currentX + wOff >= scrollOffset && currentX <= scrollOffset + size.width) {
+               canvas.drawRect(Rect.fromLTWH(currentX, yOff, wOff, hOff), Paint()..color = offColor.withOpacity(0.3));
+               canvas.drawLine(Offset(currentX, yOff), Offset(currentX + wOff, yOff), Paint()..color = offColor..strokeWidth = 2.0);
+            }
+            currentX += wOff;
+         }
+         continue; // Handled currentX increment inside loop
       }
+      
       currentX += w;
     }
 
     // 3. Draw Curves (History)
     
     // Power (Cyan)
-    _drawPath(canvas, powerHistory, secToX, wattToY, size, scrollOffset, const Color(0xFF00E5FF), 3.0, true, Colors.white);
+    _drawPath(canvas, powerHistory, workoutTimeHistory, secToX, wattToY, size, scrollOffset, const Color(0xFF00E5FF), 3.0, true, Colors.white);
 
     // Heart Rate (Red)
-    _drawPath(canvas, hrHistory.map((e) => e.toDouble()).toList(), secToX, hrToY, size, scrollOffset, Colors.redAccent, 2.0, false, null);
+    _drawPath(canvas, hrHistory.map((e) => e.toDouble()).toList(), workoutTimeHistory, secToX, hrToY, size, scrollOffset, Colors.redAccent, 2.0, false, null);
 
     // Temperature (Green - Scaled 36-41 -> 0-Height)
     if (tempHistory.isNotEmpty) {
       final tempPath = Path();
       bool first = true;
       for (int i=0; i<tempHistory.length; i++) {
-        final x = i * secToX;
+        // Use history if available
+        final xVal = (i < workoutTimeHistory.length) ? workoutTimeHistory[i] : i;
+        final x = xVal * secToX;
+        
         if (x < scrollOffset - 10 || x > scrollOffset + size.width + 10) continue;
         
         final val = tempHistory[i];
         final norm = (val - 36.0) / 4.0; // 36-40 range
         final y = size.height - (norm * size.height);
         
-        if (first || i==0) { tempPath.moveTo(x, y); first = false; }
-        else {
-          tempPath.lineTo(x, y);
+        if (first) { 
+           tempPath.moveTo(x, y); first = false; 
+        } else {
+           // Gap Detection
+           if (i > 0 && i < workoutTimeHistory.length && (workoutTimeHistory[i] - workoutTimeHistory[i-1] > 1)) {
+              tempPath.moveTo(x, y);
+           } else {
+              tempPath.lineTo(x, y);
+           }
         }
       }
       canvas.drawPath(tempPath, Paint()..color = Colors.purpleAccent..style = PaintingStyle.stroke..strokeWidth = 2.0);
@@ -279,10 +285,6 @@ class _LiveGraphPainter extends CustomPainter {
       }
       
       // Draw W' line (Scale 0 to WPrime maps to Height)
-      // We overlay it? Or use a small dedicated area?
-      // User request: "mostri la deplezione W'".
-      // Overlaying on the main graph with a separate scale (0-100% of W') is standard.
-      // Let's map 0 W' to Bottom, 100% W' to Top (or maybe 80% height to assume full)
       
       if (wBalData.isNotEmpty) {
         final wPath = Path();
@@ -293,18 +295,25 @@ class _LiveGraphPainter extends CustomPainter {
 
         bool firstW = true;
         for (int i = 0; i < wBalData.length; i++) {
-           final x = i * secToX;
+           // Use history if available
+           final xVal = (i < workoutTimeHistory.length) ? workoutTimeHistory[i] : i;
+           final x = xVal * secToX;
+
            if (x < scrollOffset - 10 || x > scrollOffset + size.width + 10) continue;
            
            // Normalize W' (0 to wPrime) to Y (Height to 0)
-           // 100% W' = Top of chart? Or separate axis?
-           // Let's use the full height range: 0% at bottom, 100% at top.
            final pct = wBalData[i] / wPrime!;
            final y = size.height - (pct * size.height); // 1.0 -> 0 (Top), 0.0 -> Height (Bottom)
            
-           if (firstW) { wPath.moveTo(x, y); firstW = false; }
-           else {
-             wPath.lineTo(x, y);
+           if (firstW) { 
+              wPath.moveTo(x, y); firstW = false; 
+           } else {
+              // Gap Detection
+              if (i > 0 && i < workoutTimeHistory.length && (workoutTimeHistory[i] - workoutTimeHistory[i-1] > 1)) {
+                 wPath.moveTo(x, y);
+              } else {
+                 wPath.lineTo(x, y);
+              }
            }
         }
         
@@ -329,6 +338,25 @@ class _LiveGraphPainter extends CustomPainter {
     // Draw Bottom Axis (Time Labels)
     _drawBottomAxis(canvas, size, scrollOffset, secToX);
 
+    // 5. Draw Cursor Line (Current Position)
+    final cursorX = currentWorkoutTime * secToX; // CHANGED to currentWorkoutTime
+    if (cursorX >= scrollOffset && cursorX <= scrollOffset + size.width) {
+       final cursorPaint = Paint()
+         ..color = Colors.white
+         ..strokeWidth = 2.0
+         ..style = PaintingStyle.stroke;
+       
+       // Dashed Line
+       double dashY = 0;
+       while (dashY < size.height) {
+         canvas.drawLine(Offset(cursorX, dashY), Offset(cursorX, dashY + 5), cursorPaint);
+         dashY += 10;
+       }
+       
+       // Optional: Triangle/Circle at bottom?
+       canvas.drawCircle(Offset(cursorX, size.height), 4, Paint()..color = Colors.white);
+    }
+
     canvas.restore();
     
     // 4. Fixed Overlays (Right Axis) - Painted AFTER restore() so they don't scroll
@@ -345,8 +373,6 @@ class _LiveGraphPainter extends CustomPainter {
      final endSec = ((scrollOffset + size.width) / secToX).ceil();
      
      // Align start to step
-     // e.g. if step is 120, and start is 130. Next multiple is 240.
-     // We want first multiple >= startSec.
      int currentSec = (startSec ~/ stepSeconds) * stepSeconds;
      if (currentSec < startSec) currentSec += stepSeconds;
      
@@ -372,7 +398,7 @@ class _LiveGraphPainter extends CustomPainter {
      }
   }
 
-  void _drawPath(Canvas canvas, List<double> data, double secToX, double valToY, Size size, double scrollOffset, Color color, double width, bool glow, Color? coreColor) {
+  void _drawPath(Canvas canvas, List<double> data, List<int>? xValues, double secToX, double valToY, Size size, double scrollOffset, Color color, double width, bool glow, Color? coreColor) {
     if (data.isEmpty) return;
     final path = Path();
     final paint = Paint()
@@ -385,15 +411,24 @@ class _LiveGraphPainter extends CustomPainter {
 
     bool first = true;
     for (var i = 0; i < data.length; i++) {
-      final x = i * secToX;
+      // Determine X: either use history or index (fallback)
+      final xVal = (xValues != null && i < xValues.length) ? xValues[i] : i;
+      final x = xVal * secToX;
+      
       if (x < scrollOffset - 10 || x > scrollOffset + size.width + 10) continue;
 
       final y = size.height - (data[i] * valToY);
-      if (first || i == 0) {
+      
+      if (first) {
         path.moveTo(x, y);
         first = false;
       } else {
-        path.lineTo(x, y);
+        // GAP DETECTION (TrainerDay Style): If X jumps by more than 1 second, move to new X
+        if (xValues != null && i > 0 && (xValues[i] - xValues[i-1] > 1)) {
+           path.moveTo(x, y);
+        } else {
+           path.lineTo(x, y);
+        }
       }
     }
     canvas.drawPath(path, paint);
@@ -422,8 +457,6 @@ class _LiveGraphPainter extends CustomPainter {
   }
 
   void _drawRightAxis(Canvas canvas, Size size) {
-    // Background for labels?
-    
     // HR Labels (Red) - 0 to 220
     final textPainter = TextPainter(textDirection: TextDirection.ltr);
     final hrSteps = [50, 90, 130, 170, 210];
@@ -445,17 +478,11 @@ class _LiveGraphPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _LiveGraphPainter oldDelegate) => 
-      oldDelegate.totalElapsed != totalElapsed || 
-      oldDelegate.isZoomed != isZoomed ||
-      oldDelegate.intensityPercentage != intensityPercentage;
+  bool shouldRepaint(_LiveGraphPainter oldDelegate) {
+    return oldDelegate.totalElapsed != totalElapsed || 
+           oldDelegate.currentWorkoutTime != currentWorkoutTime || // NEW
+           oldDelegate.isZoomed != isZoomed ||
+           oldDelegate.intensityPercentage != intensityPercentage ||
+           oldDelegate.currentBlockIndex != currentBlockIndex;
+  }
 }
-
-
-
-
-
-
-
-
-

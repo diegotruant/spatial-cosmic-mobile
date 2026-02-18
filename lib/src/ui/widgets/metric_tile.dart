@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'glass_card.dart';
 
 class MetricTile extends StatelessWidget {
@@ -43,7 +44,7 @@ class MetricTile extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     label.toUpperCase(),
-                    style: const TextStyle(
+                    style: GoogleFonts.rubik(
                       color: Colors.white70,
                       fontSize: 10,
                       letterSpacing: 0.8,
@@ -68,7 +69,7 @@ class MetricTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   value,
-                  style: TextStyle(
+                  style: GoogleFonts.rubik(
                     color: valueColor ?? Colors.white,
                     fontSize: isLarge ? 26 : 20,
                     fontWeight: FontWeight.bold,
@@ -90,7 +91,7 @@ class MetricTile extends StatelessWidget {
             const SizedBox(height: 2),
             Text(
               unit!,
-              style: TextStyle(
+              style: GoogleFonts.rubik(
                 color: Colors.white.withOpacity(0.5),
                 fontSize: 9,
                 fontWeight: FontWeight.w500,

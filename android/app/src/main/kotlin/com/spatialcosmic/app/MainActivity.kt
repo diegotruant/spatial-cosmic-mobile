@@ -27,8 +27,9 @@ class MainActivity: FlutterActivity() {
                     val durationSeconds = call.argument<Int>("duration") ?: 0
                     val totalDistanceFn = call.argument<Double>("totalDistance") ?: 0.0
                     val totalCaloriesFn = call.argument<Double>("totalCalories") ?: 0.0
+                    val normalizedPower = call.argument<Int>("normalizedPower") ?: 0
                     
-                    val filePath = generateFitFile(data, rrIntervals, startTimeStr, durationSeconds, totalDistanceFn, totalCaloriesFn)
+                    val filePath = generateFitFile(data, rrIntervals, startTimeStr, durationSeconds, totalDistanceFn, totalCaloriesFn, normalizedPower)
                     result.success(filePath)
                 } catch (e: Exception) {
                     result.error("FIT_GENERATION_ERROR", e.message, null)
@@ -45,10 +46,12 @@ class MainActivity: FlutterActivity() {
         startTimeStr: String,
         durationSeconds: Int,
         totalDistance: Double,
-        totalCalories: Double
+        totalCalories: Double,
+        normalizedPower: Int
     ): String {
-        // Setup Date Parser
+        // Setup Date Parser - Force UTC as Flutter sends UTC ISO8601
         val format = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US)
+        format.timeZone = TimeZone.getTimeZone("UTC")
         // Adjust for timezone if needed, but ISO string usually comes as local time from Flutter if DateTime.now() is used.
         // If it sends 'Z' at the end, we need to handle it.
         // Assuming simplistic ISO format without Z for local time or handling it gracefully.
@@ -85,7 +88,30 @@ class MainActivity: FlutterActivity() {
         fileIdMesg.timeCreated = fitStartTime
         encoder.write(fileIdMesg)
         
-        // Write Developer Data Field Definitions if needed (skipping for now until explicitly requested)
+        // Write Developer Data Field Definitions
+        // 1. Developer Data ID (Define the application/developer)
+        val devIdMesg = DeveloperDataIdMesg()
+        val appId = byteArrayOf(
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07,
+            0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F
+        ) 
+        for (i in appId.indices) devIdMesg.setApplicationId(i, appId[i])
+        devIdMesg.developerDataIndex = 0.toShort()
+        devIdMesg.applicationVersion = 1L
+        encoder.write(devIdMesg)
+
+        // 2. Field Description (Define "core_temperature")
+        val fieldDescMesg = FieldDescriptionMesg()
+        fieldDescMesg.developerDataIndex = 0.toShort()
+        fieldDescMesg.fieldDefinitionNumber = 0.toShort() // Field ID 0
+        fieldDescMesg.fitBaseTypeId = Fit.BASE_TYPE_FLOAT32.toShort() // Expected Short in most SDK versions
+        fieldDescMesg.setFieldName(0, "core_temperature")
+        fieldDescMesg.setUnits(0, "C")
+        fieldDescMesg.nativeMesgNum = MesgNum.RECORD // MesgNum is typically Int
+        encoder.write(fieldDescMesg)
+
+        // Create the Developer Field Definition to add to records
+        val coreTempField = DeveloperField(fieldDescMesg, devIdMesg)
         
         // Write SessionMesg (Start) - Optional but good practice to verify definition? 
         // Actually, usually we write messages in chronological order. 
@@ -95,6 +121,8 @@ class MainActivity: FlutterActivity() {
         var maxHr = 0
         var totalPower = 0.0
         var powerCount = 0
+        var totalHr = 0L
+        var hrCount = 0
         
         for (recMap in records) {
             val timestampStr = recMap["timestamp"] as? String ?: ""
@@ -111,6 +139,7 @@ class MainActivity: FlutterActivity() {
             val power = (recMap["power"] as? Number)?.toInt()
             val hr = (recMap["hr"] as? Number)?.toShort()
             val cadence = (recMap["cadence"] as? Number)?.toShort()
+            val coreTemp = (recMap["core_temperature"] as? Number)?.toFloat()
 
             if (distance > 0) record.distance = distance // meters
             if (speed > 0) record.enhancedSpeed = speed // m/s
@@ -122,25 +151,37 @@ class MainActivity: FlutterActivity() {
             if (hr != null) {
                 record.heartRate = hr.toShort()
                 if (hr > maxHr) maxHr = hr.toInt()
+                totalHr += hr
+                hrCount++
             }
             if (cadence != null) record.cadence = cadence.toShort()
+            
+            // Add Developer Field if data exists
+            if (coreTemp != null && coreTemp > 0) {
+                coreTempField.value = coreTemp
+                record.addDeveloperField(coreTempField)
+            }
             
             encoder.write(record)
         }
         
-        // Add HRV Data if present
+         // Add HRV Data if present
         // Convert input structure: List<Map<String, dynamic>> where 'rr' is List<int> (integers)
         // FIT `hrv` message message expects arrays of times in seconds.
-        for (rrMap in rrIntervals) {
-             val rrList = rrMap["rr"] as? List<Int>
-             if (rrList != null && rrList.isNotEmpty()) {
-                 val hrvMesg = HrvMesg()
-                 for (i in rrList.indices) {
-                     // Input is typically ms (e.g. 800), FIT expects seconds (e.g. 0.8)
-                     hrvMesg.setTime(i, rrList[i] / 1000.0f)
+        if (rrIntervals != null) {
+            for (rrMap in rrIntervals) {
+                 val rrList = rrMap["rr"] as? List<Int>
+                 if (rrList != null && rrList.isNotEmpty()) {
+                     val hrvMesg = HrvMesg()
+                     for (i in rrList.indices) {
+                         // Input is typically ms (e.g. 800), FIT expects seconds (e.g. 0.8)
+                         if (rrList[i] != null) {
+                            hrvMesg.setTime(i, rrList[i] / 1000.0f)
+                         }
+                     }
+                     encoder.write(hrvMesg)
                  }
-                 encoder.write(hrvMesg)
-             }
+            }
         }
 
         // Write LapMesg
@@ -153,8 +194,13 @@ class MainActivity: FlutterActivity() {
         lapMesg.totalCalories = totalCalories.toInt()
         val avgPower = if (powerCount > 0) (totalPower / powerCount).toInt() else 0
         lapMesg.avgPower = avgPower
+        if (normalizedPower > 0) {
+            lapMesg.normalizedPower = normalizedPower
+        }
         lapMesg.maxHeartRate = maxHr.toShort()
-        // lapMesg.avgHeartRate = ... (calculate if needed)
+        if (hrCount > 0) {
+            lapMesg.avgHeartRate = (totalHr / hrCount).toShort()
+        }
         
         encoder.write(lapMesg)
 
@@ -167,7 +213,13 @@ class MainActivity: FlutterActivity() {
         sessionMesg.totalDistance = totalDistance.toFloat()
         sessionMesg.totalCalories = totalCalories.toInt()
         sessionMesg.avgPower = avgPower
+        if (normalizedPower > 0) {
+             sessionMesg.normalizedPower = normalizedPower
+        }
         sessionMesg.maxHeartRate = maxHr.toShort()
+        if (hrCount > 0) {
+            sessionMesg.avgHeartRate = (totalHr / hrCount).toShort()
+        }
         sessionMesg.sport = Sport.CYCLING
         sessionMesg.subSport = SubSport.INDOOR_CYCLING // CRITICAL FOR STRAVA
         sessionMesg.numLaps = 1

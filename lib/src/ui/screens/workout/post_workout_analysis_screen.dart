@@ -282,6 +282,40 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   }
 
   Future<void> _handleRepairAndSync(BuildContext context) async {
+    // Ask for name first
+    final defaultName = widget.workoutId ?? 'repaired_${DateTime.now().toIso8601String().split('T')[0]}';
+    final controller = TextEditingController(text: defaultName);
+    
+    final customName = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        title: const Text('Nome Sessione Riparata', style: TextStyle(color: Colors.white)),
+        content: TextFormField(
+          controller: controller,
+          autofocus: true,
+          style: const TextStyle(color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'Inserisci nome sessione',
+            hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+            enabledBorder: OutlineInputBorder(borderSide: BorderSide(color: Colors.white.withOpacity(0.3))),
+            focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.blueAccent)),
+          ),
+          onFieldSubmitted: (value) => Navigator.pop(ctx, value),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Annulla', style: TextStyle(color: Colors.white54))),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+            onPressed: () => Navigator.pop(ctx, controller.text), // Correctly use controller text
+            child: const Text('Ripara e Salva', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (customName == null || customName.isEmpty) return;
+
     setState(() => _isSaving = true);
     try {
       // 1. Validate and Fix Speed Data
@@ -314,25 +348,28 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       }
 
       // 2. Rigenera il file FIT
+      // Extract original Date/Time to preserve history position
+      final originalDate = FitReader.parseFilename(widget.fitFilePath)['date'];
+
       final repairedFile = await FitGenerator.generateActivityFit(
         powerHistory: _power,
         hrHistory: _hr,
         cadenceHistory: _cadence,
-        speedHistory: finalSpeedHistory, // Now guaranteed to be km/h and full length
+        speedHistory: finalSpeedHistory,
         avgPower: _power.isNotEmpty ? _power.reduce((a, b) => a + b) / _power.length : 0.0,
         maxHr: _hr.isNotEmpty ? _hr.reduce(max) : 0,
         durationSeconds: _power.length,
-        totalDistance: finalSpeedHistory.fold<double>(0, (a, b) => a + (b / 3.6)), // Sum (km/h / 3.6) * 1s = meters
+        totalDistance: finalSpeedHistory.fold<double>(0, (a, b) => a + (b / 3.6)),
         totalCalories: _calories.toInt(),
-        startTime: FitReader.parseFilename(widget.fitFilePath)['date'],
-        workoutTitle: FitReader.parseFilename(widget.fitFilePath)['title'],
+        startTime: originalDate, // Use original date!
+        workoutTitle: customName, // Use new name!
       );
 
       // 3. Upload a Strava
       final integrationService = context.read<IntegrationService>();
 
       if (integrationService.isStravaConnected) {
-         final res = await integrationService.uploadActivityToStrava(repairedFile);
+         final res = await integrationService.uploadActivityToStrava(repairedFile, activityName: customName);
          if (mounted) {
            ScaffoldMessenger.of(context).showSnackBar(
              SnackBar(
@@ -356,13 +393,15 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   Future<void> _handleSave(BuildContext context) async {
     // Show filename dialog first
     final defaultName = widget.workoutId ?? 'workout_${DateTime.now().toIso8601String().split('T')[0]}';
+    final controller = TextEditingController(text: defaultName);
+    
     final customName = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A2E),
         title: const Text('Nome Sessione', style: TextStyle(color: Colors.white)),
         content: TextFormField(
-          initialValue: defaultName,
+          controller: controller,
           autofocus: true,
           style: const TextStyle(color: Colors.white),
           decoration: InputDecoration(
@@ -385,8 +424,8 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
             onPressed: () {
-              // Get value from TextFormField - using default if empty
-              Navigator.pop(ctx, defaultName);
+              // Get value from Controller
+              Navigator.pop(ctx, controller.text);
             },
             child: const Text('Salva', style: TextStyle(color: Colors.white)),
           ),
@@ -411,7 +450,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
 
       List<String> results = [];
       if (integrationService.isStravaConnected) {
-         final res = await integrationService.uploadActivityToStrava(newFile);
+         final res = await integrationService.uploadActivityToStrava(newFile, activityName: customName);
          results.add("Strava: ${res == 'Success' ? '✅' : '❌ $res'}");
       } else {
          results.add("Strava: ⚠️ Non connesso");

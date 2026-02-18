@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
 import 'src/app.dart';
 import 'src/services/auth_service.dart';
@@ -16,14 +17,58 @@ import 'src/services/oura_service.dart';
 import 'src/services/intervals_service.dart';
 import 'src/services/events_service.dart';
 import 'src/services/w_prime_service.dart';
+import 'package:spatial_cosmic_mobile/src/config/app_config.dart';
+import 'src/services/log_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  LogService.i("App Starting...");
+  
+  await AppConfig.load();
 
-  await Supabase.initialize(
-    url: 'https://xdqvjqqwywuguuhsehxm.supabase.co',
-    anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhkcXZqcXF3eXd1Z3V1aHNlaHhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUyNjk3NjIsImV4cCI6MjA4MDg0NTc2Mn0.B6abwwCelqWUFyszkqMyXvrsUz1TiOf3FFRsvpm6ezA',
-  );
+  if (!AppConfig.isValid) {
+    runApp(const MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Text(
+              "Configuration Error:\nMissing Supabase URL or Key.\n\nPlease check your build configuration.",
+              style: TextStyle(color: Colors.red, fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    ));
+    return;
+  }
+
+  try {
+    await Supabase.initialize(
+      url: AppConfig.supabaseUrl,
+      anonKey: AppConfig.supabaseAnonKey,
+    );
+  } catch (e) {
+    runApp(MaterialApp(
+      home: Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Text(
+              "Initialization Error:\n$e",
+              style: const TextStyle(color: Colors.red, fontSize: 18),
+              textAlign: TextAlign.center,
+            ),
+          ),
+        ),
+      ),
+    ));
+    return;
+  }
 
   runApp(
     MultiProvider(

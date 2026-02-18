@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -8,12 +9,15 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:spatial_cosmic_mobile/src/logic/fit_generator.dart';
 import 'package:spatial_cosmic_mobile/src/logic/zwo_parser.dart';
+import 'package:spatial_cosmic_mobile/src/config/app_config.dart';
+import 'package:spatial_cosmic_mobile/src/services/log_service.dart';
 
 class IntegrationService extends ChangeNotifier {
   // Strava Configuration
-  static const String _stravaClientId = '69269'; 
-  static const String _stravaClientSecret = '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
-  static const String _stravaRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
+  // Strava Configuration
+  // Secrets are now loaded from .env via flutter_dotenv
+  // static const String _stravaClientId = ... (Removed for security)
+  
   // Use 'activity:write' to allow uploads. 'activity:read_all' for reading.
   static const String _stravaScope = 'read,activity:read_all,activity:write';
 
@@ -106,9 +110,9 @@ class IntegrationService extends ChangeNotifier {
       'www.strava.com',
       '/oauth/authorize',
       {
-        'client_id': _stravaClientId,
+        'client_id': AppConfig.stravaClientId,
         'response_type': 'code',
-        'redirect_uri': _stravaRedirectUri,
+        'redirect_uri': AppConfig.stravaRedirectUri,
         'approval_prompt': 'force',
         'scope': _stravaScope,
         'state': state,
@@ -117,7 +121,8 @@ class IntegrationService extends ChangeNotifier {
 
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
-      debugPrint('Strava Auth Launched: $url');
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+      LogService.i('Strava Auth Launched: $url');
     } else {
       throw 'Could not launch $url';
     }
@@ -130,12 +135,12 @@ class IntegrationService extends ChangeNotifier {
       final provider = uri.queryParameters['provider']; // 'strava' or 'wahoo'
       
       if (error != null) {
-        debugPrint('$provider Auth Error from Callback: $error');
+        LogService.e('$provider Auth Error from Callback: $error');
         return;
       }
       
       if (success) {
-        debugPrint('Received Successful $provider Auth from Edge Function');
+        LogService.i('Received Successful $provider Auth from Edge Function');
         await syncFromSupabase();
       }
     }
@@ -180,7 +185,7 @@ class IntegrationService extends ChangeNotifier {
             strava['expiresAt'],
             syncToSupabase: false, 
           );
-          debugPrint('Strava credentials synced from Supabase');
+          LogService.i('Strava credentials synced from Supabase');
         }
 
         // Sync Wahoo
@@ -201,7 +206,7 @@ class IntegrationService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('Sync from Supabase failed: $e');
+      LogService.e('Sync from Supabase failed: $e');
     }
   }
 
@@ -210,8 +215,8 @@ class IntegrationService extends ChangeNotifier {
       final response = await http.post(
         Uri.parse('https://www.strava.com/oauth/token'),
         body: {
-          'client_id': _stravaClientId,
-          'client_secret': _stravaClientSecret,
+          'client_id': AppConfig.stravaClientId,
+          'client_secret': AppConfig.stravaClientSecret,
           'code': code,
           'grant_type': 'authorization_code',
         },
@@ -224,12 +229,13 @@ class IntegrationService extends ChangeNotifier {
         final expiresAt = data['expires_at'];
 
         await _saveStravaCredentials(accessToken, refreshToken, expiresAt);
-        debugPrint('Strava Connected Successfully!');
+        await _saveStravaCredentials(accessToken, refreshToken, expiresAt);
+        LogService.i('Strava Connected Successfully!');
       } else {
-        debugPrint('Strava Token Exchange Failed: ${response.statusCode} ${response.body}');
+        LogService.e('Strava Token Exchange Failed: ${response.statusCode} ${response.body}');
       }
     } catch (e) {
-      debugPrint('Strava Token Exchange Exception: $e');
+      LogService.e('Strava Token Exchange Exception: $e');
     }
   }
 
@@ -277,7 +283,7 @@ class IntegrationService extends ChangeNotifier {
         debugPrint('Wahoo credentials synced to Supabase');
       }
     } catch (e) {
-      debugPrint('Sync to Supabase failed: $e');
+      LogService.e('Sync to Supabase failed: $e');
     }
   }
 
@@ -342,7 +348,7 @@ class IntegrationService extends ChangeNotifier {
         debugPrint('Strava tokens synced to Supabase (nested)');
       }
     } catch (e) {
-      debugPrint('Supabase Sync Error: $e');
+      LogService.e('Supabase Sync Error: $e');
     }
   }
   
@@ -367,7 +373,7 @@ class IntegrationService extends ChangeNotifier {
         );
       }
     } catch (e) {
-      debugPrint('Strava deauthorize error: $e');
+      LogService.e('Strava deauthorize error: $e');
     }
 
     // Remove from Supabase
@@ -404,7 +410,7 @@ class IntegrationService extends ChangeNotifier {
         }
       }
     } catch (e) {
-      debugPrint('Supabase Disconnect Error: $e');
+      LogService.e('Supabase Disconnect Error: $e');
     }
   }
 
@@ -432,13 +438,13 @@ class IntegrationService extends ChangeNotifier {
     if (DateTime.now().millisecondsSinceEpoch / 1000 > (expiresAt - 300)) {
       if (refreshToken == null) return false;
 
-      debugPrint('Strava Token Expired. Refreshing...');
+      LogService.i('Strava Token Expired. Refreshing...');
       try {
         final response = await http.post(
           Uri.parse('https://www.strava.com/oauth/token'),
           body: {
-            'client_id': _stravaClientId,
-            'client_secret': _stravaClientSecret,
+            'client_id': AppConfig.stravaClientId,
+            'client_secret': AppConfig.stravaClientSecret,
             'grant_type': 'refresh_token',
             'refresh_token': refreshToken,
           },
@@ -453,18 +459,18 @@ class IntegrationService extends ChangeNotifier {
           );
           return true;
         } else {
-          debugPrint('Strava Token Refresh Failed: ${response.body}');
+          LogService.e('Strava Token Refresh Failed: ${response.body}');
           return false;
         }
       } catch (e) {
-        debugPrint('Strava Token Refresh Exception: $e');
+        LogService.e('Strava Token Refresh Exception: $e');
         return false;
       }
     }
     return true;
   }
 
-  Future<String> uploadActivityToStrava(File fitFile) async {
+  Future<String> uploadActivityToStrava(File fitFile, {String? activityName}) async {
     if (!_isStravaConnected || _stravaAccessToken == null) return "Strava non connesso";
     
     // Ensure token is valid
@@ -476,7 +482,7 @@ class IntegrationService extends ChangeNotifier {
       final request = http.MultipartRequest('POST', uri)
         ..headers['Authorization'] = 'Bearer $_stravaAccessToken'
         ..fields['data_type'] = 'fit'
-        ..fields['name'] = 'Velo Lab: ${fitFile.path.split('/').last.split('_').last.replaceAll('.fit', '')}'
+        ..fields['name'] = activityName ?? 'Velo Lab: ${fitFile.path.split('/').last.split('_').last.replaceAll('.fit', '')}'
         ..fields['description'] = 'Allenamento indoor completato con Velo Lab App'
         ..fields['sport_type'] = 'VirtualRide'
         ..fields['activity_type'] = 'VirtualRide'
@@ -490,7 +496,7 @@ class IntegrationService extends ChangeNotifier {
       if (response.statusCode == 201) {
         final data = jsonDecode(respStr);
         final uploadId = data['id_str'] ?? data['id'].toString();
-        debugPrint('Strava Upload Created: $uploadId');
+        LogService.i('Strava Upload Created: $uploadId');
         
         // Wait and poll for status (Max 3 attempts, every 2 seconds)
         for (int i = 0; i < 3; i++) {
@@ -503,12 +509,11 @@ class IntegrationService extends ChangeNotifier {
         
         return "Success (In elaborazione)";
       } else {
-        debugPrint('Strava Upload Failed: ${response.statusCode} $respStr');
         if (respStr.contains("duplicate")) return "Duplicato";
         return "Errore Strava ${response.statusCode}";
       }
     } catch (e) {
-      debugPrint('Strava Upload Exception: $e');
+      LogService.e('Strava Upload Exception: $e');
       return "Eccezione Strava: $e";
     }
   }
@@ -564,13 +569,15 @@ class IntegrationService extends ChangeNotifier {
 
   // TrainingPeaks
   Future<void> initiateTrainingPeaksAuth() async {
-    final Uri url = Uri.parse('https://home.trainingpeaks.com/oauth/authorize?client_id=TP_CLIENT_ID&response_type=code&redirect_uri=$_stravaRedirectUri&scope=workouts:read,workouts:write');
+    final stravaRedirectUri = dotenv.env['STRAVA_REDIRECT_URI']!;
+    final Uri url = Uri.parse('https://home.trainingpeaks.com/oauth/authorize?client_id=TP_CLIENT_ID&response_type=code&redirect_uri=$stravaRedirectUri&scope=workouts:read,workouts:write');
     await _launchAuthUrl(url);
   }
 
   // Dropbox
   Future<void> initiateDropboxAuth() async {
-    final Uri url = Uri.parse('https://www.dropbox.com/oauth2/authorize?client_id=DROPBOX_APP_KEY&response_type=code&redirect_uri=$_stravaRedirectUri');
+    final stravaRedirectUri = dotenv.env['STRAVA_REDIRECT_URI']!;
+    final Uri url = Uri.parse('https://www.dropbox.com/oauth2/authorize?client_id=DROPBOX_APP_KEY&response_type=code&redirect_uri=$stravaRedirectUri');
     await _launchAuthUrl(url);
   }
   

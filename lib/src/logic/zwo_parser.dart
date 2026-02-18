@@ -10,17 +10,28 @@ class WorkoutWorkout {
 abstract class WorkoutBlock {
   final int duration; // seconds
   WorkoutBlock(this.duration);
+  WorkoutBlock copy({int? duration});
 }
 
 class SteadyState extends WorkoutBlock {
   final double power; // % of FTP
   SteadyState({required int duration, required this.power}) : super(duration);
+  
+  @override
+  SteadyState copy({int? duration}) {
+    return SteadyState(duration: duration ?? this.duration, power: power);
+  }
 }
 
 class Ramp extends WorkoutBlock {
   final double powerLow; // % of FTP
   final double powerHigh; // % of FTP
   Ramp({required int duration, required this.powerLow, required this.powerHigh}) : super(duration);
+
+  @override
+  Ramp copy({int? duration}) {
+    return Ramp(duration: duration ?? this.duration, powerLow: powerLow, powerHigh: powerHigh);
+  }
 }
 
 class IntervalsT extends WorkoutBlock {
@@ -36,7 +47,20 @@ class IntervalsT extends WorkoutBlock {
     required this.offDuration,
     required this.onPower,
     required this.offPower,
-  }) : super(repeat * (onDuration + offDuration));
+    int? overrideDuration,
+  }) : super(overrideDuration ?? (repeat * (onDuration + offDuration)));
+  
+  @override
+  IntervalsT copy({int? duration}) {
+    return IntervalsT(
+       repeat: repeat,
+       onDuration: onDuration,
+       offDuration: offDuration,
+       onPower: onPower, 
+       offPower: offPower,
+       overrideDuration: duration
+    );
+  }
 }
 
 class ZwoParser {

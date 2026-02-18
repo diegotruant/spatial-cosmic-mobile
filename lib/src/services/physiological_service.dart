@@ -156,21 +156,30 @@ class PhysiologicalService extends ChangeNotifier {
       }
     }
 
-    // 2. Prioritize Oura Critical Stress (Red/Yellow)
+    // 2. Prioritize Oura Score (Holistic View)
     if (ouraScore != null) {
       if (ouraScore < 60) {
         return HRVAnalysis(
           status: ReadinessStatus.red,
           deviation: 0, 
-          recommendation: 'Readiness Oura Bassa ($ouraScore). Il tuo corpo è sotto stress critico (possibile febbre o sovrallenamento). Riposo assoluto consigliato.',
+          recommendation: 'Readiness Oura Bassa ($ouraScore). Il tuo corpo è sotto stress critico. Riposo assoluto consigliato.',
         );
-      } else if (ouraScore < 70) { // Slightly adjusted threshold
+      } else if (ouraScore < 70) {
         return HRVAnalysis(
           status: ReadinessStatus.yellow,
           deviation: 0,
-          recommendation: 'Readiness Oura Moderata ($ouraScore). Procedi con cautela, riduci l\'intensità oggi.',
+          recommendation: 'Readiness Oura Moderata ($ouraScore). Procedi con cautela, riduci l\'intensità.',
+        );
+      } else if (ouraScore >= 80) {
+         // Force Green if Oura is Optimal/Good
+         return HRVAnalysis(
+          status: ReadinessStatus.green,
+          deviation: 0,
+          recommendation: 'Oura indica ottima prontezza ($ouraScore)! Semaforo verde confermato anche se l\'HRV fluttua.',
         );
       }
+      // For score 70-79 (Good but not Optimal), we check HRV context but avoid Red.
+      // We fall through to calculate deviation, but we will cap the downside at Yellow.
     }
 
     // 3. Baseline check
@@ -186,38 +195,36 @@ class PhysiologicalService extends ChangeNotifier {
     final deviation = ((currentRMSSD - _lastSevenDayAvg) / _lastSevenDayAvg) * 100;
     
     // 5. Dynamic Thresholds
-    // If Oura is good (>80) OR if we are in "Snapshot Mode" (no Oura, belt only),
-    // we apply wider buffers for the morning measurement.
+    // If we have a "Good" Oura score (70-79), we are very lenient.
+    // If we have NO Oura score, we use standard thresholds.
     bool hasOuraData = ouraScore != null;
-    bool isOuraExcellent = hasOuraData && ouraScore >= 80;
-    
-    // For belt-only users (no Oura), we use the same lenient thresholds as Oura Excellent
-    // because a manual measurement at wake-up is naturally more variable.
-    bool useLenientThresholds = isOuraExcellent || !hasOuraData;
+    bool isOuraGood = hasOuraData && ouraScore >= 70; 
 
-    double greenThreshold = useLenientThresholds ? -12.0 : -6.0;
-    double yellowThreshold = useLenientThresholds ? -25.0 : -16.0;
+    double greenThreshold = isOuraGood ? -30.0 : -6.0; // Much lower threshold if Oura is backing us
+    double yellowThreshold = isOuraGood ? -100.0 : -16.0; // Impossible to hit Red if Oura is Good (cap at Yellow)
 
     ReadinessStatus status;
     String recommendation;
 
     if (deviation >= greenThreshold) {
       status = ReadinessStatus.green;
-      if (useLenientThresholds && deviation < -5) {
-         recommendation = hasOuraData 
-           ? 'Oura conferma ottimo recupero ($ouraScore). Il calo mattutino dell\'HRV è fisiologico. Allenamento confermato.'
-           : 'Variazione mattutina nei parametri normali. Recupero parasimpatico ok. Allenamento confermato.';
+      if (isOuraGood && deviation < -10) {
+          recommendation = 'Oura positivo ($ouraScore) nonostante il calo HRV. Prontezza confermata.';
+      } else if (deviation < -5) {
+          recommendation = 'Variazione mattutina nei parametri normali. Recupero ok.';
       } else {
-         recommendation = deviation > 5 
-           ? 'Ottimo! HRV elevata. Finestra ottimale per allenamento intenso.'
-           : 'Pronto per allenarsi. Sistema parasimpatico recuperato.';
+          recommendation = deviation > 5 
+            ? 'Ottimo! HRV elevata. Finestra ottimale per allenamento intenso.'
+            : 'Pronto per allenarsi. Sistema parasimpatico recuperato.';
       }
     } else if (deviation >= yellowThreshold) {
       status = ReadinessStatus.yellow;
-      recommendation = isOuraExcellent 
-        ? 'HRV mattutina bassa nonostante Oura Green ($ouraScore). Possibile stress acuto al risveglio. Allenamento moderato.'
-        : 'HRV depressa (${deviation.toStringAsFixed(0)}%). Considera riduzione volume o intensità (90% del target).';
+      recommendation = isOuraGood 
+        ? 'HRV in calo significativo (${deviation.toStringAsFixed(0)}%) ma Oura è positivo ($ouraScore). Allenati, ma ascolta il corpo.'
+        : 'HRV depressa (${deviation.toStringAsFixed(0)}%). Considera riduzione volume o intensità.';
     } else {
+      // Logic for Red (only reachable if Oura is not Good or if we didn't cap it)
+       // With isOuraGood, yellowThreshold is -100, so we never get here unless deviation is < -100 (impossible)
       status = ReadinessStatus.red;
       recommendation = 'Sistema parasimpatico soppresso (${deviation.toStringAsFixed(0)}%). Recupero attivo o riposo completo consigliato.';
     }

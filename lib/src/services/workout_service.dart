@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart'; // For HapticFeedback
 // For BytesSource
+import 'package:flutter/material.dart'; // For Colors
 import 'package:audioplayers/audioplayers.dart';
 import '../logic/zwo_parser.dart';
 import 'bluetooth_service.dart';
@@ -37,6 +38,16 @@ class WorkoutService extends ChangeNotifier {
     _initAudio();
   }
   
+  static Color getZoneColor(double p) {
+    // p is fraction of FTP (e.g. 1.0 = 100%)
+    if (p < 0.55) return Colors.grey; // Z1 (Active Recovery)
+    if (p < 0.75) return Colors.blueAccent; // Z2 (Endurance)
+    if (p < 0.90) return Colors.greenAccent; // Z3 (Tempo)
+    if (p < 1.05) return Colors.yellowAccent; // Z4 (Threshold)
+    if (p < 1.20) return Colors.orangeAccent; // Z5 (VO2 Max)
+    return Colors.redAccent; // Z6 (Anaerobic)
+  }
+
   Future<void> _initAudio() async {
     // Configure AudioContext to mix with other apps (e.g. Spotify) and NOT duck/pause them.
     await _audioPlayer.setAudioContext(AudioContext(
@@ -72,6 +83,10 @@ class WorkoutService extends ChangeNotifier {
   List<Map<String, dynamic>> rrHistory = [];
   int totalElapsed = 0;
   
+  // VISUAL SYNC only (for graph gaps)
+  int currentWorkoutTime = 0;
+  List<int> workoutTimeHistory = [];
+  
   double totalDistance = 0.0; // km
   double totalCalories = 0.0; // kcal
 
@@ -84,7 +99,7 @@ class WorkoutService extends ChangeNotifier {
 
   // Returns the target Power Factor (e.g. 0.5 for 50% FTP) scaling with intensity
   double get currentTargetPowerFactor => currentWorkout != null && currentWorkout!.blocks.isNotEmpty
-      ? _getTargetPowerAt(totalElapsed) * (intensityPercentage / 100.0)
+      ? _getTargetPowerFromCurrentBlock() * (intensityPercentage / 100.0)
       : 0.0;
 
   void updateFtp(int ftp) {
@@ -153,6 +168,25 @@ class WorkoutService extends ChangeNotifier {
     }
   }
 
+  double _getTargetPowerFromCurrentBlock() {
+    if (currentWorkout == null || currentBlockIndex >= currentWorkout!.blocks.length) return 0.0;
+    
+    final block = currentWorkout!.blocks[currentBlockIndex];
+    if (block is SteadyState) return block.power;
+    if (block is Ramp) {
+       double progress = elapsedInBlock / block.duration;
+       if (progress > 1.0) progress = 1.0;
+       return block.powerLow + (block.powerHigh - block.powerLow) * progress;
+    }
+    if (block is IntervalsT) {
+      int cycleTime = block.onDuration + block.offDuration;
+      int withinCycle = elapsedInBlock % cycleTime;
+      return withinCycle < block.onDuration ? block.onPower : block.offPower;
+    }
+    return 0.0;
+  }
+
+  // Legacy method - kept for reference if needed, but primary logic now uses current block
   double _getTargetPowerAt(int seconds) {
     if (currentWorkout == null) return 0.0;
     
@@ -187,7 +221,7 @@ class WorkoutService extends ChangeNotifier {
     currentWorkout = WorkoutWorkout(
       id: workoutId ?? workout.id,
       title: workout.title, 
-      blocks: workout.blocks
+      blocks: workout.blocks.map((b) => b.copy()).toList()
     );
     if (ftp != null) userFtp = ftp;
     
@@ -213,6 +247,21 @@ class WorkoutService extends ChangeNotifier {
     rrHistory = [];
     totalDistance = 0.0;
     totalCalories = 0.0; 
+    
+    // VISUAL SYNC
+    currentWorkoutTime = 0;
+    workoutTimeHistory = []; 
+    
+    // RESET LIVE DATA
+    currentPower = 0.0;
+    currentCadence = 0;
+    currentHr = 0;
+    currentTemp = 0.0;
+    currentNp = 0;
+    currentSpeed = 0.0;
+    _powerBuffer.clear();
+    _tempBuffer.clear();
+
     _lastSentTargetWatts = -1; // Reset control state
     isActive = true;
     isPaused = true; // Start PAUSED per user request
@@ -269,6 +318,13 @@ class WorkoutService extends ChangeNotifier {
       // Così il "TOTAL TIME" e la durata finale NON includono gli step saltati.
       currentBlockIndex++;
       elapsedInBlock = 0;
+
+      // VISUAL SYNC: Jump to the start of the new block
+      int newBlockStart = 0;
+      for (int i = 0; i < currentBlockIndex; i++) {
+        newBlockStart += currentWorkout!.blocks[i].duration;
+      }
+      currentWorkoutTime = newBlockStart;
 
       // Vibration / Sound Feedback
       if (settingsService?.vibration == true) {
@@ -334,7 +390,9 @@ class WorkoutService extends ChangeNotifier {
 
   // Smoothing Buffer
   final List<double> _powerBuffer = [];
+  final List<double> _tempBuffer = [];
   static const int _smoothingWindow = 3; 
+  static const int _tempSmoothingWindow = 10; // More smoothing for temp 
 
   void _tick() {
     // Countdown Logic
@@ -408,7 +466,15 @@ class WorkoutService extends ChangeNotifier {
 
     // Temp Logic
     if (bluetoothService != null && bluetoothService!.coreSensor != null) {
-       activeTemp = bluetoothService!.coreTemp;
+       double rawTemp = bluetoothService!.coreTemp;
+       if (rawTemp > 0) {
+         _tempBuffer.add(rawTemp);
+         if (_tempBuffer.length > _tempSmoothingWindow) {
+           _tempBuffer.removeAt(0);
+         }
+         // Average
+         activeTemp = _tempBuffer.reduce((a, b) => a + b) / _tempBuffer.length;
+       }
     }
 
     // UPDATE LIVE PROPERTIES
@@ -452,6 +518,10 @@ class WorkoutService extends ChangeNotifier {
     
     totalElapsed++;
     elapsedInBlock++;
+    
+    // VISUAL SYNC
+    currentWorkoutTime++;
+    workoutTimeHistory.add(currentWorkoutTime);
 
     // Accumulate Distance and Calories
     double distIncrementMeters = (activeSpeed / 3.6);
@@ -506,14 +576,14 @@ class WorkoutService extends ChangeNotifier {
        }
     }
 
-    // 3 Beeps at the end of the step (3s remaining)
+    // 3 Beeps at the end of the step (Counter starts at 3, so trigger at 4s remaining)
     int remainingInBlock = currentBlock.duration - elapsedInBlock;
-    if (remainingInBlock <= 3 && remainingInBlock > 0 && !shouldExtend) {
+    if (remainingInBlock <= 4 && remainingInBlock > 0 && !shouldExtend) {
        _playBeep();
     }
 
     if (!shouldExtend && elapsedInBlock >= currentBlock.duration) {
-      nextInterval();
+       _advanceToNextBlock();
     }
     
      // --- Bluetooth Control Loop ---
@@ -546,6 +616,11 @@ class WorkoutService extends ChangeNotifier {
     
     try {
       if (_audioPlayer.state == PlayerState.playing) {
+          // await _audioPlayer.stop(); // Don't stop explicitely to avoid focus loss issues?
+          // Actually, stop might be needed if users want distinct beeps.
+          // Yet user complained about music stopping.
+          // Let's try just play() which should mix if configured correctly.
+          // But to be safe against "Player exception", checking state is good.
           await _audioPlayer.stop();
       }
       await _audioPlayer.setVolume(volume);

@@ -31,8 +31,8 @@ class GlassCard extends StatelessWidget {
         child: Container(
           padding: padding ?? const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            // Use AppColors.surface (which is slight off-black) with very low opacity
-            color: (color ?? AppColors.surface).withOpacity(opacity),
+            // Use AppColors.surfaceGlass (White) with very low opacity for true Glassmorphism
+            color: (color ?? AppColors.surfaceGlass).withOpacity(opacity),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
               color: borderColor ?? Colors.white.withOpacity(0.08), 
@@ -42,8 +42,8 @@ class GlassCard extends StatelessWidget {
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                (color ?? AppColors.surface).withOpacity(opacity + 0.05),
-                (color ?? AppColors.surface).withOpacity(opacity),
+                (color ?? AppColors.surfaceGlass).withOpacity(opacity + 0.05),
+                (color ?? AppColors.surfaceGlass).withOpacity(opacity),
               ],
             ),
           ),

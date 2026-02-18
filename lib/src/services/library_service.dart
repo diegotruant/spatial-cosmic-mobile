@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:spatial_cosmic_mobile/src/models/workout_template.dart';
 import 'package:spatial_cosmic_mobile/src/logic/zwo_parser.dart';
 
@@ -260,7 +262,7 @@ class LibraryService {
         );
       }).toList();
     } catch (e) {
-      print('Error fetching assigned workouts: $e');
+      debugPrint('Error fetching assigned workouts: $e');
       return [];
     }
   }

@@ -5,6 +5,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../logic/metabolic_calculator.dart';
 import '../models/metabolic_profile.dart';
 import 'package:http/http.dart' as http;
+import 'package:spatial_cosmic_mobile/src/config/app_config.dart';
+import 'package:spatial_cosmic_mobile/src/services/log_service.dart';
 
 enum AthleteType { sprinter, allRounder, timeTrialist, climber, unknown }
 
@@ -147,7 +149,7 @@ class AthleteProfileService extends ChangeNotifier {
       }
 
       if (updatedAt != null && updatedAt != _metabolicUpdatedAt) {
-        debugPrint('[AthleteProfile] metabolic_profile updatedAt changed: $updatedAt');
+        LogService.i('[AthleteProfile] metabolic_profile updatedAt changed: $updatedAt');
         _metabolicUpdatedAt = updatedAt;
         _loadFromSupabase();
       }
@@ -195,25 +197,25 @@ class AthleteProfileService extends ChangeNotifier {
         // 1) colonna metabolic_profile (usata dal MetabolicEngine web)
         // 2) extra_data.metabolic_profile solo come fallback
         dynamic metabolicSource = data['metabolic_profile'];
-        debugPrint('[AthleteProfile] Checking metabolic_profile. Column value is null: ${metabolicSource == null}');
+        LogService.d('[AthleteProfile] Checking metabolic_profile. Column value is null: ${metabolicSource == null}');
         
         if (metabolicSource == null) {
-          debugPrint('[AthleteProfile] metabolic_profile column is null, checking extra_data...');
+          LogService.d('[AthleteProfile] metabolic_profile column is null, checking extra_data...');
           try {
             if (data['extra_data'] != null) {
               final extra = Map<String, dynamic>.from(data['extra_data']);
               if (extra['metabolic_profile'] != null) {
                 metabolicSource = extra['metabolic_profile'];
-                debugPrint('[AthleteProfile] Found metabolic_profile in extra_data');
+                LogService.i('[AthleteProfile] Found metabolic_profile in extra_data');
               } else {
-                debugPrint('[AthleteProfile] No metabolic_profile in extra_data either');
+                LogService.w('[AthleteProfile] No metabolic_profile in extra_data either');
               }
             }
           } catch (e) {
-            debugPrint('[AthleteProfile] Error checking extra_data: $e');
+            LogService.e('[AthleteProfile] Error checking extra_data: $e');
           }
         } else {
-          debugPrint('[AthleteProfile] Found metabolic_profile in main column');
+          LogService.d('[AthleteProfile] Found metabolic_profile in main column');
         }
 
         if (metabolicSource != null) {
@@ -223,34 +225,34 @@ class AthleteProfileService extends ChangeNotifier {
             
             if (mpRaw is Map) {
               mpMap = Map<String, dynamic>.from(mpRaw);
-              debugPrint('[AthleteProfile] metabolic_profile is already a Map');
+              LogService.d('[AthleteProfile] metabolic_profile is already a Map');
             } else if (mpRaw is String) {
               mpMap = jsonDecode(mpRaw) as Map<String, dynamic>?;
-              debugPrint('[AthleteProfile] metabolic_profile was a String, decoded to Map');
+              LogService.d('[AthleteProfile] metabolic_profile was a String, decoded to Map');
             } else {
-              debugPrint('[AthleteProfile] metabolic_profile has unexpected type: ${mpRaw.runtimeType}');
+              LogService.w('[AthleteProfile] metabolic_profile has unexpected type: ${mpRaw.runtimeType}');
             }
 
             if (mpMap != null) {
-              debugPrint('[AthleteProfile] Parsing metabolic_profile JSON. Keys: ${mpMap.keys.toList()}');
+              LogService.d('[AthleteProfile] Parsing metabolic_profile JSON. Keys: ${mpMap.keys.toList()}');
               
               if (mpMap['updatedAt'] is String) {
                 _metabolicUpdatedAt = mpMap['updatedAt'] as String;
-                debugPrint('[AthleteProfile] updatedAt: $_metabolicUpdatedAt');
+                LogService.d('[AthleteProfile] updatedAt: $_metabolicUpdatedAt');
               }
               if (mpMap['schemaVersion'] == null) {
-                debugPrint('[AthleteProfile] ⚠️ metabolic_profile senza schemaVersion - PROFILO VECCHIO!');
-                debugPrint('[AthleteProfile] Questo profilo è stato salvato prima dell\'aggiornamento. Ricalcola dalla webapp.');
+                LogService.w('[AthleteProfile] ⚠️ metabolic_profile senza schemaVersion - PROFILO VECCHIO!');
+                LogService.w('[AthleteProfile] Questo profilo è stato salvato prima dell\'aggiornamento. Ricalcola dalla webapp.');
               }
               if (mpMap['updatedAt'] == null) {
-                debugPrint('[AthleteProfile] ⚠️ metabolic_profile senza updatedAt - PROFILO VECCHIO!');
+                LogService.w('[AthleteProfile] ⚠️ metabolic_profile senza updatedAt - PROFILO VECCHIO!');
               }
               
               // Log raw values before parsing
-              debugPrint('[AthleteProfile] Raw values - vlamax: ${mpMap['vlamax']}, vo2max: ${mpMap['vo2max']}');
+              LogService.v('[AthleteProfile] Raw values - vlamax: ${mpMap['vlamax']}, vo2max: ${mpMap['vo2max']}');
               if (mpMap['metabolic'] != null) {
                 final metabolicRaw = mpMap['metabolic'] as Map<String, dynamic>;
-                debugPrint('[AthleteProfile] Raw metabolic.estimatedFtp: ${metabolicRaw['estimatedFtp']}');
+                LogService.v('[AthleteProfile] Raw metabolic.estimatedFtp: ${metabolicRaw['estimatedFtp']}');
               }
               
               final mp = MetabolicProfile.fromJson(mpMap);
@@ -269,34 +271,58 @@ class AthleteProfileService extends ChangeNotifier {
               _vo2max = mp.vo2max;
               _vlamax = mp.vlamax;
               _wPrime = mp.wPrime ?? _wPrime;
+
+              // ✅ Check for refined W' from PDC Analysis (Evidence Based) in extra_data
+              try {
+                if (data['extra_data'] != null) {
+                   final extra = Map<String, dynamic>.from(data['extra_data']);
+                   if (extra.containsKey('pdc_analysis') && extra['pdc_analysis']?['data'] != null) {
+                      final pdcData = extra['pdc_analysis']['data'];
+                      if (pdcData['advanced_params'] != null) {
+                         final advanced = pdcData['advanced_params'];
+                         final wPrimeKj = advanced['anaerobic_capacity']; // Value in kJ
+                         
+                         if (wPrimeKj != null) {
+                            double wPrimeJ = (wPrimeKj is num) ? wPrimeKj.toDouble() * 1000.0 : 0.0;
+                            if (wPrimeJ > 0) {
+                              _wPrime = wPrimeJ;
+                              LogService.i('[AthleteProfile] ⚡ OVERRIDE: Using Evidence-Based W\' from PDC Analysis');
+                              LogService.d('[AthleteProfile] Source: ${wPrimeKj} kJ -> Converted: $_wPrime J');
+                            }
+                         }
+                      }
+                   }
+                }
+              } catch (e) {
+                LogService.w('[AthleteProfile] ⚠️ Error parsing PDC W\': $e');
+              }
               
               // ✅ Fenotipo dal PDC (non calcolato)
               if (mp.phenotypeLabel != null) {
                 _phenotypeLabel = mp.phenotypeLabel;
               }
               
-              debugPrint('[AthleteProfile] ✅ Successfully loaded metabolic profile.');
-              debugPrint('[AthleteProfile] FTP (advanced_params): $oldFtp → $_ftp W');
-              debugPrint('[AthleteProfile] MLSS: $_mlss W');
-              debugPrint('[AthleteProfile] Phenotype: $_phenotypeLabel');
-              debugPrint('[AthleteProfile] VLamax: $oldVlamax → $_vlamax');
-              debugPrint('[AthleteProfile] VO2max: $_vo2max');
+              LogService.i('[AthleteProfile] ✅ Successfully loaded metabolic profile.');
+              LogService.i('[AthleteProfile] FTP (advanced_params): $oldFtp → $_ftp W');
+              LogService.i('[AthleteProfile] MLSS: $_mlss W');
+              LogService.i('[AthleteProfile] Phenotype: $_phenotypeLabel');
+              LogService.i('[AthleteProfile] VLamax: $oldVlamax → $_vlamax');
+              LogService.i('[AthleteProfile] VO2max: $_vo2max');
             } else {
-              debugPrint('[AthleteProfile] ⚠️ mpMap is null after parsing');
+              LogService.e('[AthleteProfile] ⚠️ mpMap is null after parsing');
             }
           } catch (e, stack) {
-            debugPrint('[AthleteProfile] ❌ Error parsing metabolic_profile JSON: $e');
-            debugPrint('[AthleteProfile] Stack trace: $stack');
+            LogService.e('[AthleteProfile] ❌ Error parsing metabolic_profile JSON: $e', e, stack);
           }
         } else {
-          debugPrint('[AthleteProfile] ⚠️ No metabolic_profile found. Using legacy values: FTP=$_ftp, VLamax=$_vlamax');
-          debugPrint('[AthleteProfile] Athlete type from legacy values: ${_categorizeAthlete()}');
+          LogService.w('[AthleteProfile] ⚠️ No metabolic_profile found. Using legacy values: FTP=$_ftp, VLamax=$_vlamax');
+          LogService.i('[AthleteProfile] Athlete type from legacy values: ${_categorizeAthlete()}');
         }
         
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error loading profile from Supabase: $e');
+      LogService.e('Error loading profile from Supabase: $e');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -376,7 +402,7 @@ class AthleteProfileService extends ChangeNotifier {
       
       notifyListeners();
     } catch (e) {
-      debugPrint('Error updating profile: $e');
+      LogService.e('Error updating profile: $e');
       rethrow;
     }
   }
@@ -426,12 +452,12 @@ class AthleteProfileService extends ChangeNotifier {
      
      // 2. Check significance (e.g. > 150% FTP)
      // If the effort wasn't maximal, we shouldn't calculate physiological max parameters
-     if (max15sPower < (currentFtp * 1.5)) {
-       debugPrint("VLamax Calc: Peak 15s power ($max15sPower W) not significant enough (< 150% FTP). Skipping.");
-       return;
-     }
+      if (max15sPower < (currentFtp * 1.5)) {
+        LogService.d("VLamax Calc: Peak 15s power ($max15sPower W) not significant enough (< 150% FTP). Skipping.");
+        return;
+      }
 
-     debugPrint("VLamax Calc: Significant effort detected. Peak 15s: $max15sPower W");
+      LogService.i("VLamax Calc: Significant effort detected. Peak 15s: $max15sPower W");
 
      // 3. Extract the last 12 seconds of the 15s window (isolating glycolytic)
      // The 15s window starts at max15sIndex.
@@ -470,17 +496,7 @@ class AthleteProfileService extends ChangeNotifier {
      
      // Let's stick to standard principles if user formula is ambiguous, OR try to interpret.
      // Standard: P_aerob (W) during sprint is small.
-     // Let's use: P_aerob = (VO2max_relative * Weight) / 1000 * 75 (approx Watts per L/min efficiency).
-     // Or use user's formula P_aerob = eta * VO2max.
-     
-     // Let's try to interpret "0.0115".
-     // If VO2max is 4000 (absolute).. 4000 * 0.0115 = 46W. Plausible for start of sprint?
-     // If VO2max is 60 (relative)... 60 * 0.0115 = 0.69. Negligible.
-     
-     // Let's assume the user meant: P_aerob = (VO2max_relative * Weight) * 0.0115 doesn't make sense dimensionally.
-     // Actually, let's use a robust estimation:
-     // P_aerob contribution in 15s is ~10-15%.
-     // Let's calculate P_aerob_max = (VO2max * Weight / 1000) * 75.
+     // Let's use: P_aerob_max = (VO2max * Weight / 1000) * 75.
      // In first 15s, kinetics are slow. Maybe 20% of VO2max reached?
      // Let's conservatively subtract 10% of P12s as aerobic if we can't be sure.
      
@@ -516,7 +532,7 @@ class AthleteProfileService extends ChangeNotifier {
      // So P_glyc (Joules) = P_glyc_avg_watts * duration?
      // User: "P_glyc = P_total - P_aerob - P_alac". This looks like Power subtraction.
      // So P_glyc here is likely Glycolytic Power (Watts).
-     // Therefore the formula VLamax = P_glyc_watts / (k * M_body)? (Removing t_test if we want rate).
+     // Therefore the formula VLamax = P_glyc_watt / (k * M_body)? (Removing t_test if we want rate).
      // OR VLamax = (P_glyc_watts * t_test) / (t_test * k * Body).
      // The t_test cancels out.
      
@@ -562,9 +578,9 @@ class AthleteProfileService extends ChangeNotifier {
      double calculatedVLamax = pGlyc / (22.0 * activeMass);
      
      // Clamp reasonable values
-     calculatedVLamax = calculatedVLamax.clamp(0.2, 1.2);
-     
-     debugPrint("VLamax Calc: P12s=$p12s, PAerob=$pAerob, PGlyc=$pGlyc, Mass=$activeMass -> VLamax=$calculatedVLamax");
+      calculatedVLamax = calculatedVLamax.clamp(0.2, 1.2);
+      
+      LogService.i("VLamax Calc: P12s=$p12s, PAerob=$pAerob, PGlyc=$pGlyc, Mass=$activeMass -> VLamax=$calculatedVLamax");
      
      _vlamax = double.parse(calculatedVLamax.toStringAsFixed(3));
      
@@ -583,7 +599,7 @@ class AthleteProfileService extends ChangeNotifier {
           'updated_at': DateTime.now().toIso8601String()
         }).eq('id', targetId);
      } catch(e) { 
-        debugPrint("Error saving vlamax: $e");
+        LogService.e("Error saving vlamax: $e");
      }
   }
 
@@ -695,7 +711,7 @@ class AthleteProfileService extends ChangeNotifier {
       final somato = (customSomatotype ?? _somatotype).toUpperCase();
 
       final response = await http.post(
-        Uri.parse('https://spatial-analysis-service.onrender.com/metabolic/profile'),
+        Uri.parse('${AppConfig.analysisServiceUrl}/metabolic/profile'),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({
           'weight': w,
@@ -747,14 +763,14 @@ class AthleteProfileService extends ChangeNotifier {
         };
 
         _lastCalculatedProfile = MetabolicProfile.fromJson(profileMap);
-        debugPrint('[AthleteProfile] Remote calculation successful');
+        LogService.i('[AthleteProfile] Remote calculation successful');
       } else {
-        debugPrint('[AthleteProfile] Remote calculation failed: ${response.body}');
+        LogService.e('[AthleteProfile] Remote calculation failed: ${response.body}');
         // Fallback to local if remote fails? Maybe not, better to show error.
         throw Exception('Analysis Service Error: ${response.statusCode}');
       }
     } catch (e) {
-      debugPrint('[AthleteProfile] Exception in remote calculation: $e');
+      LogService.e('[AthleteProfile] Exception in remote calculation: $e');
       rethrow;
     } finally {
       _isLoading = false;

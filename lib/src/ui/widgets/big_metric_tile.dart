@@ -1,3 +1,4 @@
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/material.dart';
 import 'glass_card.dart';
 
@@ -29,15 +30,9 @@ class BigMetricTile extends StatelessWidget {
       borderColor: accentColor.withOpacity(0.3),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          // Dynamic sizing based on height
-          double labelSize = labelFontSize ?? (isHuge ? 14 : 11);
-          double valueSize = isHuge ? constraints.maxHeight * 0.55 : constraints.maxHeight * 0.45;
-          // Clamp value size
-          if (valueSize > 80) valueSize = 80;
-          if (valueSize < 24) valueSize = 24;
-
+          final double labelSize = labelFontSize ?? 11;
+          
           return Column(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Label (Top Left)
@@ -46,29 +41,28 @@ class BigMetricTile extends StatelessWidget {
                 alignment: Alignment.centerLeft,
                 child: Text(
                   label.toUpperCase(),
-                  style: TextStyle(
-                    color: Colors.white54,
+                  style: GoogleFonts.roboto(
+                    color: Colors.white70,
                     fontSize: labelSize,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5, // Reduced from 1.0
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 0.5,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               
-              // Value (Bottom Left - Aligned)
-              SizedBox(
-                height: valueSize,
+              // Value (Takes remaining space)
+              Expanded(
                 child: FittedBox(
                   alignment: Alignment.centerLeft,
                   fit: BoxFit.contain,
                   child: Text(
                     value,
-                    style: TextStyle(
+                    style: GoogleFonts.robotoMono(
                       color: valueColor ?? Colors.white,
-                      fontSize: 100, // FittedBox will scale this down
-                      fontWeight: FontWeight.w900,
+                      fontSize: 100, 
+                      fontWeight: FontWeight.w400, // Regular weight
                       height: 1.0,
                       shadows: [
                         Shadow(
@@ -81,17 +75,16 @@ class BigMetricTile extends StatelessWidget {
                 ),
               ),
               
-              // Unit (Bottom Right absolute or inline?)
-              // Let's keep it simple: if unit exists, show it small next to 
+              // Unit (Bottom Right)
               if (unit.isNotEmpty)
                   Align(
                     alignment: Alignment.bottomRight,
                     child: Text(
                       unit,
-                      style: const TextStyle(
-                        color: Colors.white38,
+                      style: GoogleFonts.roboto(
+                        color: Colors.white54,
                         fontSize: 10,
-                        fontWeight: FontWeight.w500,
+                        fontWeight: FontWeight.normal,
                       ),
                     ),
                   )

@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:fit_tool/fit_tool.dart';
+
 import 'package:spatial_cosmic_mobile/src/logic/zwo_parser.dart';
 import 'package:path_provider/path_provider.dart';
 import '../services/native_fit_service.dart';
@@ -173,17 +175,25 @@ class FitGenerator {
         final path = await NativeFitService.generateFitFile(
           workoutData: workoutData, 
           durationSeconds: durationSeconds, 
-          totalDistanceMeters: totalDistance, // or cumulativeDistance? prefer passed total
+          totalDistanceMeters: totalDistance, 
           totalCalories: totalCalories.toDouble(), 
           startTime: startTime.toUtc(),
           normalizedPower: normalizedPower,
           rrIntervals: rrHistory,
        );
-       return File(path);
+       
+       // RENAME to ensure correct Parsing of Date/Title (activity_{timestamp}_{title}.fit)
+       final originalFile = File(path);
+       final timestamp = startTime.millisecondsSinceEpoch;
+       final sanitizedTitle = (workoutTitle ?? "Workout").replaceAll(RegExp(r'[^\w\s]+'), '').replaceAll(' ', '_');
+       final newFileName = 'activity_${timestamp}_$sanitizedTitle.fit';
+       final newPath = '${originalFile.parent.path}${Platform.pathSeparator}$newFileName';
+       
+       return originalFile.rename(newPath);
+
      } catch (e) {
-       print("Native FIT Generation failed: $e");
-       // Fallback or rethrow? Rethrow for now to see error
-       throw e;
+       debugPrint("Native FIT Generation failed: $e");
+       rethrow;
      }
   }
 }
