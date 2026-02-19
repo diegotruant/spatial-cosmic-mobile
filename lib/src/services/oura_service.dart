@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
 
 class OuraService extends ChangeNotifier {
   static const String _baseUrl = 'https://api.ouraring.com/v2';
@@ -30,8 +31,7 @@ class OuraService extends ChangeNotifier {
       
       if (newUserId != null && _currentUserId != null && newUserId != _currentUserId) {
         debugPrint('[OuraService] User changed, clearing Oura token');
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('oura_token');
+        await SecureStorage.delete('oura_token');
         _accessToken = null;
         _currentUserId = newUserId;
         notifyListeners();
@@ -47,15 +47,13 @@ class OuraService extends ChangeNotifier {
   }
 
   Future<void> _loadToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString('oura_token');
+    _accessToken = await SecureStorage.read('oura_token');
     notifyListeners();
   }
 
   Future<void> setAccessToken(String token) async {
     _accessToken = token;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('oura_token', token);
+    await SecureStorage.write('oura_token', token);
     notifyListeners();
   }
 

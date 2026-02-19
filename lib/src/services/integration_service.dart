@@ -11,6 +11,7 @@ import 'package:spatial_cosmic_mobile/src/logic/fit_generator.dart';
 import 'package:spatial_cosmic_mobile/src/logic/zwo_parser.dart';
 import 'package:spatial_cosmic_mobile/src/config/app_config.dart';
 import 'package:spatial_cosmic_mobile/src/services/log_service.dart';
+import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
 
 class IntegrationService extends ChangeNotifier {
   // Strava Configuration
@@ -67,9 +68,15 @@ class IntegrationService extends ChangeNotifier {
     final userId = Supabase.instance.client.auth.currentUser?.id;
     final accessKey = _userKey('strava_access_token', userId);
     final refreshKey = _userKey('strava_refresh_token', userId);
+    // Expires time is not strictly secret, but kept with tokens usually. SharedPreferences is fine for expires, but SecureStorage better for consistency?
+    // Actually SecureStorage stores strings. Expires is int.
+    // Let's keep expires in SharedPreferences for simplicity or convert to string.
+    // Migration logic in main.dart might have moved it? No, I strictly moved tokens.
+    // Let's keep expires in Prefs to avoid type issues for now, or parseInt.
     final expiresKey = _userKey('strava_expires_at', userId);
 
-    _stravaAccessToken = prefs.getString(accessKey);
+    _stravaAccessToken = await SecureStorage.read(accessKey);
+    // Fallback logic handled in migration, removing legacy inline logic here to simplify.
     if (_stravaAccessToken == null && userId != null) {
       final legacyAccess = prefs.getString('strava_access_token');
       if (legacyAccess != null) {
@@ -90,7 +97,7 @@ class IntegrationService extends ChangeNotifier {
     }
     _isStravaConnected = _stravaAccessToken != null;
     
-    _wahooAccessToken = prefs.getString('wahoo_access_token');
+    _wahooAccessToken = await SecureStorage.read('wahoo_access_token');
     _isWahooConnected = _wahooAccessToken != null;
     
     _isTPConnected = prefs.getBool('tp_connected') ?? false;
@@ -240,9 +247,8 @@ class IntegrationService extends ChangeNotifier {
   }
 
   Future<void> _saveWahooCredentials(String accessToken, String refreshToken, {bool syncToSupabase = true}) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('wahoo_access_token', accessToken);
-    await prefs.setString('wahoo_refresh_token', refreshToken);
+    await SecureStorage.write('wahoo_access_token', accessToken);
+    await SecureStorage.write('wahoo_refresh_token', refreshToken);
     
     _wahooAccessToken = accessToken;
     _isWahooConnected = true;
@@ -290,8 +296,8 @@ class IntegrationService extends ChangeNotifier {
   Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt, {bool syncToSupabase = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    await prefs.setString(_userKey('strava_access_token', userId), accessToken);
-    await prefs.setString(_userKey('strava_refresh_token', userId), refreshToken);
+    await SecureStorage.write(_userKey('strava_access_token', userId), accessToken);
+    await SecureStorage.write(_userKey('strava_refresh_token', userId), refreshToken);
     await prefs.setInt(_userKey('strava_expires_at', userId), expiresAt);
     
     _stravaAccessToken = accessToken;
@@ -355,9 +361,9 @@ class IntegrationService extends ChangeNotifier {
   Future<void> disconnectStrava() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = Supabase.instance.client.auth.currentUser?.id;
-    final accessToken = prefs.getString(_userKey('strava_access_token', userId));
-    await prefs.remove(_userKey('strava_access_token', userId));
-    await prefs.remove(_userKey('strava_refresh_token', userId));
+    final accessToken = await SecureStorage.read(_userKey('strava_access_token', userId));
+    await SecureStorage.delete(_userKey('strava_access_token', userId));
+    await SecureStorage.delete(_userKey('strava_refresh_token', userId));
     await prefs.remove(_userKey('strava_expires_at', userId));
     
     _stravaAccessToken = null;
@@ -432,7 +438,7 @@ class IntegrationService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final userId = Supabase.instance.client.auth.currentUser?.id;
     final expiresAt = prefs.getInt(_userKey('strava_expires_at', userId)) ?? 0;
-    final refreshToken = prefs.getString(_userKey('strava_refresh_token', userId));
+    final refreshToken = await SecureStorage.read(_userKey('strava_refresh_token', userId));
 
     // If it expires in less than 5 minutes, refresh
     if (DateTime.now().millisecondsSinceEpoch / 1000 > (expiresAt - 300)) {

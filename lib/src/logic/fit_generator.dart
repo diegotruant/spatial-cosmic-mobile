@@ -74,6 +74,14 @@ class FitGenerator {
             ..customTargetValueLow = (block.offPower * ftp * 0.95).round()
             ..customTargetValueHigh = (block.offPower * ftp * 1.05).round());
         }
+      } else if (block is FreeRide) {
+         builder.add(WorkoutStepMessage()
+          ..messageIndex = stepIndex++
+          ..durationValue = block.duration
+          ..durationType = WorkoutStepDuration.time
+          ..targetType = WorkoutStepTarget.open
+          ..customTargetValueLow = 0
+          ..customTargetValueHigh = 0);
       }
     }
     

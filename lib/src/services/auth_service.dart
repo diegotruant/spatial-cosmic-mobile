@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
 
 class AuthService extends ChangeNotifier {
   final SupabaseClient _supabase = Supabase.instance.client;
@@ -140,15 +141,21 @@ class AuthService extends ChangeNotifier {
   Future<void> signOut() async {
     // Clear integration tokens on logout to prevent persistence across accounts
     final prefs = await SharedPreferences.getInstance();
+    
+    // Clear legacy preferences if any
     await prefs.remove('strava_access_token');
     await prefs.remove('strava_refresh_token');
     await prefs.remove('strava_expires_at');
-    await prefs.remove('garmin_connected');
-    await prefs.remove('wahoo_connected');
-    await prefs.remove('tp_connected');
-    await prefs.remove('oura_access_token');
-    await prefs.remove('intervals_api_key');
-    await prefs.remove('intervals_athlete_id');
+    
+    // Clear Secure Storage
+    await SecureStorage.deleteAll(); // Simplest way to ensure clean slate on logout
+    // Or specific keys if we want to keep some settings? 
+    // SecureStorage is mostly secrets. deleteAll is safe for logout.
+    
+    await _supabase.auth.signOut();
+    _athleteId = null;
+    notifyListeners();
+  }
 
     await _supabase.auth.signOut();
     _athleteId = null;

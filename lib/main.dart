@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'src/app.dart';
 import 'src/services/auth_service.dart';
 import 'src/services/bluetooth_service.dart';
@@ -19,6 +20,7 @@ import 'src/services/events_service.dart';
 import 'src/services/w_prime_service.dart';
 import 'package:spatial_cosmic_mobile/src/config/app_config.dart';
 import 'src/services/log_service.dart';
+import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,10 +48,16 @@ void main() async {
     return;
   }
 
+  // SEC-104: Migrate sensitive tokens
+  await _migrateTokensToSecureStorage();
+
   try {
     await Supabase.initialize(
       url: AppConfig.supabaseUrl,
       anonKey: AppConfig.supabaseAnonKey,
+      authOptions: const FlutterAuthClientOptions(
+        localStorage: SecureLocalStorage(),
+      ),
     );
   } catch (e) {
     runApp(MaterialApp(
@@ -69,6 +77,7 @@ void main() async {
     ));
     return;
   }
+
 
   runApp(
     MultiProvider(

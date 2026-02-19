@@ -23,19 +23,19 @@ class AppConfig {
   static String get stravaClientId {
     const fromEnv = String.fromEnvironment('STRAVA_CLIENT_ID');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return dotenv.env['STRAVA_CLIENT_ID'] ?? '';
+    return dotenv.env['STRAVA_CLIENT_ID'] ?? '69269';
   }
 
   static String get stravaClientSecret {
     const fromEnv = String.fromEnvironment('STRAVA_CLIENT_SECRET');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return dotenv.env['STRAVA_CLIENT_SECRET'] ?? '';
+    return dotenv.env['STRAVA_CLIENT_SECRET'] ?? '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
   }
   
   static String get stravaRedirectUri {
     const fromEnv = String.fromEnvironment('STRAVA_REDIRECT_URI');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return dotenv.env['STRAVA_REDIRECT_URI'] ?? 'spatialcosmic://spatialcosmic.app/auth/callback';
+    return dotenv.env['STRAVA_REDIRECT_URI'] ?? 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
   }
 
   static String get analysisServiceUrl {

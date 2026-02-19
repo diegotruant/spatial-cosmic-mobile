@@ -183,6 +183,7 @@ class WorkoutService extends ChangeNotifier {
       int withinCycle = elapsedInBlock % cycleTime;
       return withinCycle < block.onDuration ? block.onPower : block.offPower;
     }
+    if (block is FreeRide) return 0.0; // Free Ride has no target logic, handled by mode switch or UI
     return 0.0;
   }
 

@@ -228,6 +228,29 @@ class _LiveGraphPainter extends CustomPainter {
          }
          continue; // Handled currentX increment inside loop
       }
+      else if (block is FreeRide) {
+         // Free Ride Block - Draw as a distinct visual element (e.g. Grey block)
+         // We can't really map it to power, so we'll draw it at a "nominal" height (e.g. 150W or 50% FTP) 
+         // or just tint the background for that section.
+         // Let's draw a dotted box or gradient.
+         
+         double h = size.height * 0.4; // Fixed visual height (40% of screen)
+         double y = size.height - h;
+         
+         final rect = Rect.fromLTWH(currentX, 0, w, size.height);
+         canvas.drawRect(rect, Paint()..color = Colors.grey.withOpacity(0.15));
+         
+         // Draw "Free Ride" Text? Too complex for custom painter without text painter optimization.
+         // Just a simple dashed line at the "nominal" power.
+         final linePaint = Paint()..color = Colors.grey.withOpacity(0.5)..style = PaintingStyle.stroke..strokeWidth = 2.0;
+         double dashWidth = 5, dashSpace = 5;
+         double startX = currentX;
+         while (startX < currentX + w) {
+            canvas.drawLine(Offset(startX, y), Offset(startX + dashWidth, y), linePaint);
+            startX += dashWidth + dashSpace;
+         }
+
+      }
       
       currentX += w;
     }

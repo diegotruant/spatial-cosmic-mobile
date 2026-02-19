@@ -63,6 +63,16 @@ class IntervalsT extends WorkoutBlock {
   }
 }
 
+class FreeRide extends WorkoutBlock {
+  final int duration;
+  FreeRide({required this.duration}) : super(duration);
+
+  @override
+  FreeRide copy({int? duration}) {
+    return FreeRide(duration: duration ?? this.duration);
+  }
+}
+
 class ZwoParser {
   /// Parse ZWO XML string. If the XML doesn't have a <name> tag, 
   /// uses titleOverride if provided, otherwise defaults to "Unknown Workout".
@@ -104,6 +114,10 @@ class ZwoParser {
             onPower: double.parse(node.getAttribute('OnPower') ?? '0.0'),
             offPower: double.parse(node.getAttribute('OffPower') ?? '0.0'),
           ));
+        } else if (node.name.local == 'FreeRide') {
+           blocks.add(FreeRide(
+             duration: int.parse(node.getAttribute('Duration') ?? '0'),
+           ));
         }
       }
     }
@@ -114,22 +128,27 @@ class ZwoParser {
   static Map<String, dynamic> getStats(WorkoutWorkout workout, int ftp) {
     int totalDuration = 0;
     double weightedPowerSum = 0;
+    int knownDuration = 0;
 
     for (var block in workout.blocks) {
       totalDuration += block.duration;
       if (block is SteadyState) {
         weightedPowerSum += block.duration * block.power;
+        knownDuration += block.duration;
       } else if (block is Ramp) {
         weightedPowerSum += block.duration * (block.powerLow + block.powerHigh) / 2;
+        knownDuration += block.duration;
       } else if (block is IntervalsT) {
         // Average power of the interval set
         int setDuration = block.onDuration + block.offDuration;
         double avgPower = ((block.onDuration * block.onPower) + (block.offDuration * block.offPower)) / setDuration;
         weightedPowerSum += block.repeat * setDuration * avgPower;
+        knownDuration += block.repeat * setDuration;
       }
+      // FreeRide is excluded from weighted power calculation but included in stats
     }
 
-    double avgPowerPercent = totalDuration > 0 ? weightedPowerSum / totalDuration : 0.0;
+    double avgPowerPercent = knownDuration > 0 ? weightedPowerSum / knownDuration : 0.0;
     int targetPower = (avgPowerPercent * ftp).round();
 
     return {
@@ -160,6 +179,11 @@ class ZwoParser {
     for (var blockJson in structureList) {
       final type = (blockJson['type'] as String?)?.toLowerCase();
       final duration = (blockJson['duration'] as num?)?.toInt() ?? 0;
+      
+      if (type == 'freeride') {
+         blocks.add(FreeRide(duration: duration));
+         continue;
+      }
       
       // Extract Power safely
       double? pStart;
@@ -234,6 +258,10 @@ class ZwoParser {
               'OnPower': block.onPower.toStringAsFixed(2),
               'OffPower': block.offPower.toStringAsFixed(2),
             });
+          } else if (block is FreeRide) {
+            builder.element('FreeRide', attributes: {
+              'Duration': block.duration.toString(),
+            });
           }
         }
       });
@@ -241,3 +269,4 @@ class ZwoParser {
     return builder.buildDocument().toXmlString(pretty: true);
   }
 }
+
