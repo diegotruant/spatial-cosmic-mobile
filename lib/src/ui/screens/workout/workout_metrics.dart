@@ -99,12 +99,21 @@ class _TotalTimeTileState extends State<TotalTimeTile> {
   }
 }
 
-class NextStepTile extends StatelessWidget {
+class NextStepTile extends StatefulWidget {
   const NextStepTile({super.key});
 
   @override
+  State<NextStepTile> createState() => _NextStepTileState();
+}
+
+class _NextStepTileState extends State<NextStepTile> {
+  bool _showTargetPower = false; // Toggle state: False = Duration, True = Power
+
+  @override
   Widget build(BuildContext context) {
-    return Selector<WorkoutService, ({int? nextDuration, double? nextTarget, int intensity})>(
+    return GestureDetector(
+      onTap: () => setState(() => _showTargetPower = !_showTargetPower),
+      child: Selector<WorkoutService, ({int? nextDuration, double? nextTarget, int intensity})>(
         selector: (_, service) {
           final blocks = service.currentWorkout?.blocks;
           if (blocks == null || service.currentBlockIndex >= blocks.length - 1) {
@@ -115,7 +124,7 @@ class NextStepTile extends StatelessWidget {
           // Calculate target visualization color
           double factor = 0;
           if (nextBlock is SteadyState) factor = nextBlock.power;
-          else if (nextBlock is IntervalsT) factor = nextBlock.onPower;
+          else if (nextBlock is IntervalsT) factor = nextBlock.onPower; // Use ON power for color/target
           else if (nextBlock is Ramp) factor = (nextBlock.powerLow + nextBlock.powerHigh) / 2;
           
           return (
@@ -130,17 +139,47 @@ class NextStepTile extends StatelessWidget {
            }
            
            final intensityFactor = data.intensity / 100.0;
-           final color = WorkoutService.getZoneColor(data.nextTarget! * intensityFactor);
+           // Calculate Zone Color for the NEXT step
+           // We assume nextTarget is %FTP (e.g. 0.75 for 75%) if parser works that way, 
+           // OR standard parser might give raw values? 
+           // ZwoParser usually gives %FTP as decimal (0.5 = 50%).
+           // WorkoutService.getZoneColor expects a ratio (watts/ftp) -> which is exactly what 'factor' is usually.
+           // However, if strict data.nextTarget is used, let's pass it directly.
+           final zoneColor = WorkoutService.getZoneColor(data.nextTarget! * intensityFactor);
            
+           String valueStr = '';
+           String unitStr = '';
+           String labelStr = 'NEXT STEP';
+           
+           if (_showTargetPower) {
+             // Show Power (Target)
+             // We need FTP to calculate absolute watts if we want to show Watts, 
+             // but 'nextTarget' is a factor. Let's show % or W if we have FTP.
+             // Helper to get FTP?
+             final ftp = context.select<WorkoutService, int>((s) => s.userFtp);
+             // Target Power = FTP * Factor * Intensity
+             final targetWatts = (ftp * data.nextTarget! * intensityFactor).toInt();
+             valueStr = targetWatts.toString();
+             unitStr = 'W';
+             labelStr = 'NEXT PWR';
+           } else {
+             // Show Duration
+             valueStr = _formatTime(data.nextDuration!);
+             unitStr = '';
+             labelStr = 'NEXT TIME';
+           }
+
            return BigMetricTile(
-              label: 'NEXT STEP',
-              value: _formatTime(data.nextDuration!),
-              unit: '',
-              accentColor: color,
-              valueColor: color,
+              label: labelStr,
+              value: valueStr,
+              unit: unitStr,
+              accentColor: zoneColor, // Text/Border color
+              valueColor: Colors.white,
+              backgroundColor: zoneColor.withOpacity(0.2), // Background with opacity
               labelFontSize: 11.0,
            );
         },
+      ),
     );
   }
 }

@@ -39,7 +39,7 @@ class HRVAnalysis {
 }
 
 class PhysiologicalService extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
   final List<PhysiologicalData> _history = [];
   
   // Dependencies

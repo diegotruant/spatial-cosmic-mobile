@@ -11,6 +11,10 @@ class WPrimeService extends ChangeNotifier {
   double _maxWPrime = 0.0;
   double _cp = 0.0;
   
+  // Stamina Potential tracking
+  double _totalJoulesBurned = 0.0;
+  double _dynamicMaxWPrime = 0.0;
+  
   // Timer for calculation
   DateTime? _lastUpdateTime;
   
@@ -21,6 +25,7 @@ class WPrimeService extends ChangeNotifier {
   // Getters
   double get currentWPrime => _currentWPrime;
   double get maxWPrime => _maxWPrime;
+  double get dynamicMaxWPrime => _dynamicMaxWPrime;
   bool get isDepleting => (_bluetooth?.power ?? 0) > _cp;
   double get cp => _cp;
 
@@ -63,6 +68,7 @@ class WPrimeService extends ChangeNotifier {
       // Initializaion: if not initialized or invalid, start full
       if (_currentWPrime <= 0 && _maxWPrime > 0 && _lastUpdateTime == null) {
         _currentWPrime = _maxWPrime;
+        _dynamicMaxWPrime = _maxWPrime;
       }
     }
   }
@@ -87,22 +93,29 @@ class WPrimeService extends ChangeNotifier {
 
     final currentPower = _bluetooth!.power;
 
+    // Accumulate total work (Joules)
+    final tickJoules = currentPower * dtSeconds;
+    _totalJoulesBurned += tickJoules;
+
+    // Calculate Dynamic Max W' (Potential Stamina)
+    // Assuming a rough total energy capacity of 3 hours at CP
+    // (e.g. 250W * 3600s * 3h = 2,700,000 J)
+    final totalEnergyCapacity = _cp > 0 ? _cp * 3600 * 3 : 2500000.0;
+    double potentialStaminaPct = 1.0 - (_totalJoulesBurned / totalEnergyCapacity).clamp(0.0, 1.0);
+    _dynamicMaxWPrime = _maxWPrime * potentialStaminaPct;
+
     if (currentPower > _cp) {
       // Depletion Mode
-      // User Logic: Consume = (Power - CP) * Time
       double depletion = (currentPower - _cp) * dtSeconds;
       _currentWPrime -= depletion;
     } else {
       // Recharge Mode
-      // User Logic: Recharge = (CP - Power) * Constant (0.1)
-      // Assuming this is a rate per second.
-      // Recharge Amount = Rate * Time
       double recharge = (_cp - currentPower) * _rechargeFactor * dtSeconds;
       _currentWPrime += recharge;
     }
 
-    // Constraints
-    if (_currentWPrime > _maxWPrime) _currentWPrime = _maxWPrime;
+    // Constraints: W' cannot recharge past dynamic potential stamina ceiling
+    if (_currentWPrime > _dynamicMaxWPrime) _currentWPrime = _dynamicMaxWPrime;
     if (_currentWPrime < 0) _currentWPrime = 0;
     
     // Notify UI
@@ -112,6 +125,8 @@ class WPrimeService extends ChangeNotifier {
   /// Manually reset W' to full (e.g. start of new ride)
   void reset() {
     _currentWPrime = _maxWPrime;
+    _dynamicMaxWPrime = _maxWPrime;
+    _totalJoulesBurned = 0.0;
     _lastUpdateTime = null; // Reset time tracking
     notifyListeners();
   }

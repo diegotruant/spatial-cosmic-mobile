@@ -1,9 +1,20 @@
 
+import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+// Single shared instance with AndroidOptions to reduce NotInitializedError on first launch
+late final FlutterSecureStorage _secureStorage = () {
+  if (Platform.isAndroid) {
+    return const FlutterSecureStorage(
+      aOptions: AndroidOptions(resetOnError: true),
+    );
+  }
+  return const FlutterSecureStorage();
+}();
+
 class SecureStorage {
-  static const FlutterSecureStorage _storage = FlutterSecureStorage();
+  static FlutterSecureStorage get _storage => _secureStorage;
 
   static Future<void> write(String key, String? value) async {
     if (value == null) {
@@ -26,7 +37,7 @@ class SecureStorage {
   }
 }
 
-// Adapter for Supabase Persistence
+// Adapter for Supabase Persistence (uses single _secureStorage instance)
 class SecureLocalStorage extends LocalStorage {
   const SecureLocalStorage();
 
@@ -35,25 +46,21 @@ class SecureLocalStorage extends LocalStorage {
 
   @override
   Future<bool> hasAccessToken() async {
-    const storage = FlutterSecureStorage();
-    return await storage.containsKey(key: supabasePersistSessionKey);
+    return await _secureStorage.containsKey(key: supabasePersistSessionKey);
   }
 
   @override
   Future<String?> accessToken() async {
-    const storage = FlutterSecureStorage();
-    return await storage.read(key: supabasePersistSessionKey);
+    return await _secureStorage.read(key: supabasePersistSessionKey);
   }
 
   @override
   Future<void> persistSession(String persistSessionString) async {
-    const storage = FlutterSecureStorage();
-    await storage.write(key: supabasePersistSessionKey, value: persistSessionString);
+    await _secureStorage.write(key: supabasePersistSessionKey, value: persistSessionString);
   }
 
   @override
   Future<void> removePersistedSession() async {
-    const storage = FlutterSecureStorage();
-    await storage.delete(key: supabasePersistSessionKey);
+    await _secureStorage.delete(key: supabasePersistSessionKey);
   }
 }

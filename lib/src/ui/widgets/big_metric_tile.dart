@@ -8,6 +8,7 @@ class BigMetricTile extends StatelessWidget {
   final String unit;
   final Color accentColor;
   final Color? valueColor;
+  final Color? backgroundColor; // New field
   final bool isHuge; // For the MAIN number (Power / Target)
   final double? labelFontSize;
 
@@ -18,6 +19,7 @@ class BigMetricTile extends StatelessWidget {
     required this.unit,
     required this.accentColor,
     this.valueColor,
+    this.backgroundColor, // New parameter
     this.isHuge = false,
     this.labelFontSize,
   });
@@ -28,6 +30,7 @@ class BigMetricTile extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       borderRadius: 16,
       borderColor: accentColor.withOpacity(0.3),
+      color: backgroundColor, // Add this
       child: LayoutBuilder(
         builder: (context, constraints) {
           final double labelSize = labelFontSize ?? 11;

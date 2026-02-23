@@ -25,19 +25,16 @@ class IntegrationService extends ChangeNotifier {
   bool _isStravaConnected = false;
   bool get isStravaConnected => _isStravaConnected;
   
-  bool _isWahooConnected = false;
-  bool get isWahooConnected => _isWahooConnected;
-
-  bool _isTPConnected = false;
-  bool get isTPConnected => _isTPConnected;
-
   String? _stravaAccessToken;
-  String? _wahooAccessToken;
+  // String? _wahooAccessToken; // Removed
 
   String? _currentUserId;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   IntegrationService() {
-    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    // We can't access Supabase.instance here safely if we aren't absolutely sure about the timing
+    // Instead, we will initialize in a post-boot phase or lazily.
+    // For now, let's just make it not crash.
     _loadCredentials();
     _listenAuthChanges();
   }
@@ -97,17 +94,15 @@ class IntegrationService extends ChangeNotifier {
     }
     _isStravaConnected = _stravaAccessToken != null;
     
-    _wahooAccessToken = await SecureStorage.read('wahoo_access_token');
-    _isWahooConnected = _wahooAccessToken != null;
+    _isStravaConnected = _stravaAccessToken != null;
     
-    _isTPConnected = prefs.getBool('tp_connected') ?? false;
+    // Wahoo and TP removed
     
     notifyListeners();
   }
 
   Future<void> initiateStravaAuth() async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
+    final user = _supabase.auth.currentUser;
     if (user == null) return;
     final email = user.email ?? '';
     final userId = user.id;
@@ -126,40 +121,40 @@ class IntegrationService extends ChangeNotifier {
       },
     );
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-      await launchUrl(url, mode: LaunchMode.externalApplication);
-      LogService.i('Strava Auth Launched: $url');
-    } else {
-      throw 'Could not launch $url';
+    try {
+      LogService.i('Launching Strava Auth URL: $url');
+      if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+         LogService.e('Could not launch Strava URL');
+      }
+    } catch (e) {
+      LogService.e('Exception launching Strava URL: $e');
     }
   }
   
   Future<void> handleAuthCallback(Uri uri) async {
-    if (uri.scheme == 'spatialcosmic' && uri.host == 'spatialcosmic.app') {
-      final success = uri.queryParameters['success'] == 'true';
-      final error = uri.queryParameters['error'];
-      final provider = uri.queryParameters['provider']; // 'strava' or 'wahoo'
-      
-      if (error != null) {
-        LogService.e('$provider Auth Error from Callback: $error');
-        return;
-      }
-      
-      if (success) {
-        LogService.i('Received Successful $provider Auth from Edge Function');
-        await syncFromSupabase();
-      }
+    LogService.i('Handling Auth Callback: $uri');
+    // Relaxed check: just look for success param or error
+    final success = uri.queryParameters['success'] == 'true';
+    final error = uri.queryParameters['error'];
+    final provider = uri.queryParameters['provider']; 
+    
+    if (error != null) {
+      LogService.e('Auth Error: $error');
+      return;
+    }
+    
+    if (success) {
+      LogService.i('Success param found for $provider. Syncing...');
+      await syncFromSupabase();
     }
   }
 
   Future<void> syncFromSupabase() async {
     try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
+      final user = _supabase.auth.currentUser;
       if (user == null) return;
 
-      final response = await supabase
+      final response = await _supabase
           .from('athletes')
           .select('id, email, extra_data')
           .eq('id', user.id)
@@ -167,7 +162,7 @@ class IntegrationService extends ChangeNotifier {
 
       Map<String, dynamic>? row = response;
       if (row == null && user.email != null) {
-        row = await supabase
+        row = await _supabase
             .from('athletes')
             .select('id, email, extra_data')
             .ilike('email', user.email!)
@@ -195,22 +190,7 @@ class IntegrationService extends ChangeNotifier {
           LogService.i('Strava credentials synced from Supabase');
         }
 
-        // Sync Wahoo
-        Map<String, dynamic>? wahoo;
-        if (extraData.containsKey('integrations') && extraData['integrations']['wahoo'] != null) {
-          wahoo = Map<String, dynamic>.from(extraData['integrations']['wahoo']);
-        } else if (extraData.containsKey('wahoo')) {
-          wahoo = Map<String, dynamic>.from(extraData['wahoo']);
-        }
-
-        if (wahoo != null) {
-          await _saveWahooCredentials(
-            wahoo['accessToken'],
-            wahoo['refreshToken'],
-            syncToSupabase: false,
-          );
-          debugPrint('Wahoo credentials synced from Supabase');
-        }
+        // Wahoo sync removed
       }
     } catch (e) {
       LogService.e('Sync from Supabase failed: $e');
@@ -246,56 +226,11 @@ class IntegrationService extends ChangeNotifier {
     }
   }
 
-  Future<void> _saveWahooCredentials(String accessToken, String refreshToken, {bool syncToSupabase = true}) async {
-    await SecureStorage.write('wahoo_access_token', accessToken);
-    await SecureStorage.write('wahoo_refresh_token', refreshToken);
-    
-    _wahooAccessToken = accessToken;
-    _isWahooConnected = true;
-    notifyListeners();
-    if (!syncToSupabase) return;
 
-    try {
-      final supabase = Supabase.instance.client;
-      final user = supabase.auth.currentUser;
-      if (user != null) {
-        final response = await supabase
-            .from('athletes')
-            .select('extra_data')
-            .ilike('email', user.email!)
-            .maybeSingle();
-            
-        Map<String, dynamic> extraData = response != null && response['extra_data'] != null 
-            ? Map<String, dynamic>.from(response['extra_data']) 
-            : {};
-
-        final wahooData = {
-          'accessToken': accessToken,
-          'refreshToken': refreshToken,
-          'updatedAt': DateTime.now().millisecondsSinceEpoch,
-        };
-        
-        extraData['wahoo'] = wahooData;
-        Map<String, dynamic> integrations = extraData.containsKey('integrations') 
-            ? Map<String, dynamic>.from(extraData['integrations']) 
-            : {};
-        integrations['wahoo'] = wahooData;
-        extraData['integrations'] = integrations;
-
-        await supabase
-            .from('athletes')
-            .update({'extra_data': extraData})
-            .ilike('email', user.email!);
-        debugPrint('Wahoo credentials synced to Supabase');
-      }
-    } catch (e) {
-      LogService.e('Sync to Supabase failed: $e');
-    }
-  }
 
   Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt, {bool syncToSupabase = true}) async {
     final prefs = await SharedPreferences.getInstance();
-    final userId = Supabase.instance.client.auth.currentUser?.id;
+    final userId = _supabase.auth.currentUser?.id;
     await SecureStorage.write(_userKey('strava_access_token', userId), accessToken);
     await SecureStorage.write(_userKey('strava_refresh_token', userId), refreshToken);
     await prefs.setInt(_userKey('strava_expires_at', userId), expiresAt);
@@ -420,166 +355,6 @@ class IntegrationService extends ChangeNotifier {
     }
   }
 
-  Future<void> disconnectWahoo() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('wahoo_connected', false);
-    _isWahooConnected = false;
-    notifyListeners();
-  }
-
-  Future<void> disconnectTP() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('tp_connected', false);
-    _isTPConnected = false;
-    notifyListeners();
-  }
-
-  Future<bool> _ensureValidStravaToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final userId = Supabase.instance.client.auth.currentUser?.id;
-    final expiresAt = prefs.getInt(_userKey('strava_expires_at', userId)) ?? 0;
-    final refreshToken = await SecureStorage.read(_userKey('strava_refresh_token', userId));
-
-    // If it expires in less than 5 minutes, refresh
-    if (DateTime.now().millisecondsSinceEpoch / 1000 > (expiresAt - 300)) {
-      if (refreshToken == null) return false;
-
-      LogService.i('Strava Token Expired. Refreshing...');
-      try {
-        final response = await http.post(
-          Uri.parse('https://www.strava.com/oauth/token'),
-          body: {
-            'client_id': AppConfig.stravaClientId,
-            'client_secret': AppConfig.stravaClientSecret,
-            'grant_type': 'refresh_token',
-            'refresh_token': refreshToken,
-          },
-        );
-
-        if (response.statusCode == 200) {
-          final data = jsonDecode(response.body);
-          await _saveStravaCredentials(
-            data['access_token'],
-            data['refresh_token'],
-            data['expires_at'],
-          );
-          return true;
-        } else {
-          LogService.e('Strava Token Refresh Failed: ${response.body}');
-          return false;
-        }
-      } catch (e) {
-        LogService.e('Strava Token Refresh Exception: $e');
-        return false;
-      }
-    }
-    return true;
-  }
-
-  Future<String> uploadActivityToStrava(File fitFile, {String? activityName}) async {
-    if (!_isStravaConnected || _stravaAccessToken == null) return "Strava non connesso";
-    
-    // Ensure token is valid
-    final ok = await _ensureValidStravaToken();
-    if (!ok) return "Errore rinnovo token Strava";
-
-    try {
-      final uri = Uri.parse('https://www.strava.com/api/v3/uploads');
-      final request = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer $_stravaAccessToken'
-        ..fields['data_type'] = 'fit'
-        ..fields['name'] = activityName ?? 'Velo Lab: ${fitFile.path.split('/').last.split('_').last.replaceAll('.fit', '')}'
-        ..fields['description'] = 'Allenamento indoor completato con Velo Lab App'
-        ..fields['sport_type'] = 'VirtualRide'
-        ..fields['activity_type'] = 'VirtualRide'
-        ..fields['external_id'] = 'sc_${fitFile.path.split('/').last}'
-        ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
-        
-      final response = await request.send();
-      final respBytes = await response.stream.toBytes();
-      final respStr = utf8.decode(respBytes);
-      
-      if (response.statusCode == 201) {
-        final data = jsonDecode(respStr);
-        final uploadId = data['id_str'] ?? data['id'].toString();
-        LogService.i('Strava Upload Created: $uploadId');
-        
-        // Wait and poll for status (Max 3 attempts, every 2 seconds)
-        for (int i = 0; i < 3; i++) {
-          await Future.delayed(const Duration(seconds: 2));
-          final status = await checkStravaUploadStatus(uploadId);
-          if (status == "Success") return "Success";
-          if (status.contains("duplicate")) return "Duplicato (Già presente)";
-          if (status.contains("error")) return status;
-        }
-        
-        return "Success (In elaborazione)";
-      } else {
-        if (respStr.contains("duplicate")) return "Duplicato";
-        return "Errore Strava ${response.statusCode}";
-      }
-    } catch (e) {
-      LogService.e('Strava Upload Exception: $e');
-      return "Eccezione Strava: $e";
-    }
-  }
-
-  Future<String> checkStravaUploadStatus(String uploadId) async {
-    if (_stravaAccessToken == null) return "Errore: Token Mancante";
-    
-    try {
-      final response = await http.get(
-        Uri.parse('https://www.strava.com/api/v3/uploads/$uploadId'),
-        headers: {'Authorization': 'Bearer $_stravaAccessToken'},
-      );
-      
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final status = data['status'];
-        final error = data['error'];
-        
-        if (error != null) return "Errore Strava: $error";
-        if (status == "Your activity is ready.") return "Success";
-        if (status != null) return status.toLowerCase();
-        return "In elaborazione";
-      }
-      return "Status Error ${response.statusCode}";
-    } catch (e) {
-      return "Status Exception: $e";
-    }
-  }
-
-  // Wahoo Cloud
-  Future<void> initiateWahooAuth() async {
-    final supabase = Supabase.instance.client;
-    final user = supabase.auth.currentUser;
-    final email = user?.email ?? '';
-
-    const String wahooScopes = 'email user_read user_write power_zones_read power_zones_write workouts_read workouts_write offline_data';
-    const String wahooRedirectUri = 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/wahoo-auth';
-
-    final Uri url = Uri.https(
-      'api.wahooligan.com',
-      '/oauth/authorize',
-      {
-        'client_id': 'VDQH3O2-OkPJ8H-V8dxtvopcq_LXaVmA-w6g5UKGW1w',
-        'response_type': 'code',
-        'redirect_uri': wahooRedirectUri,
-        'scope': wahooScopes,
-        'state': 'mobile:$email',
-      },
-    );
-        
-    await _launchAuthUrl(url);
-  }
-
-  // TrainingPeaks
-  Future<void> initiateTrainingPeaksAuth() async {
-    final stravaRedirectUri = dotenv.env['STRAVA_REDIRECT_URI']!;
-    final Uri url = Uri.parse('https://home.trainingpeaks.com/oauth/authorize?client_id=TP_CLIENT_ID&response_type=code&redirect_uri=$stravaRedirectUri&scope=workouts:read,workouts:write');
-    await _launchAuthUrl(url);
-  }
-
   // Dropbox
   Future<void> initiateDropboxAuth() async {
     final stravaRedirectUri = dotenv.env['STRAVA_REDIRECT_URI']!;
@@ -587,76 +362,32 @@ class IntegrationService extends ChangeNotifier {
     await _launchAuthUrl(url);
   }
   
-  Future<void> initiateZwiftAuth() async {
-     final Uri url = Uri.parse('https://my.zwift.com/profile/connections');
-     await _launchAuthUrl(url);
-  }
-
-  // Wahoo Workout Upload
-  Future<bool> uploadWorkoutToWahoo(File fitFile) async {
-    // Wahoo API documentation: POST /v1/workouts
-    try {
-      final uri = Uri.parse('https://api.wahooligan.com/v1/plan_workouts');
-      final request = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer ${_wahooAccessToken ?? 'YOUR_WAHOO_TOKEN'}'
-        ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
-        
-      final response = await request.send();
-      return response.statusCode == 201 || response.statusCode == 200;
-    } catch (e) {
-      debugPrint('Wahoo Upload Error: $e');
+  Future<bool> uploadActivityToStrava(File file, {String? activityName}) async {
+    if (_stravaAccessToken == null) {
+      debugPrint('Strava non connesso');
       return false;
     }
-
-  }
-
-  // TrainingPeaks (often also syncs to Bryton/Karoo)
-  Future<bool> uploadWorkoutToTrainingPeaks(File fitFile) async {
+    
     try {
-      final uri = Uri.parse('https://api.trainingpeaks.com/v1/workouts/planned');
+      final uri = Uri.parse('https://www.strava.com/api/v3/uploads');
       final request = http.MultipartRequest('POST', uri)
-        ..headers['Authorization'] = 'Bearer YOUR_TP_TOKEN'
-        ..files.add(await http.MultipartFile.fromPath('file', fitFile.path));
+        ..headers['Authorization'] = 'Bearer $_stravaAccessToken'
+        ..files.add(await http.MultipartFile.fromPath('file', file.path))
+        ..fields['data_type'] = 'fit'
+        ..fields['name'] = activityName ?? 'Spatial Cosmic Ride';
         
       final response = await request.send();
-      return response.statusCode == 201 || response.statusCode == 200;
+      if (response.statusCode == 201) {
+        debugPrint('Strava Upload Success!');
+        return true;
+      } else {
+        final respStr = await response.stream.bytesToString();
+        debugPrint('Strava Upload Failed: ${response.statusCode} - $respStr');
+        return false;
+      }
     } catch (e) {
-      debugPrint('TP Upload Error: $e');
+      debugPrint('Strava Upload Exception: $e');
       return false;
-    }
-  }
-
-  Future<void> uploadWorkoutDirectly(WorkoutWorkout workout, String platform, int ftp) async {
-    // 1. Generate FIT file
-    final dir = await getApplicationDocumentsDirectory();
-    final filename = "${workout.title.replaceAll(' ', '_')}.fit"; // Simple sanitization
-    final file = File('${dir.path}/$filename');
-    
-    final bytes = FitGenerator.toBytes(workout, ftp);
-    await file.writeAsBytes(bytes);
-
-    bool success = false;
-    switch (platform) {
-      case 'wahoo':
-        success = await uploadWorkoutToWahoo(file);
-        break;
-      case 'tp':
-        success = await uploadWorkoutToTrainingPeaks(file);
-        break;
-      default:
-        throw 'Piattaforma non supportata: $platform';
-    }
-    
-    // Cleanup
-    if (await file.exists()) {
-      await file.delete(); 
-    }
-
-    if (!success) {
-      // MOCK SUCCESS
-      debugPrint('MOCK UPLOAD SUCCESS for $platform');
-      await Future.delayed(const Duration(seconds: 2));
-      return; 
     }
   }
 

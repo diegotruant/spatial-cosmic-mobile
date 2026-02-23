@@ -47,7 +47,7 @@ class AthleteEvent {
 }
 
 class EventsService extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
   
   List<AthleteEvent> _events = [];
   bool _isLoading = false;

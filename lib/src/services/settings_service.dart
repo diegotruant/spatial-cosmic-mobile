@@ -5,7 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class SettingsService extends ChangeNotifier {
   // Persistence
   SharedPreferences? _prefs;
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   // Athlete Profile
   String username = ''; // Default empty

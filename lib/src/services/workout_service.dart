@@ -315,12 +315,24 @@ class WorkoutService extends ChangeNotifier {
   // Internal method to actually switch block
   void _advanceToNextBlock() {
      if (currentBlockIndex < currentWorkout!.blocks.length - 1) {
-      // Avanza semplicemente allo step successivo senza falsare il tempo totale.
-      // Così il "TOTAL TIME" e la durata finale NON includono gli step saltati.
+      // Calculate skipped time
+      int currentBlockDuration = currentWorkout!.blocks[currentBlockIndex].duration;
+      int skippedSeconds = currentBlockDuration - elapsedInBlock;
+      
+      // CRITICAL FIX: Truncate the block duration to what was actually done.
+      // This ensures "Total Time" and "Remaining Time" calculations remain correct.
+      // If we skip at 5:00 of a 10:00 block, the block becomes 5:00 long.
+      // The skipped 5:00 are effectively removed from the total workout duration.
+      if (skippedSeconds > 0) {
+         // Use copy() since WorkoutBlock fields are final
+         currentWorkout!.blocks[currentBlockIndex] = currentWorkout!.blocks[currentBlockIndex].copy(duration: elapsedInBlock);
+      }
+      
       currentBlockIndex++;
       elapsedInBlock = 0;
 
       // VISUAL SYNC: Jump to the start of the new block
+      // This ensures the graph highlights the correct new block.
       int newBlockStart = 0;
       for (int i = 0; i < currentBlockIndex; i++) {
         newBlockStart += currentWorkout!.blocks[i].duration;

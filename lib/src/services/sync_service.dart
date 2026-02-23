@@ -5,7 +5,7 @@ import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 
 class SyncService extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
 
   // ========================================
   // RETRY & OFFLINE QUEUE CONFIGURATION

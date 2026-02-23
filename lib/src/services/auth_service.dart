@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
 
 class AuthService extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
   User? _currentUser;
   String? _athleteId;
   bool _isLoading = false;
@@ -157,8 +157,4 @@ class AuthService extends ChangeNotifier {
     notifyListeners();
   }
 
-    await _supabase.auth.signOut();
-    _athleteId = null;
-    notifyListeners();
-  }
 }

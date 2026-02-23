@@ -227,7 +227,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                     isDone: isDone,
                     isPlaceholder: false,
                     isToday: isToday,
-                    onSendToDevice: isDone ? null : () => _sendAssignmentToDevice(w),
+                    onSendToDevice: isDone ? null : () => _exportAssignment(w),
                   );
                 }).toList(),
               );
@@ -313,10 +313,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     );
   }
 
-  Future<void> _sendAssignmentToDevice(Map<String, dynamic> assignment) async {
+  Future<void> _exportAssignment(Map<String, dynamic> assignment) async {
     final settingsService = context.read<SettingsService>();
     
-    // 1. Selection Dialog (Premium Style)
+    // 1. Selection Dialog (Reduced to just Export confirmation really, or keeping selector if we add more options later)
+    // For now, user wants "Strava" and "Oura", which usually implies manual upload via file on mobile, 
+    // OR direct API. Direct API for "Planned Workout" to Strava is NOT supported by Strava (only completed activities).
+    // So "Export" is the way.
+    
     final platform = await showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.transparent, 
@@ -345,7 +349,7 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                 const CircularProgressIndicator(color: Colors.blueAccent),
                 const SizedBox(height: 20),
                 Text(
-                  "Esportazione file .fit...", 
+                  "Generazione file .fit...", 
                   style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13, fontWeight: FontWeight.bold)
                 ),
               ],
@@ -360,19 +364,14 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       final file = await FitGenerator.generateFromAssignment(assignment, ftp);
       
       if (platform == 'export') {
-        if (mounted) Navigator.of(context, rootNavigator: true).pop();
+        if (mounted) Navigator.of(context, rootNavigator: true).pop(); // Close loading
         await Share.shareXFiles(
           [XFile(file.path)],
           text: 'Allenamento Velo Lab: ${assignment['workout_name']}',
         );
-        if (mounted) {
-          _showFitImportHelp(context);
-        }
         return;
       }
 
-      if (mounted) Navigator.of(context, rootNavigator: true).pop();
-      throw "Piattaforma non supportata.";
     } catch (e) {
       if (mounted) {
         Navigator.of(context, rootNavigator: true).pop(); // Ensure loading is closed
@@ -387,32 +386,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
     }
   }
 
-  void _showFitImportHelp(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        title: const Text("Importa il file .fit", style: TextStyle(color: Colors.white)),
-        content: const Text(
-          "Garmin: collega via USB → GARMIN/Workouts → copia il .fit.\n"
-          "Guida: https://support.garmin.com/en-US/?search=import%20workout%20fit\n\n"
-          "Wahoo: apri ELEMNT app → aggiungi allenamento da File.\n"
-          "Guida: https://support.wahoofitness.com/hc/en-us/search?query=workout%20fit\n\n"
-          "Karoo: Hammerhead Dashboard → Upload workout (.fit).\n"
-          "Guida: https://support.hammerhead.io/hc/en-us/search?query=workout%20fit\n\n"
-          "Bryton: app Bryton Active → Importa allenamento (.fit).\n"
-          "Guida: https://support.brytonsport.com/hc/en-us/search?query=workout%20fit",
-          style: TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("OK"),
-          ),
-        ],
-      ),
-    );
-  }
+
+
 
   String _getDayName(int weekday) {
     const days = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
@@ -1270,11 +1245,12 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
               AnaerobicBatteryGauge(
                 currentWPrime: wPrime.currentWPrime, 
                 maxWPrime: wPrime.maxWPrime, 
+                dynamicMaxWPrime: wPrime.dynamicMaxWPrime,
                 isDepleting: wPrime.isDepleting
               ),
               const SizedBox(height: 8),
               Text(
-                "${(wPrime.currentWPrime / 1000).toStringAsFixed(1)} kJ / ${(wPrime.maxWPrime / 1000).toStringAsFixed(1)} kJ",
+                "${(wPrime.currentWPrime / 1000).toStringAsFixed(1)} kJ / ${(wPrime.dynamicMaxWPrime / 1000).toStringAsFixed(1)} kJ (${(wPrime.maxWPrime / 1000).toStringAsFixed(1)})",
                 style: const TextStyle(color: Colors.white54, fontSize: 12, fontFamily: 'monospace'),
               ),
             ],
@@ -1315,6 +1291,17 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                     Text(
                       AppLocalizations.of(context).get('no_workout_today') ?? 'Nessun workout oggi',
                       style: const TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                    const SizedBox(height: 24),
+                    _buildInfoCard(
+                      "Come usare l'app",
+                      "1. Connetti Strava e Oura nelle Impostazioni.\n"
+                      "2. Seleziona un allenamento dal calendario.\n"
+                      "3. Premi AVVIA e pedala!\n"
+                      "4. Terminato l'allenamento, verrà inviato automaticamente a Strava.\n"
+                      "5. Puoi anche esportare il file .fit e caricarlo manualmente su Garmin/Wahoo.",
+                      LucideIcons.helpCircle,
+                      Colors.blueAccent,
                     ),
                   ],
                 ),
@@ -1361,6 +1348,24 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                  final minutes = duration ~/ 60;
                  final seconds = duration % 60;
                  timeStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
+            }
+
+            // CHECK: If duration is 0, treat as invalid/rest day
+            if (workout == null || duration == 0) {
+               return GlassCard(
+                borderColor: Colors.white10,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  children: [
+                    const Icon(LucideIcons.calendarCheck, size: 48, color: Colors.white24),
+                    const SizedBox(height: 16),
+                    Text(
+                      AppLocalizations.of(context).get('no_workout_today') ?? 'Nessun workout oggi',
+                      style: const TextStyle(color: Colors.white54, fontSize: 16),
+                    ),
+                  ],
+                ),
+              );
             }
 
             return GlassCard(
@@ -1756,6 +1761,26 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   String _getMonthName(int month) {
     const months = ['GEN', 'FEB', 'MAR', 'APR', 'MAG', 'GIU', 'LUG', 'AGO', 'SET', 'OTT', 'NOV', 'DIC'];
     return months[month - 1];
+  }
+
+  Widget _buildInfoCard(String title, String content, IconData icon, Color color) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: color, size: 20),
+              const SizedBox(width: 8),
+              Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(content, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4)),
+        ],
+      ),
+    );
   }
 }
 

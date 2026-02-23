@@ -12,6 +12,7 @@ import '../../../services/intervals_service.dart';
 import '../../../l10n/app_localizations.dart';
 import '../profile/profile_edit_screen.dart';
 import '../profile/medical_certificate_screen.dart';
+import '../../widgets/glass_card.dart';
 
 
 class AdvancedOptionsScreen extends StatelessWidget {
@@ -500,33 +501,12 @@ class AccountInfoScreen extends StatelessWidget {
   }
 }
 
-class ConnectionsScreen extends StatefulWidget {
+class ConnectionsScreen extends StatelessWidget {
   const ConnectionsScreen({super.key});
 
   @override
-  State<ConnectionsScreen> createState() => _ConnectionsScreenState();
-}
-
-class _ConnectionsScreenState extends State<ConnectionsScreen> {
-  @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      if (!mounted) return;
-      context.read<IntegrationService>().syncFromSupabase();
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final settings = context.watch<SettingsService>();
-    final l10n = AppLocalizations.of(context);
-    
-    final connections = [
-      {'key': 'strava', 'name': 'STRAVA', 'descKey': 'strava_desc', 'color': Colors.orange},
-    ];
-    
-    final integration = context.watch<IntegrationService>();
+    final integrationService = context.watch<IntegrationService>();
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A14),
@@ -537,294 +517,139 @@ class _ConnectionsScreenState extends State<ConnectionsScreen> {
           icon: const Icon(Icons.close, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
-        title: Text(l10n.get('connections'), style: const TextStyle(color: Colors.white)),
+        title: const Text('Connessioni', style: TextStyle(color: Colors.white)),
         centerTitle: true,
       ),
       body: SafeArea(
-        child: Consumer2<IntegrationService, OuraService>(
-          builder: (context, integration, oura, _) => ListView(
-            padding: const EdgeInsets.all(20),
-            children: [
-              _buildOuraSection(context, oura, l10n),
-              const SizedBox(height: 16),
-              _buildConnectionCard(context, l10n, 'Strava', 'Sincronizza attività e percorsi.', Colors.orangeAccent, integration.isStravaConnected, () {
-                if (integration.isStravaConnected) {
-                  integration.disconnectStrava();
-                } else {
-                  integration.initiateStravaAuth();
-                }
-              }),
-              const SizedBox(height: 24),
-              const Divider(color: Colors.white10),
-              const SizedBox(height: 16),
-              const Text(
-                'NOTA: Garmin Connect non è più supportato direttamente. Utilizza "Esporta per Outdoor" dal calendario per caricare l\'allenamento sul tuo dispositivo Garmin via USB.',
-                style: TextStyle(color: Colors.white38, fontSize: 11, fontStyle: FontStyle.italic),
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            // Oura Section
+            Consumer<OuraService>(
+              builder: (context, oura, _) => _buildOuraSection(context, oura),
+            ),
+            const SizedBox(height: 16),
+
+            // Strava Section
+            _buildConnectionCard(
+              context,
+              'Strava',
+              'Sincronizza attività automaticamente',
+              integrationService.isStravaConnected,
+              (val) => integrationService.initiateStravaAuth(), // Toggle/Auth logic
+              const Color(0xFFFC4C02), // Strava Color
+              LucideIcons.activity,
+            ),
+            
+            // Manual Sync Button (Fallback)
+            if (!integrationService.isStravaConnected)
+              Padding(
+                padding: const EdgeInsets.only(top: 12, left: 16, right: 16),
+                child: TextButton.icon(
+                  onPressed: () async {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Verifica connessione in corso...')));
+                    await integrationService.syncFromSupabase();
+                    if (context.mounted) {
+                       if (integrationService.isStravaConnected) {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connesso con successo!')));
+                       } else {
+                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ancora nessuna connessione trovata.')));
+                       }
+                    }
+                  },
+                  icon: const Icon(Icons.refresh, color: Colors.blueAccent, size: 16),
+                  label: const Text('Verifica Stato Connessione (Se il login è avvenuto)', style: TextStyle(color: Colors.blueAccent)),
+                ),
               ),
-              const SizedBox(height: 80),
-            ],
-          ),
+
+            const SizedBox(height: 24),
+            
+            // Info Note
+            const Divider(color: Colors.white10),
+            const SizedBox(height: 16),
+            const Text(
+              'NOTA: Per Garmin, Wahoo, Karoo e Bryton, utilizza la funzione "Esporta file .fit" dalla schermata di riepilogo o dallo storico e caricalo manualmente via app o USB.',
+              style: TextStyle(color: Colors.white38, fontSize: 13, fontStyle: FontStyle.italic, height: 1.4),
+            ),
+            const SizedBox(height: 80),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildOuraSection(BuildContext context, OuraService oura, AppLocalizations l10n) {
-    final tokenController = TextEditingController();
-
-    return Container(
+  Widget _buildOuraSection(BuildContext context, OuraService oura) {
+    // keeping simplified UI for Oura
+    return GlassCard(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.cyanAccent.withOpacity(0.2)),
-      ),
+      borderRadius: 16,
+      borderColor: Colors.cyanAccent.withOpacity(0.2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text('Oura Ring', style: TextStyle(color: Colors.cyanAccent, fontSize: 22, fontWeight: FontWeight.bold)),
+              const Text('Oura Ring', style: TextStyle(color: Colors.cyanAccent, fontSize: 18, fontWeight: FontWeight.bold)),
               if (oura.hasToken)
-                const Icon(Icons.check_circle, color: Colors.greenAccent, size: 24),
+                const Icon(Icons.check_circle, color: Colors.greenAccent, size: 20),
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            'Sincronizza rMSSD e Readiness per ottimizzare i tuoi allenamenti.',
-            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+          const Text(
+            'Sincronizza recupero e sonno.',
+            style: TextStyle(color: Colors.white70, fontSize: 13),
           ),
-          const SizedBox(height: 20),
-          if (!oura.hasToken) ...[
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => oura.initiateOAuth(),
-                icon: const Icon(Icons.open_in_browser),
-                label: const Text('CONNETTI CON OURA (Auto)', style: TextStyle(fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.cyanAccent.withOpacity(0.1),
-                  foregroundColor: Colors.cyanAccent,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10), side: const BorderSide(color: Colors.cyanAccent)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            const Center(child: Text('oppure inserisci il token manualmente:', style: TextStyle(color: Colors.white38, fontSize: 11))),
-            const SizedBox(height: 12),
-            TextField(
-              controller: tokenController,
-              decoration: _inputDecoration('Personal Access Token (PAT)'),
-              obscureText: true,
-              style: const TextStyle(color: Colors.white, fontSize: 12),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => launchUrl(Uri.parse('https://cloud.ouraring.com/personal-access-tokens')),
-              child: const Text('Genera un PAT sul sito Oura', style: TextStyle(color: Colors.blueAccent, fontSize: 12)),
-            ),
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () async {
-                  if (tokenController.text.isNotEmpty) {
-                    await oura.setAccessToken(tokenController.text);
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Token salvato correttamente!')));
-                  }
-                },
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.white12, foregroundColor: Colors.white),
-                child: const Text('SALVA TOKEN MANUALE'),
-              ),
-            ),
-          ] else ...[
-             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.greenAccent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                   Icon(Icons.link, color: Colors.greenAccent),
-                   SizedBox(width: 12),
-                   Expanded(
-                     child: Text(
-                       'Oura Collegato Correttamente', 
-                       style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)
-                     ),
-                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: () => oura.setAccessToken(''),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 40),
-                foregroundColor: Colors.white54,
-                side: const BorderSide(color: Colors.white24),
-              ),
-              child: const Text('DISCONNETTI'),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(8),
-              color: Colors.black.withOpacity(0.3),
-              child: Text(
-                'DEBUG LOG: ${oura.lastLog}',
-                style: const TextStyle(color: Colors.white38, fontSize: 10, fontFamily: 'monospace'),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIntervalsSection(BuildContext context, IntervalsService intervals, AppLocalizations l10n) {
-    final idController = TextEditingController(text: intervals.athleteId);
-    final keyController = TextEditingController(text: intervals.apiKey);
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.redAccent.withOpacity(0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Intervals.icu', style: TextStyle(color: Colors.redAccent, fontSize: 22, fontWeight: FontWeight.bold)),
-              if (intervals.isConnected)
-                const Icon(Icons.check_circle, color: Colors.greenAccent, size: 24),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Collega il tuo account per sincronizzare wellness, pianificazione e storico attività.',
-            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
-          ),
-          const SizedBox(height: 20),
-          if (!intervals.isConnected) ...[
-            TextField(
-              controller: idController,
-              decoration: _inputDecoration('Athlete ID (es. i12345)'),
-              style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: keyController,
-              decoration: _inputDecoration('API Key'),
-              obscureText: true,
-              style: const TextStyle(color: Colors.white),
-            ),
-            const SizedBox(height: 16),
-            TextButton(
-              onPressed: () => launchUrl(Uri.parse('https://intervals.icu/settings')),
-              child: const Text('Trova ID e API Key nelle impostazioni di Intervals.icu', style: TextStyle(color: Colors.blueAccent, fontSize: 12)),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: intervals.isLoading ? null : () async {
-                  final success = await intervals.connect(idController.text, keyController.text);
-                  if (success) {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Connesso con successo!')));
-                  } else {
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Errore di connessione. Controlla ID e Key.')));
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.redAccent,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: intervals.isLoading 
-                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                  : const Text('CONNETTI', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ] else ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.greenAccent.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.link, color: Colors.greenAccent),
-                  SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Account Collegato Correttamente', 
-                      style: TextStyle(color: Colors.greenAccent, fontWeight: FontWeight.bold)
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 20),
-            OutlinedButton(
-              onPressed: () => intervals.disconnect(),
-              style: OutlinedButton.styleFrom(
-                minimumSize: const Size(double.infinity, 40),
-                foregroundColor: Colors.white54,
-                side: const BorderSide(color: Colors.white24),
-              ),
-              child: const Text('DISCONNETTI'),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  InputDecoration _inputDecoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white38),
-      filled: true,
-      fillColor: Colors.black26,
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-    );
-  }
-  
-  Widget _buildConnectionCard(BuildContext context, AppLocalizations l10n, String name, String desc, Color logoColor, bool isConnected, VoidCallback onTap) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(name, style: TextStyle(color: logoColor, fontSize: 22, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 12),
-          Text(desc, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13)),
           const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: onTap,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isConnected ? Colors.grey.shade800 : Colors.redAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          if (!oura.hasToken)
+            ElevatedButton(
+              onPressed: () => oura.initiateOAuth(),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.cyanAccent.withOpacity(0.2), foregroundColor: Colors.cyanAccent),
+              child: const Text('CONNETTI'),
+            )
+          else
+            OutlinedButton(
+               onPressed: () => oura.setAccessToken(''),
+               child: const Text('DISCONNETTI'),
+            )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConnectionCard(BuildContext context, String title, String subtitle, bool isConnected, Function(bool) onToggle, Color color, IconData icon) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      borderRadius: 16,
+      borderColor: isConnected ? color.withOpacity(0.5) : Colors.white10,
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: isConnected ? color.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+              shape: BoxShape.circle,
             ),
-            child: Text(isConnected ? l10n.get('disconnect') : l10n.get('connect')),
+            child: Icon(icon, color: isConnected ? color : Colors.white24, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                const SizedBox(height: 4),
+                Text(subtitle, style: const TextStyle(color: Colors.white54, fontSize: 12)),
+              ],
+            ),
+          ),
+          Switch(
+            value: isConnected, 
+            onChanged: onToggle,
+            activeColor: color,
+            activeTrackColor: color.withOpacity(0.3),
+            inactiveThumbColor: Colors.white38,
+            inactiveTrackColor: Colors.transparent,
           ),
         ],
       ),

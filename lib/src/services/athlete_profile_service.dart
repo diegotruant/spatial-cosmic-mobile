@@ -41,7 +41,7 @@ class AthleteProfile {
 
 
 class AthleteProfileService extends ChangeNotifier {
-  final SupabaseClient _supabase = Supabase.instance.client;
+  SupabaseClient get _supabase => Supabase.instance.client;
   
   // Power curve data (duration in seconds -> power in watts)
   final Map<int, double> powerCurve = {};

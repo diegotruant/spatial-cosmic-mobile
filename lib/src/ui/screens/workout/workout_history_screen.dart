@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart'; // Added
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:path_provider/path_provider.dart';
 // import 'package:intl/intl.dart'; // Add intl dependency if not present, or use manual formatting for now
@@ -146,6 +147,14 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
             ]),
           ),
           const PopupMenuItem(
+            value: 'download',
+            child: Row(children: [
+              Icon(LucideIcons.download, color: Colors.greenAccent, size: 20), 
+              SizedBox(width: 12), 
+              Text('Scarica .fit', style: TextStyle(color: Colors.white)),
+            ]),
+          ),
+          const PopupMenuItem(
             value: 'strava',
             child: Row(children: [Icon(LucideIcons.activity, color: Colors.orange, size: 20), SizedBox(width: 12), Text('Invia a Strava', style: TextStyle(color: Colors.white))]),
           ),
@@ -188,24 +197,30 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Caricamento su Cloud in corso...')));
          await context.read<SyncService>().uploadWorkoutFile(path, 'history');
          if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sincronizzazione completata!'), backgroundColor: Colors.green));
+      } else if (action == 'download') {
+         // Share the file
+         await Share.shareXFiles(
+          [XFile(path)],
+          text: 'Ecco il file del mio allenamento!',
+         );
       } else if (action == 'strava') {
          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Invio a Strava in corso...')));
-         final result = await context.read<IntegrationService>().uploadActivityToStrava(file);
+         final success = await context.read<IntegrationService>().uploadActivityToStrava(file);
+         
          if (mounted) {
-           if (result == 'Success' || result.startsWith('Success')) {
+           if (success) {
              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                content: Text('Inviato a Strava!'),
                backgroundColor: Colors.orange,
              ));
            } else {
-             // Show detailed error returned by IntegrationService (es. non connesso, token scaduto, errore Strava)
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text('Errore invio Strava: $result'),
+              ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                content: Text('Errore invio Strava: Controlla la connessione'),
                 backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
+                duration: Duration(seconds: 5),
               ));
-            }
-          }
+           }
+         }
       } else if (action == 'repair_strava') {
           Navigator.push(
             context,

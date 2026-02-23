@@ -32,7 +32,7 @@ class SyncPlatformSelector extends StatelessWidget {
           _buildPlatformItem(
             icon: LucideIcons.download, 
             label: "Scarica file .fit", 
-            subtitle: "Importa su Garmin, Wahoo, Karoo, Bryton",
+            subtitle: "Salva/Condividi file per Strava, Oura, ecc.",
             onTap: () => onSelect('export'),
             color: Colors.white70
           ),

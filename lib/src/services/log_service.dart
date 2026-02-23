@@ -1,6 +1,8 @@
 import 'dart:collection';
+import 'dart:io';
 import 'package:logger/logger.dart';
 import 'package:flutter/foundation.dart';
+import 'package:path_provider/path_provider.dart';
 
 class LogService {
   static final LogService _instance = LogService._internal();
@@ -31,6 +33,31 @@ class LogService {
       // Only log to console in debug mode or if configured
       level: kReleaseMode ? Level.info : Level.debug,
     );
+  }
+
+  File? _logFile;
+  bool _isFileInitStarted = false;
+
+  Future<void> ensureFileInitialized() async {
+    if (_logFile != null || _isFileInitStarted) return;
+    _isFileInitStarted = true;
+    try {
+      final directory = await getApplicationDocumentsDirectory();
+      _logFile = File('${directory.path}/debug_log_utf8.txt');
+      i("LogService: File logging initialized at ${_logFile?.path}");
+    } catch (e) {
+      debugPrint("Failed to initialize file logging: $e");
+    }
+  }
+
+  Future<void> _writeToFile(String text) async {
+    try {
+      if (_logFile != null) {
+        await _logFile!.writeAsString('$text\n', mode: FileMode.append, flush: true);
+      }
+    } catch (e) {
+      debugPrint("Failed to write to log file: $e");
+    }
   }
 
   static String _redact(dynamic message) {
@@ -82,16 +109,22 @@ class LogService {
   }
 
   void _addToBuffer(Level level, dynamic message, [dynamic error, StackTrace? stackTrace]) {
+    final now = DateTime.now();
+    final logRecord = LogRecord(
+      level: level,
+      message: message.toString(), 
+      error: error,
+      stackTrace: stackTrace,
+      timestamp: now,
+    );
+
     if (_logBuffer.length >= _bufferSize) {
       _logBuffer.removeFirst();
     }
-    _logBuffer.add(LogRecord(
-      level: level,
-      message: message.toString(), // Message is already sanitized in static methods if we change them
-      error: error,
-      stackTrace: stackTrace,
-      timestamp: DateTime.now(),
-    ));
+    _logBuffer.add(logRecord);
+    
+    // Write to file as well
+    _writeToFile(logRecord.toString());
   }
 
   static void d(dynamic message, [dynamic error, StackTrace? stackTrace]) {

@@ -5,16 +5,22 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
+import 'package:spatial_cosmic_mobile/src/services/log_service.dart';
+import 'package:spatial_cosmic_mobile/src/config/app_config.dart';
 
 class OuraService extends ChangeNotifier {
   static const String _baseUrl = 'https://api.ouraring.com/v2';
-  static const String _clientId = 'eb322057-c43d-4ccb-aa7b-2573792b4191';
-  static const String _clientSecret = 'QCl3XLjYJq5cvhcN1flGzY1YqYq526bYS_z4PeTJG4E';
-  static const String _redirectUri = 'spatialcosmic://auth/oura';
+  /// Only needed for the authorize URL (public). Token exchange is done on our backend.
+  static String get _clientId => AppConfig.ouraClientId.isNotEmpty
+      ? AppConfig.ouraClientId
+      : 'eb322057-c43d-4ccb-aa7b-2573792b4191';
+  static String get _redirectUri => AppConfig.ouraRedirectUri;
 
   String? _accessToken;
+  String? _lastHandledAuthCode;
   String _lastLog = "Nessun log.";
   String? _currentUserId;
+  SupabaseClient get _supabase => Supabase.instance.client;
   
   String get lastLog => _lastLog;
   bool _isLoading = false;
@@ -22,27 +28,33 @@ class OuraService extends ChangeNotifier {
   bool get hasToken => _accessToken != null && _accessToken!.isNotEmpty;
 
   OuraService() {
-    _currentUserId = Supabase.instance.client.auth.currentUser?.id;
+    // We can't access Supabase.instance here safely if we aren't absolutely sure about the timing
+    // Instead, we will initialize in a post-boot phase or lazily.
+    // For now, let's just make it not crash.
     _loadToken();
     
     // Clear Oura token when user changes
-    Supabase.instance.client.auth.onAuthStateChange.listen((data) async {
-      final newUserId = data.session?.user.id;
-      
-      if (newUserId != null && _currentUserId != null && newUserId != _currentUserId) {
-        debugPrint('[OuraService] User changed, clearing Oura token');
-        await SecureStorage.delete('oura_token');
-        _accessToken = null;
-        _currentUserId = newUserId;
-        notifyListeners();
-      } else if (newUserId != null) {
-        _currentUserId = newUserId;
-      } else {
-        // User logged out
-        _currentUserId = null;
-        _accessToken = null;
-        notifyListeners();
-      }
+    // Using a microtask to ensure we don't access Supabase during construction
+    Future.microtask(() {
+      _currentUserId = _supabase.auth.currentUser?.id;
+      _supabase.auth.onAuthStateChange.listen((data) async {
+        final newUserId = data.session?.user.id;
+        
+        if (newUserId != null && _currentUserId != null && newUserId != _currentUserId) {
+          LogService.i('[OuraService] User changed, clearing Oura token');
+          await SecureStorage.delete('oura_token');
+          _accessToken = null;
+          _currentUserId = newUserId;
+          notifyListeners();
+        } else if (newUserId != null) {
+          _currentUserId = newUserId;
+        } else {
+          // User logged out
+          _currentUserId = null;
+          _accessToken = null;
+          notifyListeners();
+        }
+      });
     });
   }
 
@@ -58,6 +70,7 @@ class OuraService extends ChangeNotifier {
   }
 
   Future<void> initiateOAuth() async {
+    // Oura official authorize endpoint (v2 path can return 404)
     final Uri url = Uri.https(
       'cloud.ouraring.com',
       '/oauth/authorize',
@@ -65,63 +78,115 @@ class OuraService extends ChangeNotifier {
         'client_id': _clientId,
         'response_type': 'code',
         'redirect_uri': _redirectUri,
-        'scope': 'email personal daily_readiness daily_sleep',
       },
     );
 
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url, mode: LaunchMode.externalApplication);
+    try {
+      final can = await canLaunchUrl(url);
+      if (can) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        _lastLog = "Impossibile aprire il browser. Controlla i permessi.";
+        notifyListeners();
+      }
+    } catch (e) {
+      LogService.e('OuraService: initiateOAuth error: $e');
+      _lastLog = "Errore apertura browser: $e";
+      notifyListeners();
     }
   }
 
   Future<void> handleCallback(Uri uri) async {
-    debugPrint('OuraService: Analyzing URI: $uri');
-    
     // Check if the URI is for Oura
     if (!uri.toString().contains('oura')) {
-      debugPrint('OuraService: Not an Oura URI, skipping.');
+      LogService.d('OuraService: Not an Oura URI, skipping.');
       return;
     }
 
     final code = uri.queryParameters['code'];
     if (code == null) {
-      debugPrint('OuraService: No code found in URI.');
+      LogService.w('OuraService: No code found in URI.');
+      _lastLog = "Errore: Codice mancante nell'URL di callback.";
       return;
     }
 
-    debugPrint('OuraService: Received Authorization Code: $code');
+    // Oura authorization codes are single-use. Some devices emit duplicate deep-link events.
+    if (_lastHandledAuthCode == code) {
+      LogService.w('OuraService: Duplicate auth code received, skipping.');
+      return;
+    }
+    _lastHandledAuthCode = code;
+
+    LogService.i('OuraService: Received Authorization Code: $code');
     _isLoading = true;
     notifyListeners();
 
     try {
-      debugPrint('OuraService: Exchanging code for token...');
-      final response = await http.post(
-        Uri.parse('https://api.ouraring.com/oauth/token'),
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: {
-          'grant_type': 'authorization_code',
-          'code': code,
-          'client_id': _clientId,
-          'client_secret': _clientSecret,
-          'redirect_uri': _redirectUri,
-        },
+      final session = _supabase.auth.currentSession;
+      if (session == null) {
+        _lastLog = "Accedi con il tuo account per collegare Oura.";
+        return;
+      }
+
+      LogService.i('OuraService: Exchanging code via backend...');
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ${session.accessToken}',
+        'apikey': AppConfig.supabaseAnonKey,
+      };
+      final redirectUriFromCallback = uri.queryParameters['redirect_uri']?.trim();
+      final redirectUri = (redirectUriFromCallback != null && redirectUriFromCallback.isNotEmpty)
+          ? redirectUriFromCallback
+          : AppConfig.ouraRedirectUri;
+      final payload = jsonEncode({
+        'code': code,
+        'redirect_uri': redirectUri,
+      });
+
+      var exchangeUrl = AppConfig.ouraExchangeUrl.trim();
+      var response = await http.post(
+        Uri.parse(exchangeUrl),
+        headers: headers,
+        body: payload,
       );
 
-      debugPrint('OuraService: Token response status: ${response.statusCode}');
+      // Backward compatibility: some deployments use /oura-auth as function name
+      if (response.statusCode == 404 && exchangeUrl.contains('/oura-exchange')) {
+        final legacyUrl = exchangeUrl.replaceFirst('/oura-exchange', '/oura-auth');
+        LogService.w('OuraService: /oura-exchange not found, retrying $legacyUrl');
+        exchangeUrl = legacyUrl;
+        response = await http.post(
+          Uri.parse(exchangeUrl),
+          headers: headers,
+          body: payload,
+        );
+      }
+
+      _lastLog = "Status: ${response.statusCode} | URL: $exchangeUrl";
+
+      LogService.i('OuraService: Exchange response status: ${response.statusCode}');
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final token = data['access_token'] as String;
-        debugPrint('OuraService: Token received successfully.');
-        await setAccessToken(token);
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final token = data['access_token'] as String?;
+        if (token != null && token.isNotEmpty) {
+          LogService.i('OuraService: Token received successfully.');
+          await setAccessToken(token);
+        } else {
+          _lastLog += " | Risposta senza token";
+        }
       } else {
-        debugPrint('OuraService: Token exchange failed: ${response.body} (Status: ${response.statusCode})');
-        // Ideally show a notification here, but we are in a service. 
-        // We rely on the `hasToken` listeners to update UI.
+        final body = response.body;
+        _lastLog += " | Body: $body";
+        final decoded = jsonDecode(body) as Map<String, dynamic>?;
+        final msg = decoded?['error'] ?? body;
+        LogService.e('OuraService: Token exchange failed: $msg (Status: ${response.statusCode})');
+        // Allow retry with a new OAuth cycle if the previous single-use code failed.
+        _lastHandledAuthCode = null;
       }
     } catch (e) {
-      debugPrint('OuraService: OAuth Exception: $e');
+      LogService.e('OuraService: OAuth Exception: $e');
+      _lastLog = "Eccezione OAuth: $e";
+      _lastHandledAuthCode = null;
     } finally {
       _isLoading = false;
       notifyListeners();
