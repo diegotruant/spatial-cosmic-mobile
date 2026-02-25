@@ -197,37 +197,8 @@ class IntegrationService extends ChangeNotifier {
     }
   }
 
-  Future<void> _exchangeToken(String code) async {
-    try {
-      final response = await http.post(
-        Uri.parse('https://www.strava.com/oauth/token'),
-        body: {
-          'client_id': AppConfig.stravaClientId,
-          'client_secret': AppConfig.stravaClientSecret,
-          'code': code,
-          'grant_type': 'authorization_code',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final accessToken = data['access_token'];
-        final refreshToken = data['refresh_token'];
-        final expiresAt = data['expires_at'];
-
-        await _saveStravaCredentials(accessToken, refreshToken, expiresAt);
-        await _saveStravaCredentials(accessToken, refreshToken, expiresAt);
-        LogService.i('Strava Connected Successfully!');
-      } else {
-        LogService.e('Strava Token Exchange Failed: ${response.statusCode} ${response.body}');
-      }
-    } catch (e) {
-      LogService.e('Strava Token Exchange Exception: $e');
-    }
-  }
-
-
-
+  /// Token exchange is done server-side (Supabase Edge Function strava-auth).
+  /// Client-side exchange with secret is removed for security.
   Future<void> _saveStravaCredentials(String accessToken, String refreshToken, int expiresAt, {bool syncToSupabase = true}) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = _supabase.auth.currentUser?.id;

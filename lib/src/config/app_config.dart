@@ -18,22 +18,22 @@ class AppConfig {
     return supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
   }
 
+  /// Strava Client ID (public, used for OAuth authorization URL).
+  /// Must be set via --dart-define or .env. Never hardcode.
   static String get stravaClientId {
     const fromEnv = String.fromEnvironment('STRAVA_CLIENT_ID');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return dotenv.env['STRAVA_CLIENT_ID'] ?? '69269';
+    return dotenv.env['STRAVA_CLIENT_ID'] ?? '';
   }
 
-  static String get stravaClientSecret {
-    const fromEnv = String.fromEnvironment('STRAVA_CLIENT_SECRET');
-    if (fromEnv.isNotEmpty) return fromEnv;
-    return dotenv.env['STRAVA_CLIENT_SECRET'] ?? '7c3a310d1aca2a143a6de74e0b0ba7625e028df7';
-  }
+  /// Strava Client Secret must NEVER be in the mobile app.
+  /// Token exchange happens server-side (Supabase Edge Function strava-auth).
+  static String get stravaClientSecret => '';
   
   static String get stravaRedirectUri {
     const fromEnv = String.fromEnvironment('STRAVA_REDIRECT_URI');
     if (fromEnv.isNotEmpty) return fromEnv;
-    return dotenv.env['STRAVA_REDIRECT_URI'] ?? 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/strava-auth';
+    return dotenv.env['STRAVA_REDIRECT_URI'] ?? '';
   }
 
   static String get analysisServiceUrl {
@@ -61,7 +61,7 @@ class AppConfig {
     final base = dotenv.env['OURA_EXCHANGE_URL'];
     if (base != null && base.isNotEmpty) return base.trim();
     final baseUrl = supabaseUrl.replaceAll(RegExp(r'/+$'), '');
-    if (baseUrl.isEmpty) return 'https://xdqvjqqwywuguuhsehxm.supabase.co/functions/v1/oura-exchange';
+    if (baseUrl.isEmpty) return '';
     return '$baseUrl/functions/v1/oura-exchange';
   }
 
