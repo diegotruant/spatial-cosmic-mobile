@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
+import 'package:http/http.dart' as http;
+import '../config/app_config.dart';
 
 class SyncService extends ChangeNotifier {
   SupabaseClient get _supabase => Supabase.instance.client;
@@ -329,10 +331,39 @@ class SyncService extends ChangeNotifier {
 
       debugPrint('Workout saved to storage successfully: $path');
 
+      // 5. Ingest diretto per Lab (RR/DFA) - nessun trigger/webhook necessario
+      final token = _supabase.auth.currentSession?.accessToken ?? '';
+      await _ingestForLab(fitFile, token);
+
     } catch (e) {
       debugPrint('Error saving workout to storage: $e');
       rethrow;
     } 
+  }
+
+  /// Chiama l'API ingest della piattaforma web per popolare activities (Lab/DFA).
+  /// Fallisce in silenzio se URL non configurato o errore di rete.
+  Future<void> _ingestForLab(File fitFile, String accessToken) async {
+    final baseUrl = AppConfig.coachPlatformUrl;
+    if (baseUrl.isEmpty) return;
+
+    try {
+      final uri = Uri.parse('$baseUrl/api/ingest/fit');
+      final request = http.MultipartRequest('POST', uri);
+      request.headers['Authorization'] = 'Bearer $accessToken';
+      request.files.add(await http.MultipartFile.fromPath('file', fitFile.path, filename: fitFile.path.split(Platform.pathSeparator).last));
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode >= 200 && response.statusCode < 300) {
+        debugPrint('Lab ingest: attività salvata per analisi RR/DFA');
+      } else {
+        debugPrint('Lab ingest: ${response.statusCode} - ${response.body.substring(0, response.body.length.clamp(0, 100))}');
+      }
+    } catch (e) {
+      debugPrint('Lab ingest skip: $e');
+    }
   }
 
   /// Fetches the workout calendar for the current athlete

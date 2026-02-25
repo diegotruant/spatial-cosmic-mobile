@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:spatial_cosmic_mobile/src/services/secure_storage_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'dart:io';
@@ -20,9 +20,8 @@ class IntervalsService extends ChangeNotifier {
   }
 
   Future<void> _loadCredentials() async {
-    final prefs = await SharedPreferences.getInstance();
-    _apiKey = prefs.getString('intervals_api_key') ?? '';
-    _athleteId = prefs.getString('intervals_athlete_id') ?? '';
+    _apiKey = await SecureStorage.read('intervals_api_key') ?? '';
+    _athleteId = await SecureStorage.read('intervals_athlete_id') ?? '';
     _isConnected = _apiKey.isNotEmpty && _athleteId.isNotEmpty;
     notifyListeners();
   }
@@ -46,9 +45,8 @@ class IntervalsService extends ChangeNotifier {
       );
 
       if (response.statusCode == 200) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('intervals_api_key', key);
-        await prefs.setString('intervals_athlete_id', id);
+        await SecureStorage.write('intervals_api_key', key);
+        await SecureStorage.write('intervals_athlete_id', id);
         
         _apiKey = key;
         _athleteId = id;
@@ -68,9 +66,8 @@ class IntervalsService extends ChangeNotifier {
   }
 
   Future<void> disconnect() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('intervals_api_key');
-    await prefs.remove('intervals_athlete_id');
+    await SecureStorage.delete('intervals_api_key');
+    await SecureStorage.delete('intervals_athlete_id');
     
     _apiKey = '';
     _athleteId = '';

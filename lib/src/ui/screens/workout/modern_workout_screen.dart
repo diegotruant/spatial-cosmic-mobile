@@ -536,6 +536,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                               fitFilePath: file.path, 
                               workoutId: workoutService.currentWorkout?.id,
                               isNewWorkout: true, // Flag to show Save/Discard buttons
+                              rrHistoryFromWorkout: workoutService.rrHistory,
                             )
                           ),
                         );
@@ -744,6 +745,7 @@ class _ModernWorkoutScreenState extends State<ModernWorkoutScreen> {
                                   fitFilePath: file.path, 
                                   workoutId: workoutService.currentWorkout?.id,
                                   isNewWorkout: true,
+                                  rrHistoryFromWorkout: workoutService.rrHistory,
                                 )
                               ),
                             );

@@ -54,6 +54,14 @@ class AppConfig {
     return dotenv.env['OURA_REDIRECT_URI'] ?? 'https://cycling-coach-platform.vercel.app/api/oauth/oura-callback';
   }
 
+  /// Base URL della piattaforma web (per ingest FIT → Lab).
+  /// Se vuoto, l'ingest per il Lab non viene chiamato.
+  static String get coachPlatformUrl {
+    const fromEnv = String.fromEnvironment('COACH_PLATFORM_URL');
+    if (fromEnv.isNotEmpty) return fromEnv.trim();
+    return (dotenv.env['COACH_PLATFORM_URL'] ?? 'https://cycling-coach-platform.vercel.app').replaceAll(RegExp(r'/+$'), '');
+  }
+
   /// Supabase Edge Function: exchange Oura code for tokens (secret stays in Supabase).
   static String get ouraExchangeUrl {
     const fromEnv = String.fromEnvironment('OURA_EXCHANGE_URL');

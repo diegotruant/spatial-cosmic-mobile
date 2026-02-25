@@ -11,18 +11,22 @@ import '../../../services/settings_service.dart';
 import '../../../services/sync_service.dart' as src;
 import '../../../services/integration_service.dart';
 import '../../../services/athlete_profile_service.dart' as src_profile;
+import '../../../services/physiological_service.dart';
 import '../../../logic/fit_generator.dart';
 
 class PostWorkoutAnalysisScreen extends StatefulWidget {
   final String fitFilePath;
   final String? workoutId;
   final bool isNewWorkout; // Flag to determine if we show Save/Discard controls
+  /// RR intervals from workout (when opening right after workout). Format: [{timestamp, elapsed, rr: [int...]}]
+  final List<Map<String, dynamic>>? rrHistoryFromWorkout;
 
   const PostWorkoutAnalysisScreen({
     super.key, 
     required this.fitFilePath, 
     this.workoutId,
     this.isNewWorkout = false,
+    this.rrHistoryFromWorkout,
   });
 
   @override
@@ -42,6 +46,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   List<int> _cadence = [];
   List<double> _timestamps = [];
   List<double> _speed = []; // NEW: Store speed data
+  List<int> _rrIntervals = []; // RR intervals in ms (for HRV/RMSSD)
   
   // Computed Metrics
   double _np = 0;
@@ -89,11 +94,34 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
       // Fallback to calculation if not present.
       
       if (power.isEmpty) {
-        // Handle empty file (e.g. 0 duration)
-         setState(() {
-           _isLoading = false;
-         });
-         return; 
+        // Handle empty file (e.g. 0 duration) - show explicit message
+        setState(() {
+          _error = 'Nessun dato di potenza nel file. Verifica che il trainer o il power meter siano stati collegati durante l\'allenamento.';
+          _isLoading = false;
+        });
+        return; 
+      }
+
+      // RR intervals: prefer passed from workout, else from FIT file
+      List<int> rrFlat = [];
+      if (widget.rrHistoryFromWorkout != null && widget.rrHistoryFromWorkout!.isNotEmpty) {
+        for (final entry in widget.rrHistoryFromWorkout!) {
+          final rrList = entry['rr'] as List<dynamic>?;
+          if (rrList != null) {
+            for (final v in rrList) {
+              if (v is int) rrFlat.add(v);
+              else if (v is num) rrFlat.add(v.toInt());
+            }
+          }
+        }
+      } else {
+        final rrFromFit = data['rrIntervals'] as List<dynamic>?;
+        if (rrFromFit != null) {
+          for (final v in rrFromFit) {
+            if (v is int) rrFlat.add(v);
+            else if (v is num) rrFlat.add(v.toInt());
+          }
+        }
       }
 
       // Get User FTP and CP
@@ -143,6 +171,7 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
 
         _peaks = peaks;
         _avgSmoothness = avgSmooth;
+        _rrIntervals = rrFlat;
         _newFtp = null; // Calculated FTP not available in simplified engine
         _isLoading = false;
       });
@@ -533,6 +562,10 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
   }
 
   Widget _buildSummaryCards() {
+    final rmssd = _rrIntervals.length >= 2 
+        ? context.read<PhysiologicalService>().calculateRMSSD(_rrIntervals) 
+        : 0.0;
+    
     return Column(
       children: [
         Row(
@@ -542,6 +575,34 @@ class _PostWorkoutAnalysisScreenState extends State<PostWorkoutAnalysisScreen> {
             Expanded(child: _buildMetricCard('TSS', _tss.toStringAsFixed(0), Colors.purpleAccent, LucideIcons.trophy)),
           ],
         ),
+        if (_rrIntervals.isNotEmpty && rmssd > 0) ...[
+          const SizedBox(height: 12),
+          GlassCard(
+            padding: const EdgeInsets.all(16),
+            borderRadius: 12,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('HRV (rMSSD)', style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${rmssd.toStringAsFixed(0)} ms',
+                      style: const TextStyle(color: Colors.cyanAccent, fontSize: 24, fontWeight: FontWeight.bold),
+                    ),
+                    Text(
+                      '${_rrIntervals.length} intervalli RR da Polar H10',
+                      style: TextStyle(color: Colors.white.withOpacity(0.5), fontSize: 10),
+                    ),
+                  ],
+                ),
+                Icon(LucideIcons.activity, color: Colors.cyanAccent.withOpacity(0.5), size: 28),
+              ],
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         Row(
           children: [
