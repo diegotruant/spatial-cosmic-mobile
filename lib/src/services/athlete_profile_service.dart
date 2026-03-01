@@ -83,6 +83,10 @@ class AthleteProfileService extends ChangeNotifier {
 
   double? get ftp => _ftp;
   double? get cp => _cp;
+  
+  /// Restituisce la Critical Power calcolata dal PDC se disponibile.
+  /// Altrimenti, restituisce l'FTP impostato a mano. In assenza di tutto, restituisce 200W.
+  double get effectiveFtp => _cp ?? _ftp ?? 200.0;
   double? get vo2max => _vo2max;
   double? get vlamax => _vlamax;
   double? get weight => _weight;
@@ -262,8 +266,13 @@ class AthleteProfileService extends ChangeNotifier {
               final oldFtp = _ftp;
               final oldVlamax = _vlamax;
               
-              // ✅ FTP dal PDC (advanced_params.ftp_estimated) con fallback a MAP
-              _ftp = mp.advancedParams?.ftpEstimated ?? mp.map;
+              // ✅ Mantieni l'FTP scalato/impostato manualmente, altrimenti usa PDC
+              _ftp = oldFtp ?? (mp.advancedParams?.ftpEstimated ?? mp.map);
+              
+              // ✅ CP (Sorgente di verità prioritaria dal PDC)
+              if (mp.advancedParams != null && mp.advancedParams!.criticalPower > 0) {
+                 _cp = mp.advancedParams!.criticalPower;
+              }
               
               // ✅ MLSS separato (Maximal Lactate Steady State)
               _mlss = mp.mlss;
@@ -861,10 +870,7 @@ class AthleteProfileService extends ChangeNotifier {
        debugPrint("Note: Extra data merge failed: $e");
      }
 
-     if (p.metabolic.estimatedFtp > 0) {
-       updatePayload['ftp'] = p.metabolic.estimatedFtp.round();
-     }
-     
+     // Rimossa la sovrascrittura di 'ftp' con p.metabolic.estimatedFtp per evitare di perdere il CP o l'FTP manuale dell'utente.
      try {
        await _supabase.from('athletes').update(updatePayload).eq('id', targetId);
        debugPrint("Metabolic profile saved successfully (with extra_data fallback)");

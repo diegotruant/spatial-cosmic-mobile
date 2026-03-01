@@ -13,6 +13,7 @@ import '../workout/modern_workout_screen.dart';
 import '../settings/settings_screens.dart';
 import '../settings/bluetooth_scan_screen.dart';
 import '../profile/medical_certificate_screen.dart';
+import '../profile/power_profile_screen.dart';
 
 import '../workout/workout_history_screen.dart';
 import '../../../logic/zwo_parser.dart';
@@ -411,7 +412,9 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
       children: [
         // Main Settings
         _buildSettingsRow('Sport:', settings.sport, onTap: () {}),
-        _buildSettingsFtpRow('CYCLING FTP', settings.ftp, (val) => settings.setFtp(val)),
+        if (profile.cp != null && profile.cp! > 0)
+          _buildSettingsRow('FTP ATTIVA (DA CRITICAL POWER)', '${profile.cp!.round()} W', valueColor: Colors.blueAccent),
+        _buildSettingsFtpRow(profile.cp != null && profile.cp! > 0 ? 'FTP MANUALE (IGNORATA)' : 'CYCLING FTP', settings.ftp, (val) => settings.setFtp(val)),
         _buildSettingsFtpRow('MAX HEART RATE', settings.hrMax, (val) => settings.setHrMax(val)), // Using FtpRow generic style for number input
         _buildSettingsRow(AppLocalizations.of(context).get('add_devices'), '', isAction: true, icon: Icons.add_circle_outline, onTap: () {
           Navigator.push(context, MaterialPageRoute(builder: (_) => const BluetoothScanScreen()));
@@ -1434,8 +1437,8 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: (workout != null && !isBlocked) ? () {
-                             final settings = context.read<SettingsService>();
-                             context.read<WorkoutService>().startWorkout(workout!, ftp: settings.ftp);
+                             final profile = context.read<AthleteProfileService>();
+                             context.read<WorkoutService>().startWorkout(workout!, ftp: profile.effectiveFtp.round());
                              Navigator.push(context, MaterialPageRoute(builder: (_) => const ModernWorkoutScreen()));
                           } : null,
                           style: ElevatedButton.styleFrom(
@@ -1501,70 +1504,99 @@ class _ModernDashboardScreenState extends State<ModernDashboardScreen> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    return Row(
+    return Column(
       children: [
-        Expanded(
-          child: Consumer<PhysiologicalService>(
-            builder: (context, physiological, _) {
-              final isBlocked = physiological.isTestBlocked;
-              return ElevatedButton(
-                onPressed: !isBlocked ? () => setState(() => _currentIndex = 1) : null,
+        Row(
+          children: [
+            Expanded(
+              child: Consumer<PhysiologicalService>(
+                builder: (context, physiological, _) {
+                  final isBlocked = physiological.isTestBlocked;
+                  return ElevatedButton(
+                    onPressed: !isBlocked ? () => setState(() => _currentIndex = 1) : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isBlocked ? Colors.red.withOpacity(0.2) : Colors.purpleAccent.withOpacity(0.2),
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.white10,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: BorderSide(color: (isBlocked ? Colors.red : Colors.purpleAccent).withOpacity(0.5)),
+                      ),
+                    ),
+                    child: Column(
+                      children: [
+                        Icon(
+                          isBlocked ? LucideIcons.ban : LucideIcons.library, 
+                          color: isBlocked ? Colors.red : Colors.purpleAccent
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          isBlocked ? 'RECUPERO' : 'TEST', 
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: () {
+                   // Start Free Ride (1 Hour default, extendable)
+                   final profile = context.read<AthleteProfileService>();
+                   final freeRide = WorkoutWorkout(
+                      title: 'PEDALATA LIBERA',
+                      blocks: [
+                      SteadyState(duration: 3600 * 24, power: 1.0) // 1.0 = 100% FTP
+                   ]);
+                   
+                   context.read<WorkoutService>().startWorkout(freeRide, ftp: profile.effectiveFtp.round());
+                   Navigator.push(context, MaterialPageRoute(builder: (_) => const ModernWorkoutScreen()));
+                },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: isBlocked ? Colors.red.withOpacity(0.2) : Colors.purpleAccent.withOpacity(0.2),
+                  backgroundColor: Colors.greenAccent.withOpacity(0.2),
                   foregroundColor: Colors.white,
-                  disabledBackgroundColor: Colors.white10,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(color: (isBlocked ? Colors.red : Colors.purpleAccent).withOpacity(0.5)),
+                    side: BorderSide(color: Colors.greenAccent.withOpacity(0.5)),
                   ),
                 ),
-                child: Column(
+                child: const Column(
                   children: [
-                    Icon(
-                      isBlocked ? LucideIcons.ban : LucideIcons.library, 
-                      color: isBlocked ? Colors.red : Colors.purpleAccent
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      isBlocked ? 'RECUPERO' : 'TEST', 
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)
-                    ),
+                     Icon(LucideIcons.bike, color: Colors.greenAccent),
+                     SizedBox(height: 4),
+                     Text('GIRO LIBERO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
                   ],
                 ),
-              );
-            },
-          ),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 12),
-        Expanded(
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
           child: ElevatedButton(
             onPressed: () {
-               // Start Free Ride (1 Hour default, extendable)
-               final settings = context.read<SettingsService>();
-               final freeRide = WorkoutWorkout(
-                  title: 'PEDALATA LIBERA',
-                  blocks: [
-                  SteadyState(duration: 3600 * 24, power: 1.0) // 1.0 = 100% FTP
-               ]);
-               
-               context.read<WorkoutService>().startWorkout(freeRide, ftp: settings.ftp);
-               Navigator.push(context, MaterialPageRoute(builder: (_) => const ModernWorkoutScreen()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const PowerProfileScreen()));
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.greenAccent.withOpacity(0.2),
+              backgroundColor: Colors.blueAccent.withOpacity(0.2),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(vertical: 16),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
-                side: BorderSide(color: Colors.greenAccent.withOpacity(0.5)),
+                side: BorderSide(color: Colors.blueAccent.withOpacity(0.5)),
               ),
             ),
             child: const Column(
               children: [
-                 Icon(LucideIcons.bike, color: Colors.greenAccent),
-                 SizedBox(height: 4),
-                 Text('GIRO LIBERO', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Icon(LucideIcons.activity, color: Colors.blueAccent),
+                SizedBox(height: 4),
+                Text('POWER PROFILE (LAB)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
               ],
             ),
           ),
