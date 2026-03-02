@@ -273,7 +273,7 @@ class SyncService extends ChangeNotifier {
 
   /// Uploads a workout file to 'workout-files' bucket and creates a record in 'workouts' table.
   /// This is now private/internal or called by saveAndSync
-  Future<void> saveWorkoutToStorage(File fitFile, DateTime date, {String? assignmentId}) async {
+  Future<String> saveWorkoutToStorage(File fitFile, DateTime date, {String? assignmentId}) async {
     // _isUploading = true; // Handled by wrapper
     // notifyListeners();
 
@@ -333,6 +333,12 @@ class SyncService extends ChangeNotifier {
       debugPrint('Workout saved to storage successfully: $path');
 
       // 5. Ingest diretto per Lab (RR/DFA) - nessun trigger/webhook necessario
+      try {
+        await _supabase.auth.refreshSession();
+      } catch (e) {
+        debugPrint('Session refresh failed (non-critical): $e');
+      }
+      
       final token = _supabase.auth.currentSession?.accessToken ?? '';
       final ingestResult = await _ingestForLab(fitFile, token);
       
