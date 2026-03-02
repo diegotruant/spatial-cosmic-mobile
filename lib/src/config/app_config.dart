@@ -59,7 +59,7 @@ class AppConfig {
   static String get coachPlatformUrl {
     const fromEnv = String.fromEnvironment('COACH_PLATFORM_URL');
     if (fromEnv.isNotEmpty) return fromEnv.trim();
-    return (dotenv.env['COACH_PLATFORM_URL'] ?? 'https://cycling-coach-platform.vercel.app').replaceAll(RegExp(r'/+$'), '');
+    return (dotenv.env['COACH_PLATFORM_URL'] ?? 'https://cyclingcoach.vercel.app').replaceAll(RegExp(r'/+$'), '');
   }
 
   /// Supabase Edge Function: exchange Oura code for tokens (secret stays in Supabase).
