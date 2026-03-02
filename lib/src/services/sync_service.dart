@@ -118,9 +118,9 @@ class SyncService extends ChangeNotifier {
 
   /// Uploads a generated FIT file to Supabase Storage
   /// Also tries to link it to an existing assignment if found
-  Future<void> uploadWorkoutFile(String filePath, String workoutId) async {
+  Future<String> uploadWorkoutFile(String filePath, String workoutId) async {
      final file = File(filePath);
-     if (!file.existsSync()) return;
+     if (!file.existsSync()) return 'Local file not found';
      
      DateTime date = DateTime.now();
      String? assignmentId;
@@ -155,7 +155,7 @@ class SyncService extends ChangeNotifier {
        debugPrint('[SyncService] Error parsing date or finding assignment: $e');
      }
 
-     await saveWorkoutToStorage(file, date, assignmentId: assignmentId);
+     return await saveWorkoutToStorage(file, date, assignmentId: assignmentId);
   }
 
   /// 1. Moves file from Temp to AppDocuments (Permanent)
@@ -334,7 +334,10 @@ class SyncService extends ChangeNotifier {
 
       // 5. Ingest diretto per Lab (RR/DFA) - nessun trigger/webhook necessario
       final token = _supabase.auth.currentSession?.accessToken ?? '';
-      await _ingestForLab(fitFile, token);
+      final ingestResult = await _ingestForLab(fitFile, token);
+      
+      debugPrint('Workout saved to storage successfully: $path. Ingest: $ingestResult');
+      return ingestResult;
 
     } catch (e) {
       debugPrint('Error saving workout to storage: $e');
@@ -344,9 +347,9 @@ class SyncService extends ChangeNotifier {
 
   /// Chiama l'API ingest della piattaforma web per popolare activities (Lab/DFA).
   /// Fallisce in silenzio se URL non configurato o errore di rete.
-  Future<void> _ingestForLab(File fitFile, String accessToken) async {
+  Future<String> _ingestForLab(File fitFile, String accessToken) async {
     final baseUrl = AppConfig.coachPlatformUrl;
-    if (baseUrl.isEmpty) return;
+    if (baseUrl.isEmpty) return 'Analytics URL not configured';
 
     try {
       final uri = Uri.parse('$baseUrl/api/ingest/fit');
@@ -364,11 +367,15 @@ class SyncService extends ChangeNotifier {
 
       if (response.statusCode >= 200 && response.statusCode < 300) {
         debugPrint('Lab ingest: attività salvata per analisi RR/DFA');
+        return 'Success';
       } else {
-        debugPrint('Lab ingest: ${response.statusCode} - ${response.body.substring(0, response.body.length.clamp(0, 100))}');
+        final errorMsg = 'HTTP ${response.statusCode}: ${response.body}';
+        debugPrint('Lab ingest error: $errorMsg');
+        return errorMsg;
       }
     } catch (e) {
       debugPrint('Lab ingest skip: $e');
+      return 'Network Error: $e';
     }
   }
 

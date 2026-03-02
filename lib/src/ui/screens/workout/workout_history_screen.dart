@@ -195,8 +195,22 @@ class _WorkoutHistoryScreenState extends State<WorkoutHistoryScreen> {
          _showDeleteConfirmation(context, path);
       } else if (action == 'sync') {
          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Caricamento su Cloud in corso...')));
-         await context.read<SyncService>().uploadWorkoutFile(path, 'history');
-         if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sincronizzazione completata!'), backgroundColor: Colors.green));
+         final result = await context.read<SyncService>().uploadWorkoutFile(path, 'history');
+         
+         if (mounted) {
+           if (result == 'Success') {
+             ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+               content: Text('Sincronizzazione completata con successo!'), 
+               backgroundColor: Colors.green
+             ));
+           } else {
+             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+               content: Text('Errore Cloud Lab: $result'), 
+               backgroundColor: Colors.red,
+               duration: const Duration(seconds: 8),
+             ));
+           }
+         }
       } else if (action == 'download') {
          // Share the file
          await Share.shareXFiles(
