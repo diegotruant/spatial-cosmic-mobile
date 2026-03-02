@@ -45,6 +45,7 @@ dependencies:
   app_links: any
   flutter_dotenv: ^5.1.0
   logger: ^1.4.0
+  http_parser: ^4.1.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

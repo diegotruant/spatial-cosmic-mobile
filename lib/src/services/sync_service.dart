@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:convert';
 import 'package:path_provider/path_provider.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../config/app_config.dart';
 
 class SyncService extends ChangeNotifier {
@@ -351,7 +352,12 @@ class SyncService extends ChangeNotifier {
       final uri = Uri.parse('$baseUrl/api/ingest/fit');
       final request = http.MultipartRequest('POST', uri);
       request.headers['Authorization'] = 'Bearer $accessToken';
-      request.files.add(await http.MultipartFile.fromPath('file', fitFile.path, filename: fitFile.path.split(Platform.pathSeparator).last));
+      request.files.add(await http.MultipartFile.fromPath(
+        'file', 
+        fitFile.path, 
+        filename: fitFile.path.split(Platform.pathSeparator).last,
+        contentType: MediaType('application', 'octet-stream'),
+      ));
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);
