@@ -113,13 +113,23 @@ class MetabolicProfile {
       );
     } catch (e) {
       debugPrint("Severe error parsing MetabolicProfile: $e");
+      
+      List<PDCPoint> safeCurve = [];
+      try {
+        if (json['pdc_curve'] != null && json['pdc_curve'] is List) {
+          safeCurve = (json['pdc_curve'] as List)
+            .map((p) => PDCPoint.fromJson(Map<String, dynamic>.from(p)))
+            .toList();
+        }
+      } catch (_) {}
+      
       // Return a skeleton profile instead of crashing
       return MetabolicProfile(
         schemaVersion: null,
         updatedAt: null,
         vlamax: 0, map: 0, vo2max: 0,
         metabolic: MetabolicStats(estimatedFtp: 0, fatMaxWatt: 0, carbRateAtFtp: 0),
-        zones: [], combustionCurve: [], pdcCurve: []
+        zones: [], combustionCurve: [], pdcCurve: safeCurve
       );
     }
   }
@@ -273,10 +283,20 @@ class PDCPoint {
     'watt': watt,
   };
 
-  factory PDCPoint.fromJson(Map<String, dynamic> json) => PDCPoint(
-    durationSeconds: json['duration_seconds'] ?? 0,
-    watt: _safeDouble(json['watt']) ?? 0.0,
-  );
+  factory PDCPoint.fromJson(Map<String, dynamic> json) {
+    dynamic d = json['duration_seconds'] ?? json['duration'];
+    int parsedDuration = 0;
+    if (d is num) {
+      parsedDuration = d.toInt();
+    } else if (d is String) {
+      parsedDuration = int.tryParse(d) ?? 0;
+    }
+    
+    return PDCPoint(
+      durationSeconds: parsedDuration,
+      watt: _safeDouble(json['watt'] ?? json['watts']) ?? 0.0,
+    );
+  }
 }
 
 double? _safeDouble(dynamic val) {

@@ -35,7 +35,7 @@ class PowerProfileScreen extends StatelessWidget {
             );
           }
 
-          final weight = settings.weight.toDouble() > 0 ? settings.weight.toDouble() : 70.0;
+          final weight = (settings.weight ?? 70).toDouble();
           return SingleChildScrollView(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -89,7 +89,6 @@ class PowerProfileScreen extends StatelessWidget {
 
     return RadarChart(
       RadarChartData(
-        titlePositionMultiplier: 1.2,
         tickCount: 5,
         ticksTextStyle: const TextStyle(color: Colors.transparent),
         gridBorderData: const BorderSide(color: Colors.white12, width: 1.5),
@@ -135,13 +134,14 @@ class PowerProfileScreen extends StatelessWidget {
           final watts = _getWattsAt(curve, duration);
           final wkg = watts / weight;
           
-          return GlassCard(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(16),
-            borderRadius: 12,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: GlassCard(
+              padding: const EdgeInsets.all(16),
+              borderRadius: 12,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
                 Text(label, style: const TextStyle(color: Colors.white70, fontSize: 15)),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -152,7 +152,7 @@ class PowerProfileScreen extends StatelessWidget {
                 ),
               ],
             ),
-          );
+          ));
         }),
       ],
     );
@@ -164,22 +164,22 @@ class PowerProfileScreen extends StatelessWidget {
     // Find exact
     PDCPoint? exact;
     try {
-      exact = curve.lastWhere((p) => p.duration == duration);
+      exact = curve.lastWhere((p) => p.durationSeconds == duration);
     } catch (_) {
       exact = null;
     }
-    if (exact != null) return exact.watts;
+    if (exact != null) return exact.watt;
 
     // Sort a copy
-    final sorted = List<PDCPoint>.from(curve)..sort((a, b) => a.duration.compareTo(b.duration));
+    final sorted = List<PDCPoint>.from(curve)..sort((a, b) => a.durationSeconds.compareTo(b.durationSeconds));
     
     PDCPoint? prev;
     PDCPoint? next;
     
     for (var p in sorted) {
-      if (p.duration < duration) {
+      if (p.durationSeconds < duration) {
         prev = p;
-      } else if (p.duration > duration) {
+      } else if (p.durationSeconds > duration) {
         next = p;
         break;
       }
@@ -187,14 +187,14 @@ class PowerProfileScreen extends StatelessWidget {
     
     if (prev != null && next != null) {
       final logD = math.log(duration);
-      final logPrev = math.log(prev.duration);
-      final logNext = math.log(next.duration);
+      final logPrev = math.log(prev.durationSeconds);
+      final logNext = math.log(next.durationSeconds);
       final ratio = (logD - logPrev) / (logNext - logPrev);
-      return prev.watts + (next.watts - prev.watts) * ratio;
+      return prev.watt + (next.watt - prev.watt) * ratio;
     }
     
-    if (prev != null) return prev.watts;
-    if (next != null) return next.watts;
+    if (prev != null) return prev.watt;
+    if (next != null) return next.watt;
     return 0.0;
   }
 

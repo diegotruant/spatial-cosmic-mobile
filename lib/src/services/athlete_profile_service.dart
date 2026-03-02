@@ -171,7 +171,7 @@ class AthleteProfileService extends ChangeNotifier {
     try {
       final data = await _supabase
           .from('athletes')
-          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile, extra_data, time_available, discipline')
+          .select('ftp, cp, vo2max, vlamax, weight, height, dob, lean_mass, cert_expiry_date, body_fat, somatotype, athlete_level, gender, w_prime, metabolic_profile, metrics, extra_data, time_available, discipline')
           .eq('id', targetId)
           .maybeSingle();
 
@@ -259,7 +259,31 @@ class AthleteProfileService extends ChangeNotifier {
                 LogService.v('[AthleteProfile] Raw metabolic.estimatedFtp: ${metabolicRaw['estimatedFtp']}');
               }
               
+              // Inject power curve from metrics if available
+              if (data['metrics'] != null) {
+                try {
+                  dynamic metricsRaw = data['metrics'];
+                  Map<String, dynamic> metricsMap;
+                  
+                  if (metricsRaw is String) {
+                    metricsMap = jsonDecode(metricsRaw) as Map<String, dynamic>;
+                  } else if (metricsRaw is Map) {
+                    metricsMap = Map<String, dynamic>.from(metricsRaw);
+                  } else {
+                    metricsMap = {};
+                  }
+
+                  if (metricsMap.containsKey('powerCurve') && metricsMap['powerCurve'] is List) {
+                    mpMap['pdc_curve'] = metricsMap['powerCurve'];
+                    LogService.d('[AthleteProfile] Injected powerCurve from metrics into metabolic_profile. Length: ${(metricsMap['powerCurve'] as List).length}');
+                  }
+                } catch (e) {
+                  LogService.w('[AthleteProfile] Error injecting metrics powerCurve: $e');
+                }
+              }
+              
               final mp = MetabolicProfile.fromJson(mpMap);
+              LogService.d('[AthleteProfile] Parsed MetabolicProfile. pdcCurve length: ${mp.pdcCurve.length}');
               _lastCalculatedProfile = mp;
               
               // Allinea SEMPRE i valori chiave al profilo metabolico (stessa sorgente della webapp)
@@ -326,6 +350,38 @@ class AthleteProfileService extends ChangeNotifier {
         } else {
           LogService.w('[AthleteProfile] ⚠️ No metabolic_profile found. Using legacy values: FTP=$_ftp, VLamax=$_vlamax');
           LogService.i('[AthleteProfile] Athlete type from legacy values: ${_categorizeAthlete()}');
+          
+          // Fallback: If no metabolic_profile, but we have metrics powerCurve, create a dummy profile so the UI works
+          if (data['metrics'] != null) {
+            try {
+              dynamic metricsRaw = data['metrics'];
+              Map<String, dynamic> metricsMap;
+              if (metricsRaw is String) {
+                metricsMap = jsonDecode(metricsRaw) as Map<String, dynamic>;
+              } else if (metricsRaw is Map) {
+                metricsMap = Map<String, dynamic>.from(metricsRaw);
+              } else {
+                metricsMap = {};
+              }
+
+              if (metricsMap.containsKey('powerCurve') && metricsMap['powerCurve'] is List) {
+                final curveList = metricsMap['powerCurve'] as List;
+                LogService.d('[AthleteProfile] Extracted powerCurve for fallback profile. Length: ${curveList.length}');
+                
+                _lastCalculatedProfile = MetabolicProfile(
+                  vlamax: _vlamax ?? 0.0,
+                  map: _ftp ?? 0.0,
+                  vo2max: _vo2max ?? 0.0,
+                  metabolic: MetabolicStats(estimatedFtp: _ftp ?? 0.0, fatMaxWatt: 0, carbRateAtFtp: 0),
+                  zones: [],
+                  combustionCurve: [],
+                  pdcCurve: curveList.map((p) => PDCPoint.fromJson(Map<String, dynamic>.from(p))).toList(),
+                );
+              }
+            } catch (e) {
+              LogService.w('[AthleteProfile] Error creating fallback profile from metrics: $e');
+            }
+          }
         }
         
         notifyListeners();
