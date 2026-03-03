@@ -47,3 +47,33 @@ app.*.map.json
 # Large ZIPs
 flutter_sdk.zip
 .env
+
+# Debug/analysis output (flutter analyze, build logs, lint reports)
+analyze_*.txt
+analysis*.txt
+analysis*.log
+lint_report*.txt
+build_*.txt
+build_*.log
+build.log
+debug_log*.txt
+final_debug_log*.txt
+final_log*.txt
+doctor_report*.txt
+errors.txt
+
+# Debug Dart scripts (repair tools, dumps, test utilities)
+complete_dump.dart
+deep_analysis.dart
+extract_record_def.dart
+fit_pro_repair.dart
+full_original_dump.dart
+reencode_working.dart
+tcx_*.dart
+test_db.dart
+
+# Temporary test files
+test_correct_encoding.fit
+remove-token-from-history.ps1
+TEST_BLOCCO_HRV.md
+analysis_results.txt

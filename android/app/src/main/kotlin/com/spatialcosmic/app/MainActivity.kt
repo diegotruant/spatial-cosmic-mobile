@@ -170,14 +170,17 @@ class MainActivity: FlutterActivity() {
         // FIT `hrv` message message expects arrays of times in seconds.
         if (rrIntervals != null) {
             for (rrMap in rrIntervals) {
-                 val rrList = rrMap["rr"] as? List<Int>
-                 if (rrList != null && rrList.isNotEmpty()) {
+                 val rawRrList = rrMap["rr"] as? List<*>
+                 val rrList = rawRrList
+                     ?.mapNotNull { (it as? Number)?.toInt() }
+                     ?.filter { it > 0 && it < 60000 }
+                     ?: emptyList()
+
+                 if (rrList.isNotEmpty()) {
                      val hrvMesg = HrvMesg()
                      for (i in rrList.indices) {
                          // Input is typically ms (e.g. 800), FIT expects seconds (e.g. 0.8)
-                         if (rrList[i] != null) {
-                            hrvMesg.setTime(i, rrList[i] / 1000.0f)
-                         }
+                         hrvMesg.setTime(i, rrList[i] / 1000.0f)
                      }
                      encoder.write(hrvMesg)
                  }
